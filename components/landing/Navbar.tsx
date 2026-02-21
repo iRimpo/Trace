@@ -1,74 +1,67 @@
 "use client";
 
-import { motion, useScroll, useTransform, useMotionValueEvent } from "framer-motion";
-import { useState } from "react";
+import { motion } from "framer-motion";
+import { FaCube, FaArrowRight } from "react-icons/fa";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
-  const { scrollY } = useScroll();
-  const [scrolled, setScrolled] = useState(false);
-
-  useMotionValueEvent(scrollY, "change", (latest) => {
-    setScrolled(latest > 50);
-  });
-
-  const paddingX = useTransform(scrollY, [0, 100], [24, 6]);
-  const paddingY = useTransform(scrollY, [0, 100], [10, 4]);
+  const { user, loading } = useAuth();
 
   return (
-    <div className="fixed left-0 right-0 top-0 z-50 flex justify-center px-4 pt-4">
-      <motion.nav
-        initial={{ opacity: 0, y: -20, scale: 0.9 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.7, delay: 0.1, ease: [0.075, 0.82, 0.165, 1] }}
-        style={{ paddingLeft: paddingX, paddingRight: paddingX, paddingTop: paddingY, paddingBottom: paddingY }}
-        className={`flex items-center gap-1 rounded-[22px] transition-all duration-500 ${
-          scrolled
-            ? "bg-brand-dark/90 shadow-2xl shadow-black/20 backdrop-blur-2xl"
-            : "bg-brand-dark/80 shadow-xl shadow-black/10 backdrop-blur-xl"
-        }`}
-      >
-        {/* Liquid glass border effect */}
-        <div className="pointer-events-none absolute inset-0 rounded-[22px] border border-white/[0.08]" />
-        <div className="pointer-events-none absolute inset-[1px] rounded-[21px] border border-white/[0.04]" />
-
-        {/* Inner glow */}
-        <div className="pointer-events-none absolute inset-0 rounded-[22px] bg-gradient-to-b from-white/[0.08] to-transparent" style={{ height: "50%" }} />
-
+    <motion.nav
+      initial={{ opacity: 0, y: -16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: [0.075, 0.82, 0.165, 1] }}
+      className="absolute left-0 top-0 z-50 w-full px-6 py-5 lg:px-12"
+    >
+      <div className="mx-auto flex max-w-7xl items-center justify-between">
         {/* Logo */}
-        <a
-          href="#"
-          className="relative z-10 px-3 py-1.5 text-sm font-bold tracking-tight text-white transition-opacity duration-200 hover:opacity-70"
-        >
-          Trace<span className="text-brand-purple">.</span>
+        <a href="/" className="flex items-center gap-2 group">
+          <motion.div
+            whileHover={{ rotate: 15, scale: 1.1 }}
+            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+          >
+            <FaCube className="text-brand-primary text-xl" />
+          </motion.div>
+          <span className="font-logo font-semibold text-2xl text-brand-dark tracking-tight">
+            Trace.
+          </span>
         </a>
 
-        {/* Separator dot */}
-        <div className="relative z-10 h-1 w-1 rounded-full bg-white/20" />
-
         {/* Nav links */}
-        <div className="relative z-10 hidden items-center gap-0.5 sm:flex">
-          {["How it works", "Features"].map((label) => (
+        <div className="hidden items-center gap-8 md:flex">
+          {[
+            { label: "How it works", href: "#how-it-works" },
+            { label: "Features",     href: "#features"     },
+            { label: "Waitlist",     href: "#waitlist"     },
+          ].map(({ label, href }) => (
             <a
               key={label}
-              href={`#${label.toLowerCase().replace(/ /g, "-")}`}
-              className="rounded-full px-3 py-1.5 text-xs text-white/50 transition-all duration-300 hover:bg-white/[0.08] hover:text-white"
+              href={href}
+              className="text-sm text-brand-dark/50 hover:text-brand-dark transition-colors duration-200"
             >
               {label}
             </a>
           ))}
         </div>
 
-        {/* Separator dot */}
-        <div className="relative z-10 h-1 w-1 rounded-full bg-white/20" />
-
         {/* CTA */}
-        <a
-          href="#waitlist"
-          className="relative z-10 rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-brand-dark transition-all duration-300 hover:bg-brand-purple hover:text-white"
-        >
-          Join Waitlist
-        </a>
-      </motion.nav>
-    </div>
+        {!loading && (
+          <a
+            href={user ? "/dashboard" : "#waitlist"}
+            className="group relative flex items-center overflow-hidden rounded-full bg-brand-dark p-[2px] shadow-lg shadow-brand-primary/20"
+          >
+            {/* Ink-flood circle */}
+            <div className="absolute left-2 h-7 w-7 rounded-full bg-brand-primary transition-transform duration-[1200ms] ease-out group-hover:scale-[35]" />
+            <span className="relative z-10 pl-10 pr-4 py-2 text-sm font-noname font-semibold text-white transition-colors duration-[900ms] group-hover:text-white">
+              {user ? "Dashboard" : "Join Waitlist"}
+            </span>
+            <div className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full bg-brand-primary text-white mr-0.5">
+              <FaArrowRight className="text-[10px]" />
+            </div>
+          </a>
+        )}
+      </div>
+    </motion.nav>
   );
 }

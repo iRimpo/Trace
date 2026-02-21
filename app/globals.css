@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #1d1d1d;
+  --background: #f8f9ff;
+  --foreground: #0f0f14;
 }
 
 body {
@@ -18,8 +18,26 @@ html {
 
 /* Selection color */
 ::selection {
-  background: #b1abf4;
-  color: #1d1d1d;
+  background: #1447E6;
+  color: #ffffff;
+}
+
+/* Grid dot pattern for hero */
+.bg-grid-pattern {
+  background-image: radial-gradient(circle, #c7d2fe 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+
+/* Mesh gradient blob */
+.blob {
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.35;
+}
+
+/* Marquee hover pause */
+.animate-marquee:hover {
+  animation-play-state: paused;
 }
 
 /* Reduced motion */
