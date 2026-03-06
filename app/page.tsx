@@ -1,23 +1,23 @@
 import Navbar from "@/components/landing/Navbar";
 import Hero from "@/components/landing/Hero";
-import LogoCloud from "@/components/landing/LogoCloud";
+import MeetTrace from "@/components/landing/MeetTrace";
 import HowItWorks from "@/components/landing/HowItWorks";
-import Problem from "@/components/landing/Problem";
 import Features from "@/components/landing/Features";
 import Waitlist from "@/components/landing/Waitlist";
 import Footer from "@/components/landing/Footer";
+import FloatingCTA from "@/components/landing/FloatingCTA";
 
 export default function Home() {
   return (
-    <main>
+    <main className="bg-white text-[#1a0f00] overflow-x-hidden">
       <Navbar />
       <Hero />
-      <LogoCloud />
+      <MeetTrace />
       <HowItWorks />
-      <Problem />
       <Features />
       <Waitlist />
       <Footer />
+      <FloatingCTA />
     </main>
   );
 }

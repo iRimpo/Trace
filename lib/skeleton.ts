@@ -1,4 +1,5 @@
 import { Keypoint } from "./mediapipe";
+import { REGION_CAPSULES, REGION_ORDER } from "./ghost";
 
 // BlazePose 33-keypoint body connections (skip face details)
 const BODY_CONNECTIONS: [number, number][] = [
@@ -156,4 +157,165 @@ export function syncCanvasSize(
     canvas.width = w;
     canvas.height = h;
   }
+}
+
+// ── Ghost silhouette ─────────────────────────────────────────────────
+
+/**
+ * Draw a filled pill-shape (capsule) between two points.
+ * Uses two semicircles connected by straight sides for a smooth neon tube.
+ */
+function drawCapsule(
+  ctx: CanvasRenderingContext2D,
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  radius: number
+) {
+  const angle = Math.atan2(by - ay, bx - ax);
+  const cosP = Math.cos(angle + Math.PI / 2) * radius;
+  const sinP = Math.sin(angle + Math.PI / 2) * radius;
+
+  ctx.beginPath();
+  ctx.moveTo(ax + cosP, ay + sinP);
+  ctx.lineTo(bx + cosP, by + sinP);
+  // Far semicircle at B (counterclockwise on screen, sweeps the far side from A)
+  ctx.arc(bx, by, radius, angle + Math.PI / 2, angle - Math.PI / 2, true);
+  ctx.lineTo(ax - cosP, ay - sinP);
+  // Far semicircle at A (counterclockwise on screen, sweeps the far side from B)
+  ctx.arc(ax, ay, radius, angle - Math.PI / 2, angle + Math.PI / 2, true);
+  ctx.closePath();
+  ctx.fill();
+}
+
+export interface GhostSilhouetteStyle {
+  opacity: number;
+  regionColors: Record<string, string>;
+  minConfidence: number;
+  glowPasses: number; // 1-3, default 2
+}
+
+/**
+ * Draw a filled glowing silhouette of the pose using capsule primitives.
+ * Each body region is independently colored for per-region feedback.
+ * Uses multi-pass shadowBlur for a neon bloom effect.
+ */
+export function drawGhostSilhouette(
+  ctx: CanvasRenderingContext2D,
+  keypoints: Keypoint[],
+  style: GhostSilhouetteStyle
+) {
+  const { opacity, regionColors, minConfidence, glowPasses } = style;
+
+  // Compute scale factor from torso length relative to 200px reference
+  const ls = keypoints[11]; // L_SHOULDER
+  const rs = keypoints[12]; // R_SHOULDER
+  const lh = keypoints[23]; // L_HIP
+  const rh = keypoints[24]; // R_HIP
+
+  let scaleFactor = 1;
+  if (ls && rs && lh && rh) {
+    const shoulderMidX = (ls.x + rs.x) / 2;
+    const shoulderMidY = (ls.y + rs.y) / 2;
+    const hipMidX = (lh.x + rh.x) / 2;
+    const hipMidY = (lh.y + rh.y) / 2;
+    const torso = Math.hypot(shoulderMidX - hipMidX, shoulderMidY - hipMidY);
+    scaleFactor = Math.max(0.5, Math.min(2.0, torso / 200));
+  }
+
+  // Cap glow passes on large canvases to protect performance
+  const effectivePasses = ctx.canvas.width > 1920 ? 1 : glowPasses;
+
+  ctx.save();
+  ctx.globalAlpha = opacity;
+
+  for (const region of REGION_ORDER) {
+    const color = regionColors[region] ?? "#EC4899";
+
+    if (region === "head") {
+      // Head: draw ellipse centered near nose, sized from ear-to-ear
+      const nose = keypoints[0];
+      if (!nose || (nose.score ?? 0) < Math.min(minConfidence, 0.2)) continue;
+
+      const leftEar = keypoints[7];
+      const rightEar = keypoints[8];
+      let radius = 28 * scaleFactor;
+      if (
+        leftEar &&
+        rightEar &&
+        (leftEar.score ?? 0) >= Math.min(minConfidence, 0.2) &&
+        (rightEar.score ?? 0) >= Math.min(minConfidence, 0.2)
+      ) {
+        radius = Math.hypot(
+          leftEar.x - rightEar.x,
+          leftEar.y - rightEar.y
+        ) * 0.6;
+      }
+
+      const cx = nose.x;
+      const cy = nose.y - radius * 0.3;
+
+      ctx.fillStyle = color;
+
+      // Glow passes
+      for (let pass = 0; pass < effectivePasses; pass++) {
+        ctx.save();
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 16 + pass * 18;
+        ctx.translate(cx, cy);
+        ctx.scale(1, 1.2);
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Solid core (no blur, slightly smaller)
+      ctx.save();
+      ctx.shadowBlur = 0;
+      ctx.translate(cx, cy);
+      ctx.scale(1, 1.2);
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      continue;
+    }
+
+    const capsules = REGION_CAPSULES[region];
+    ctx.fillStyle = color;
+
+    for (const [ai, bi, halfWidth] of capsules) {
+      const a = keypoints[ai];
+      const b = keypoints[bi];
+      if (
+        !a ||
+        !b ||
+        (a.score ?? 0) < minConfidence ||
+        (b.score ?? 0) < minConfidence
+      )
+        continue;
+
+      const radius = halfWidth * scaleFactor;
+
+      // Glow passes (outer bloom)
+      for (let pass = 0; pass < effectivePasses; pass++) {
+        ctx.save();
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 16 + pass * 18;
+        drawCapsule(ctx, a.x, a.y, b.x, b.y, radius);
+        ctx.restore();
+      }
+
+      // Solid core (no blur, slightly smaller for bright center)
+      ctx.save();
+      ctx.shadowBlur = 0;
+      drawCapsule(ctx, a.x, a.y, b.x, b.y, radius * 0.7);
+      ctx.restore();
+    }
+  }
+
+  ctx.restore();
 }

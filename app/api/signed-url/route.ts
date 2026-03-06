@@ -32,21 +32,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { path } = (await req.json()) as { path?: string };
+    const body = (await req.json()) as { path?: string };
+    const rawPath = body.path?.trim();
 
-    if (!path) {
+    if (!rawPath) {
       return NextResponse.json({ error: "No path provided" }, { status: 400 });
     }
 
-    // Ensure the user can only access their own files
+    if (rawPath.includes("..")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const userId = session.user.id;
-    if (!path.startsWith(`${userId}/`)) {
+    if (!rawPath.startsWith(`${userId}/`)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const normalized = rawPath.split("/").filter(Boolean).join("/");
+    if (!normalized.startsWith(userId)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { data, error } = await supabase.storage
       .from("dance-videos")
-      .createSignedUrl(path, 60 * 60); // 1 hour expiry
+      .createSignedUrl(normalized, 60 * 60); // 1 hour expiry
 
     if (error || !data?.signedUrl) {
       return NextResponse.json(

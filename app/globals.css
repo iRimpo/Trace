@@ -3,8 +3,10 @@
 @tailwind utilities;
 
 :root {
-  --background: #f8f9ff;
-  --foreground: #0f0f14;
+  --background: #ffffff;
+  --foreground: #1a0f00;
+  --accent: #080808;
+  --cream: #f8f4e0;
 }
 
 body {
@@ -16,31 +18,90 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Selection color */
 ::selection {
-  background: #1447E6;
+  background: #A78BFA;
   color: #ffffff;
 }
 
-/* Grid dot pattern for hero */
+/* Light dot grid for light sections */
 .bg-grid-pattern {
-  background-image: radial-gradient(circle, #c7d2fe 1px, transparent 1px);
-  background-size: 36px 36px;
+  background-image: radial-gradient(circle, rgba(26,15,0,0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
-/* Mesh gradient blob */
+/* Checkered stripe — dark / light for hero */
+.checkered-dark {
+  background-image: repeating-conic-gradient(#181818 0% 25%, #080808 0% 50%);
+  background-size: 20px 20px;
+}
+
+/* Checkered stripe — dark brown / cream (bottom of white section) */
+.checkered-brown {
+  background-image: repeating-conic-gradient(#3d2101 0% 25%, #f8f4e0 0% 50%);
+  background-size: 20px 20px;
+}
+
 .blob {
   border-radius: 9999px;
   filter: blur(80px);
-  opacity: 0.35;
 }
 
-/* Marquee hover pause */
 .animate-marquee:hover {
   animation-play-state: paused;
 }
 
-/* Reduced motion */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+.text-shimmer {
+  background: linear-gradient(
+    90deg,
+    #00D4FF 0%,
+    #34D399 14%,
+    #FBBF24 28%,
+    #F97316 42%,
+    #A78BFA 57%,
+    #60A5FA 71%,
+    #F472B6 85%,
+    #00D4FF 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 4s linear infinite;
+}
+
+/* Row of 7 cue-color dots */
+.cue-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.cue-dots::before { content: ""; }
+.cue-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  display: inline-block;
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50%       { transform: translateY(-14px) rotate(1.5deg); }
+}
+
+.animate-float-slow { animation: float-slow 7s ease-in-out infinite; }
+
+@keyframes float-reverse {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50%       { transform: translateY(10px) rotate(-1deg); }
+}
+
+.animate-float-reverse { animation: float-reverse 8s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

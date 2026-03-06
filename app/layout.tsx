@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
-import { Inter, Space_Mono, Outfit, DM_Sans, Plus_Jakarta_Sans, Raleway } from "next/font/google";
+import { Suspense } from "react";
+import { Inter, Space_Mono, Outfit, DM_Sans, Plus_Jakarta_Sans, Raleway, Calistoga } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
+import PostHogProvider from "@/components/PostHogProvider";
+import ActivationGuard from "@/components/ActivationGuard";
 import "./globals.css";
 
 const inter = Inter({
@@ -34,6 +37,12 @@ const raleway = Raleway({
   variable: "--font-raleway",
 });
 
+const calistoga = Calistoga({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-calistoga",
+});
+
 export const metadata: Metadata = {
   title: "Trace — Stop Guessing Why Your Moves Don't Look Right",
   description:
@@ -48,7 +57,7 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "Trace — AI-Powered Dance Analysis",
+    title: "Trace",
     description:
       "Stop guessing why your moves don't look right. Trace uses AI to compare your movement to a reference dancer, frame by frame.",
     type: "website",
@@ -63,9 +72,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${spaceMono.variable} ${outfit.variable} ${dmSans.variable} ${plusJakarta.variable} ${raleway.variable} font-sans antialiased`}
+        className={`${inter.variable} ${spaceMono.variable} ${outfit.variable} ${dmSans.variable} ${plusJakarta.variable} ${raleway.variable} ${calistoga.variable} font-sans antialiased`}
       >
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <ActivationGuard>
+            <Suspense fallback={null}>
+              <PostHogProvider>{children}</PostHogProvider>
+            </Suspense>
+          </ActivationGuard>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -1,28 +1,38 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { FaArrowRight, FaCheckCircle, FaLock } from "react-icons/fa";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+
+const CUE_COLORS = ["#00D4FF", "#34D399", "#FBBF24", "#F97316", "#A78BFA", "#60A5FA", "#F472B6"];
 
 export default function Waitlist() {
-  const [email, setEmail] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const router = useRouter();
+  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    const trimmed = code.trim().toUpperCase();
+    if (!trimmed) {
+      setError("Please enter your invite code.");
+      return;
+    }
     setLoading(true);
     setError("");
-
     try {
-      const res = await fetch("/api/waitlist", {
+      const res = await fetch("/api/activation/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ code: trimmed }),
       });
-      if (!res.ok) throw new Error();
-      setSubmitted(true);
+      const data = await res.json();
+      if (data.valid) {
+        router.push(`/signup?code=${encodeURIComponent(trimmed)}`);
+        return;
+      }
+      setError(data.error || "Invalid or expired code. Try KOSMOS, AFX, or PCN50.");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -31,109 +41,102 @@ export default function Waitlist() {
   }
 
   return (
-    <section id="waitlist" className="relative overflow-hidden bg-brand-dark px-8 py-24 sm:py-32 lg:px-16">
-      {/* Animated gradient blobs */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], x: [0, 30, 0], y: [0, -20, 0] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-          className="blob absolute -top-20 left-1/4 h-[500px] w-[500px] bg-brand-primary opacity-20"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.15, 1], x: [0, -25, 0], y: [0, 25, 0] }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="blob absolute -bottom-20 right-1/4 h-[400px] w-[400px] bg-brand-accent opacity-15"
-        />
-      </div>
+    <>
+      {/* Checkered divider white to dark */}
+      <div className="h-7 w-full" style={{
+        backgroundImage: "repeating-conic-gradient(#ffffff 0% 25%, #080808 0% 50%)",
+        backgroundSize: "20px 20px",
+      }} />
 
-      {/* Grid dots */}
-      <div className="pointer-events-none absolute inset-0 bg-grid-pattern opacity-10" />
+      <section
+        id="waitlist"
+        className="relative overflow-hidden bg-[#080808] px-6 py-32 lg:px-10"
+        style={{ minHeight: "680px" }}
+      >
+        {/* Cue-colored floating dots */}
+        <div className="pointer-events-none absolute inset-0">
+          {CUE_COLORS.map((c, i) => (
+            <motion.div
+              key={i}
+              animate={{
+                y: [0, -20 + i * 4, 0],
+                x: [0, (i % 2 ? 8 : -8), 0],
+              }}
+              transition={{ duration: 6 + i, repeat: Infinity, ease: "easeInOut", delay: i * 0.3 }}
+              className="absolute rounded-full"
+              style={{
+                width: 10 + i * 4,
+                height: 10 + i * 4,
+                top: `${10 + i * 12}%`,
+                left: `${5 + i * 13}%`,
+                backgroundColor: c,
+                opacity: 0.15,
+                boxShadow: `0 0 20px ${c}40`,
+              }}
+            />
+          ))}
+        </div>
 
-      <div className="relative mx-auto max-w-2xl text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-        >
-          <span className="font-mono text-xs font-bold tracking-widest text-brand-primary/80 uppercase">
-            Early Access
-          </span>
-          <h2 className="mt-3 font-hero font-bold text-4xl lg:text-5xl text-white tracking-tight">
-            Ready to actually improve?
-          </h2>
-          <p className="mt-4 text-white/40 text-lg">
-            Join the waitlist. First access goes to the most eager dancers.
-          </p>
-        </motion.div>
+        {/* Floating form card */}
+        <div className="relative mx-auto max-w-xl">
+          <motion.div
+            initial={{ opacity: 0, y: 32 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <h2 className="mb-8 text-center font-calistoga text-[clamp(2.5rem,5vw,4rem)] leading-tight text-white">
+              Ready to Actually<br />Improve?
+            </h2>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, delay: 0.15 }}
-          className="mt-10"
-        >
-          <AnimatePresence mode="wait">
-            {submitted ? (
-              <motion.div
-                key="success"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, ease: "backOut" }}
-                className="rounded-3xl border border-brand-primary/30 bg-brand-primary/10 p-12"
-              >
-                <FaCheckCircle className="mx-auto text-4xl text-brand-primary mb-4" />
-                <p className="text-xl font-bold text-white">You&apos;re on the list!</p>
-                <p className="mt-2 text-sm text-white/40">
-                  We&apos;ll reach out soon. Keep dancing.
-                </p>
-              </motion.div>
-            ) : (
+            {/* Cue color dots row */}
+            <div className="mb-6 flex items-center justify-center gap-2">
+              {CUE_COLORS.map((c, i) => (
+                <div key={i} className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: c, boxShadow: `0 0 6px ${c}40` }} />
+              ))}
+            </div>
+
+            {/* Card */}
+            <div className="rounded-3xl bg-[#f8f4e0] p-8 shadow-2xl">
               <motion.form
-                key="form"
                 onSubmit={handleSubmit}
-                exit={{ opacity: 0, y: -16 }}
-                transition={{ duration: 0.3 }}
+                className="space-y-5"
               >
-                <div className="flex flex-col gap-3 sm:flex-row">
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-[#1a0f00]">
+                    Invite code<span className="text-[#F97316]">*</span>
+                  </label>
                   <input
-                    type="email"
+                    type="text"
                     required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@email.com"
-                    className="flex-1 rounded-xl border border-white/10 bg-white/8 px-5 py-4 text-white placeholder-white/25 outline-none backdrop-blur-sm transition-all duration-200 focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/20"
+                    value={code}
+                    onChange={e => setCode(e.target.value)}
+                    placeholder="e.g. KOSMOS, AFX, PCN50"
+                    className="w-full rounded-xl border border-[#1a0f00]/15 bg-white px-4 py-3 text-sm text-[#1a0f00] placeholder-[#1a0f00]/30 outline-none transition-all focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
                   />
-                  {/* Pill submit */}
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="group relative flex items-center overflow-hidden rounded-full bg-white p-[2px] shadow-lg disabled:opacity-50"
-                  >
-                    <div className="absolute left-2 h-8 w-8 rounded-full bg-brand-primary transition-transform duration-[1200ms] ease-out group-hover:scale-[25]" />
-                    <span className="relative z-10 pl-12 pr-4 py-2.5 text-sm font-noname font-semibold text-brand-dark transition-colors duration-[900ms] group-hover:text-white whitespace-nowrap">
-                      {loading ? "Joining..." : "Join Waitlist"}
-                    </span>
-                    <div className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary text-white mr-0.5">
-                      <FaArrowRight className="text-xs" />
-                    </div>
-                  </button>
                 </div>
 
-                {error && (
-                  <p className="mt-3 text-xs text-brand-accent">{error}</p>
-                )}
+                {error && <p className="text-xs text-red-600">{error}</p>}
 
-                <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-white/25">
-                  <FaLock className="text-[10px]" />
-                  No spam, ever. Unsubscribe anytime.
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-xl bg-[#080808] py-3.5 text-sm font-bold text-white shadow-lg transition-all duration-200 hover:bg-[#1a1a1a] active:scale-[0.98] disabled:opacity-50"
+                >
+                  {loading ? "Checking..." : "Continue to Sign up →"}
+                </button>
+
+                <p className="text-center text-xs text-[#5c3d1a]/40">
+                  Private beta. Enter your invite code to create an account.
                 </p>
               </motion.form>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      </div>
-    </section>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Checkered bottom divider */}
+      <div className="h-7 w-full checkered-dark" />
+    </>
   );
 }

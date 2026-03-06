@@ -2,58 +2,71 @@
 
 import { motion } from "framer-motion";
 import Marquee from "@/components/ui/Marquee";
-import {
-  FaTiktok, FaYoutube, FaInstagram,
-  FaSpotify, FaSoundcloud, FaApple,
-} from "react-icons/fa";
+import { FaTiktok, FaYoutube, FaInstagram, FaSpotify, FaSoundcloud, FaApple } from "react-icons/fa";
 
 const platforms = [
-  { icon: FaTiktok,     label: "TikTok"       },
-  { icon: FaYoutube,    label: "YouTube"      },
-  { icon: FaInstagram,  label: "Instagram"    },
-  { icon: FaApple,      label: "Apple Music"  },
-  { icon: FaSpotify,    label: "Spotify"      },
-  { icon: FaSoundcloud, label: "SoundCloud"   },
+  { icon: FaTiktok,     label: "TikTok"      },
+  { icon: FaYoutube,    label: "YouTube"     },
+  { icon: FaInstagram,  label: "Instagram"   },
+  { icon: FaApple,      label: "Apple Music" },
+  { icon: FaSpotify,    label: "Spotify"     },
+  { icon: FaSoundcloud, label: "SoundCloud"  },
+];
+
+const SOCIAL_PROOF = [
+  { value: "500+",  label: "dancers on waitlist" },
+  { value: "4.9★",  label: "average rating"       },
+  { value: "Free",  label: "during beta"           },
 ];
 
 export default function LogoCloud() {
   return (
-    <motion.div
+    <motion.section
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
       viewport={{ once: true }}
       transition={{ duration: 0.7 }}
-      className="border-y border-brand-primary/8 bg-white py-12 overflow-hidden"
+      className="border-y border-white/[0.04] bg-[#0a0a14] py-14 overflow-hidden"
     >
-      <div className="mb-8 text-center">
-        <span className="font-mono text-[11px] tracking-[0.25em] text-brand-dark/30 uppercase">
-          Inspired by platforms dancers love
-        </span>
+      {/* Social proof stats */}
+      <div className="mb-10 flex items-center justify-center gap-8 lg:gap-16 px-6">
+        {SOCIAL_PROOF.map((s, i) => (
+          <div key={i} className="flex flex-col items-center gap-0.5">
+            <span className="font-hero text-xl font-bold text-white">{s.value}</span>
+            <span className="text-[11px] text-white/25">{s.label}</span>
+          </div>
+        ))}
       </div>
 
+      {/* Divider */}
+      <div className="mb-8 flex items-center justify-center gap-4 px-8">
+        <div className="h-px flex-1 max-w-xs bg-white/[0.04]" />
+        <span className="text-[10px] font-mono uppercase tracking-widest text-white/20">
+          Inspired by platforms dancers love
+        </span>
+        <div className="h-px flex-1 max-w-xs bg-white/[0.04]" />
+      </div>
+
+      {/* Marquee */}
       <div
         className="relative"
         style={{
-          maskImage:
-            "linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)",
-          WebkitMaskImage:
-            "linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)",
+          maskImage: "linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)",
         }}
       >
         <Marquee speed={28}>
           {platforms.map(({ icon: Icon, label }) => (
             <div
               key={label}
-              className="flex items-center gap-2.5 px-8 text-brand-dark/25 hover:text-brand-primary transition-colors duration-300 cursor-default select-none"
+              className="flex items-center gap-2.5 px-8 text-white/20 hover:text-white/50 transition-colors duration-300 cursor-default select-none"
             >
               <Icon className="text-xl" />
-              <span className="font-helvetica text-sm font-semibold tracking-wide">
-                {label}
-              </span>
+              <span className="font-medium text-sm tracking-wide">{label}</span>
             </div>
           ))}
         </Marquee>
       </div>
-    </motion.div>
+    </motion.section>
   );
 }

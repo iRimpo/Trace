@@ -1,7 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import { FaLock, FaCheck } from "react-icons/fa";
+import { motion } from "framer-motion";
 
 export type TabId = "trace" | "test" | "sync";
 
@@ -41,120 +40,51 @@ function getTabState(
 
 export default function TabNavigation({ currentTab, onTabChange, completedTabs }: TabNavigationProps) {
   return (
-    <div className="w-full">
-      <div className="grid grid-cols-3 gap-3">
-        {TABS.map((tab) => {
-          const state = getTabState(tab.id, currentTab, completedTabs);
-          const isClickable = state !== "locked";
+    <div className="flex items-center gap-1 rounded-full bg-white/90 p-1 backdrop-blur-xl border border-[#1a0f00]/10 shadow-sm">
+      {TABS.map((tab) => {
+        const state = getTabState(tab.id, currentTab, completedTabs);
+        const isClickable = state !== "locked";
 
-          return (
-            <button
-              key={tab.id}
-              onClick={() => isClickable && onTabChange(tab.id)}
-              disabled={!isClickable}
-              aria-label={
-                state === "locked"
-                  ? `${tab.label} — locked, complete previous step first`
-                  : state === "completed"
-                    ? `${tab.label} — completed`
-                    : tab.label
-              }
-              className={`group relative overflow-hidden rounded-2xl border px-4 py-5 text-center transition-all duration-300 sm:px-6 sm:py-7 ${
-                state === "active"
-                  ? "border-brand-primary/30 bg-gradient-to-br from-brand-primary to-blue-500 shadow-xl shadow-brand-primary/25"
-                  : state === "completed"
-                    ? "cursor-pointer border-emerald-400/25 bg-emerald-50 hover:border-emerald-400/40"
-                    : state === "available"
-                      ? "cursor-pointer border-brand-primary/10 bg-white hover:border-brand-primary/20 hover:bg-brand-bg"
-                      : "cursor-not-allowed border-brand-dark/[0.04] bg-brand-dark/[0.02]"
-              }`}
-            >
-              {/* Active glow */}
-              {state === "active" && (
-                <motion.div
-                  layoutId="tab-active-glow"
-                  className="absolute inset-0 rounded-2xl bg-gradient-to-br from-brand-primary to-blue-500"
-                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
-                />
-              )}
-
-              <div className="relative z-10">
-                <AnimatePresence mode="wait">
-                  {state === "completed" ? (
-                    <motion.div
-                      key="check"
-                      initial={{ scale: 0, rotate: -45 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      exit={{ scale: 0 }}
-                      transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                      className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400/20 sm:h-12 sm:w-12"
-                    >
-                      <FaCheck className="text-emerald-500 sm:text-lg" />
-                    </motion.div>
-                  ) : (
-                    <motion.p
-                      key="number"
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      className={`text-3xl font-bold tracking-tight sm:text-[2.5rem] ${
-                        state === "active"
-                          ? "text-white"
-                          : state === "locked"
-                            ? "text-brand-dark/10"
-                            : "text-brand-dark/15"
-                      }`}
-                    >
-                      {tab.number}
-                    </motion.p>
-                  )}
-                </AnimatePresence>
-
-                <p className={`mt-2 text-xs font-bold tracking-widest sm:text-sm ${
-                  state === "active"
-                    ? "text-white/90"
-                    : state === "completed"
-                      ? "text-emerald-500"
-                      : state === "locked"
-                        ? "text-brand-dark/15"
-                        : "text-brand-dark/30"
-                }`}>
-                  {tab.label}
-                </p>
-              </div>
-
-              {/* Lock icon */}
-              {state === "locked" && (
-                <div className="absolute right-2.5 top-2.5 sm:right-3 sm:top-3">
-                  <FaLock className="text-brand-dark/10 text-xs" />
-                </div>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Progress bar */}
-      <div className="mx-auto mt-4 flex max-w-xs items-center gap-1">
-        {TAB_ORDER.map((tabId, i) => (
-          <div key={tabId} className="flex flex-1 items-center gap-1">
-            <motion.div
-              className={`h-1 flex-1 rounded-full transition-colors duration-500 ${
-                completedTabs.includes(tabId)
-                  ? "bg-emerald-400"
-                  : tabId === currentTab
-                    ? "bg-brand-primary"
-                    : "bg-brand-dark/[0.06]"
-              }`}
-            />
-            {i < TAB_ORDER.length - 1 && (
-              <div className={`h-1 w-1 flex-shrink-0 rounded-full transition-colors duration-500 ${
-                completedTabs.includes(tabId) ? "bg-emerald-400" : "bg-brand-dark/[0.06]"
-              }`} />
+        return (
+          <button
+            key={tab.id}
+            onClick={() => isClickable && onTabChange(tab.id)}
+            disabled={!isClickable}
+            className={`relative flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[11px] font-bold tracking-wider transition-all ${
+              state === "active"
+                ? "text-white"
+                : state === "completed"
+                  ? "cursor-pointer text-emerald-600 hover:text-emerald-500"
+                  : state === "available"
+                    ? "cursor-pointer text-[#1a0f00]/45 hover:text-[#1a0f00]/80"
+                    : "cursor-not-allowed text-[#1a0f00]/20"
+            }`}
+          >
+            {state === "active" && (
+              <motion.div
+                layoutId="tab-pill"
+                className="absolute inset-0 rounded-full bg-[#080808]"
+                transition={{ type: "spring", stiffness: 400, damping: 35 }}
+              />
             )}
-          </div>
-        ))}
-      </div>
+            <span className="relative z-10 flex items-center gap-1.5">
+              {state === "completed" ? (
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              ) : (
+                <span className="text-[9px] opacity-60">{tab.number}</span>
+              )}
+              {tab.label}
+              {state === "locked" && (
+                <svg className="h-2.5 w-2.5 opacity-40" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM9 8V6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9z" />
+                </svg>
+              )}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }

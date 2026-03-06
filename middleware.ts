@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase-env";
 
-const publicRoutes = ["/", "/login", "/signup", "/forgot-password"];
+const publicRouteSet = new Set(["/", "/login", "/signup", "/forgot-password", "/auth/callback"]);
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
@@ -11,7 +11,7 @@ export async function middleware(req: NextRequest) {
 
   // Allow public routes and static assets
   if (
-    publicRoutes.includes(pathname) ||
+    publicRouteSet.has(pathname) ||
     pathname.startsWith("/api/") ||
     pathname.startsWith("/_next/") ||
     pathname.includes(".")
@@ -40,18 +40,18 @@ export async function middleware(req: NextRequest) {
   );
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // Redirect unauthenticated users to login
-  if (!session && (pathname.startsWith("/dashboard") || pathname.startsWith("/practice"))) {
+  if (!user && (pathname.startsWith("/dashboard") || pathname.startsWith("/practice"))) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   // Redirect authenticated users away from auth pages
-  if (session && (pathname === "/login" || pathname === "/signup")) {
+  if (user && (pathname === "/login" || pathname === "/signup")) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 

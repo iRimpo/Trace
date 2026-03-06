@@ -10,38 +10,43 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          primary: "#1447E6",   // vibrant electric blue
-          accent:  "#FF2D55",   // vibrant red
-          bg:      "#f8f9ff",   // cool-white tinted blue
-          purple:  "#b1abf4",
-          green:   "#a3de9b",
-          dark:    "#0f0f14",   // near-black with blue undertone
-          cream:   "#faf9f6",
+          primary: "#080808",
+          accent:  "#1a1a1a",
+          bg:      "#f8f4e0",
+          dark:    "#080808",
+          cream:   "#f8f4e0",
+          muted:   "#71717a",
+        },
+        cue: {
+          hand:     "#00D4FF",
+          foot:     "#34D399",
+          head:     "#FBBF24",
+          elbow:    "#F97316",
+          hip:      "#A78BFA",
+          shoulder: "#60A5FA",
+          arm:      "#F472B6",
         },
         trace: {
-          black: "#1A1A1A",
-          white: "#FFFFFF",
+          black: "#080808",
+          white: "#f8f4e0",
           gray: {
-            50: "#F9FAFB",
-            100: "#F3F4F6",
-            200: "#E5E7EB",
-            300: "#D1D5DB",
-            400: "#9CA3AF",
-            500: "#6B7280",
+            50:  "#fafafa",
+            100: "#f4f4f5",
+            200: "#e4e4e7",
+            300: "#d4d4d8",
+            400: "#a1a1aa",
+            500: "#71717a",
           },
-          blue: "#3B82F6",
-          red: "#EF4444",
-          yellow: "#FBBF24",
-          green: "#10B981",
         },
       },
       fontFamily: {
-        sans:      ["var(--font-inter)", "system-ui", "sans-serif"],
+        sans:      ["var(--font-dm-sans)", "var(--font-inter)", "system-ui", "sans-serif"],
         mono:      ["var(--font-mono)", "monospace"],
         logo:      ["var(--font-outfit)", "sans-serif"],
         hero:      ["var(--font-dm-sans)", "sans-serif"],
         noname:    ["var(--font-jakarta)", "sans-serif"],
         helvetica: ["var(--font-raleway)", "sans-serif"],
+        calistoga: ["var(--font-calistoga)", "serif"],
       },
       fontSize: {
         hero:    ["4rem",  { lineHeight: "1.1", fontWeight: "800" }],
@@ -53,10 +58,10 @@ const config: Config = {
         22: "5.5rem",
       },
       animation: {
-        "fade-in":  "fadeIn 0.6s ease-out forwards",
-        "slide-up": "slideUp 0.6s ease-out forwards",
-        marquee:    "marquee 30s linear infinite",
-        float:      "float 6s ease-in-out infinite",
+        "fade-in":    "fadeIn 0.6s ease-out forwards",
+        "slide-up":   "slideUp 0.6s ease-out forwards",
+        marquee:      "marquee 30s linear infinite",
+        float:        "float 6s ease-in-out infinite",
         "pulse-slow": "pulse 4s cubic-bezier(0.4,0,0.6,1) infinite",
       },
       keyframes: {

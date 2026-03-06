@@ -1,127 +1,186 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FaEye, FaVideo, FaChartLine } from "react-icons/fa";
 
-const steps = [
+const CARDS = [
   {
-    num: "01",
-    icon: FaEye,
-    color: "from-brand-primary to-blue-500",
-    glow: "shadow-brand-primary/25",
-    title: "TRACE",
-    description:
-      "Follow the AI skeleton overlay synced to a reference dancer. See exactly where your body should be, beat by beat.",
+    title: "Ghost Mirror",
+    desc: "Reference dancer overlaid on your feed",
+    accent: "#60A5FA",
+    rotate: -8,
+    icon: (
+      <svg width="40" height="60" viewBox="0 0 40 60" fill="none">
+        <circle cx="20" cy="8" r="6" fill="#FBBF24" opacity="0.9"/>
+        <rect x="13" y="16" width="14" height="20" rx="4" fill="#A78BFA" opacity="0.7"/>
+        <rect x="4" y="18" width="8" height="16" rx="4" fill="#F97316" opacity="0.5"/>
+        <rect x="28" y="18" width="8" height="16" rx="4" fill="#F97316" opacity="0.5"/>
+        <rect x="9" y="38" width="9" height="18" rx="4" fill="#34D399" opacity="0.6"/>
+        <rect x="22" y="38" width="9" height="18" rx="4" fill="#34D399" opacity="0.6"/>
+      </svg>
+    ),
   },
   {
-    num: "02",
-    icon: FaVideo,
-    color: "from-brand-accent to-orange-400",
-    glow: "shadow-brand-accent/25",
-    title: "TEST",
-    description:
-      "Record yourself performing the same routine. Your webcam captures every joint and angle in real time.",
+    title: "Beat Sync",
+    desc: "Cues fire exactly on the count",
+    accent: "#f43f5e",
+    rotate: 5,
+    icon: (
+      <svg width="56" height="36" viewBox="0 0 56 36" fill="none">
+        {[6,12,8,20,14,24,10,18,16,8,14,12].map((h,i)=>(
+          <rect
+            key={i}
+            x={i*4+2}
+            y={(36-h*1.2)/2}
+            width="3"
+            height={h*1.2}
+            rx="1.5"
+            fill="#f43f5e"
+            opacity={0.4+i*0.04}
+          />
+        ))}
+      </svg>
+    ),
   },
   {
-    num: "03",
-    icon: FaChartLine,
-    color: "from-violet-500 to-brand-primary",
-    glow: "shadow-violet-400/25",
-    title: "SYNC",
-    description:
-      "Get instant AI feedback with a frame-by-frame comparison. See your score improve every session.",
+    title: "7 Cue Colors",
+    desc: "Every body region has its own color",
+    accent: "#0891b2",
+    rotate: -4,
+    icon: (
+      <div className="flex flex-wrap gap-2 p-1">
+        {["#00d4ff","#34d399","#fbbf24","#f97316","#a78bfa","#60a5fa","#f472b6"].map((c,i)=>(
+          <div key={i} className="h-6 w-6 rounded-full" style={{background:c}}/>
+        ))}
+      </div>
+    ),
+  },
+  {
+    title: "60 FPS",
+    desc: "Real-time analysis, zero lag",
+    accent: "#059669",
+    rotate: 7,
+    icon: (
+      <div className="font-calistoga text-5xl font-bold text-emerald-500 leading-none">60</div>
+    ),
+  },
+  {
+    title: "Progress",
+    desc: "Every session logged automatically",
+    accent: "#f59e0b",
+    rotate: -6,
+    icon: (
+      <svg width="56" height="40" viewBox="0 0 56 40" fill="none">
+        {[10,16,12,22,18,28,24,32].map((h,i)=>(
+          <rect
+            key={i}
+            x={i*6+2}
+            y={40-h}
+            width="5"
+            height={h}
+            rx="2.5"
+            fill="#f59e0b"
+            opacity={0.4+i*0.07}
+          />
+        ))}
+      </svg>
+    ),
   },
 ];
 
-const containerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.18 } },
-};
-
-const cardVariants = {
-  hidden:  { opacity: 0, y: 40 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.7, ease: [0.075, 0.82, 0.165, 1] as [number, number, number, number] },
-  },
-};
-
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="relative overflow-hidden bg-white px-8 py-24 sm:py-32 lg:px-16">
-      {/* Subtle background tint */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-brand-bg via-white to-white" />
+    <>
+      {/* Checkered stripe transitioning from white to cream */}
+      <div className="h-7 w-full checkered-brown" />
 
-      <div className="relative mx-auto max-w-[1200px]">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7 }}
-          className="text-center"
-        >
-          <span className="font-mono text-xs font-bold tracking-widest text-brand-primary uppercase">
-            The Process
-          </span>
-          <h2 className="mt-3 font-hero font-bold text-4xl lg:text-5xl text-brand-dark tracking-tight">
-            Three steps to move like a pro
-          </h2>
-          <p className="mt-4 text-brand-dark/45 text-lg max-w-xl mx-auto">
-            From watching to mastering — Trace closes the gap between where you are and where you want to be.
-          </p>
-        </motion.div>
+      {/* Story section */}
+      <section id="how-it-works" className="bg-[#f8f4e0] py-28 px-6 lg:px-10 relative overflow-hidden">
+        {/* Floating decorative joint dots */}
+        <div className="pointer-events-none absolute inset-0">
+          <motion.div
+            animate={{ y: [0, -18, 0], rotate: [0, 8, 0] }}
+            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-20 left-12 h-10 w-10 rounded-full bg-[#60A5FA]/20 border-2 border-[#60A5FA]/30"
+          />
+          <motion.div
+            animate={{ y: [0, 14, 0], rotate: [0, -10, 0] }}
+            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+            className="absolute top-40 right-16 h-7 w-7 rounded-full bg-[#F472B6]/20 border-2 border-[#F472B6]/30"
+          />
+          <motion.div
+            animate={{ y: [0, -10, 0] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+            className="absolute bottom-32 left-24 h-5 w-5 rounded-full bg-[#00D4FF]/20 border-2 border-[#00D4FF]/30"
+          />
+          <motion.div
+            animate={{ y: [0, 16, 0], x: [0, 8, 0] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+            className="absolute bottom-24 right-20 h-8 w-8 rounded-full bg-[#34D399]/20 border-2 border-[#34D399]/30"
+          />
+        </div>
 
-        {/* Steps grid */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-          className="mt-20 grid gap-8 sm:grid-cols-3"
-        >
-          {steps.map((step, i) => (
-            <motion.div
-              key={step.num}
-              variants={cardVariants}
-              whileHover={{ y: -6, transition: { duration: 0.25 } }}
-              className="group relative flex flex-col rounded-3xl border border-gray-100 bg-white p-8 shadow-sm hover:shadow-xl hover:shadow-brand-primary/8 transition-shadow duration-300"
+        <div className="relative mx-auto max-w-3xl text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 32 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <h2 className="font-calistoga text-[clamp(2.8rem,6vw,5rem)] leading-[1.1] text-[#1a0f00]">
+              Where Every Move<br />Tells a Story
+            </h2>
+            <p className="mt-6 text-lg leading-relaxed text-[#5c3d1a]/70 max-w-xl mx-auto">
+              Trace overlays AI-guided cues directly on your reference video — every joint
+              color-coded and beat-synced, so you always know exactly where to move
+              and exactly when.
+            </p>
+            <a
+              href="#features"
+              className="mt-8 inline-flex h-12 items-center gap-2 rounded-full border-2 border-[#1a0f00]/20 bg-transparent px-8 text-sm font-semibold text-[#1a0f00] transition-all duration-200 hover:bg-[#1a0f00] hover:text-[#f8f4e0]"
             >
-              {/* Step number watermark */}
-              <span className="absolute top-6 right-7 font-hero font-bold text-6xl text-gray-50 select-none pointer-events-none">
-                {step.num}
-              </span>
+              See the features
+            </a>
+          </motion.div>
+        </div>
+      </section>
 
-              {/* Icon */}
+      {/* Tilted card gallery */}
+      <section className="bg-[#f8f4e0] pb-28 px-6 overflow-hidden">
+        <div
+          className="relative mx-auto flex items-center justify-center"
+          style={{ height: 320, maxWidth: 900 }}
+        >
+          {CARDS.map((card, i) => (
+            <motion.div
+              key={card.title}
+              initial={{ opacity: 0, y: 40, rotate: card.rotate }}
+              whileInView={{ opacity: 1, y: 0, rotate: card.rotate }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.6, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ y: -12, rotate: 0, scale: 1.05, zIndex: 20, transition: { duration: 0.25 } }}
+              className="absolute cursor-default"
+              style={{
+                left: `${8 + i * 17}%`,
+                zIndex: i + 1,
+              }}
+            >
               <div
-                className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${step.color} shadow-lg ${step.glow} mb-6`}
+                className="w-44 rounded-2xl border-2 bg-white p-5 shadow-xl flex flex-col gap-3"
+                style={{ borderColor: `${card.accent}35` }}
               >
-                <step.icon className="text-white text-xl" />
-              </div>
-
-              {/* Content */}
-              <h3 className="font-hero font-bold text-2xl tracking-tight text-brand-dark">
-                {step.title}
-              </h3>
-              <p className="mt-3 text-sm leading-relaxed text-brand-dark/45">
-                {step.description}
-              </p>
-
-              {/* Progress bar animation on hover */}
-              <div className="mt-6 h-0.5 w-full rounded-full bg-gray-100 overflow-hidden">
-                <motion.div
-                  className={`h-full rounded-full bg-gradient-to-r ${step.color}`}
-                  initial={{ width: "0%" }}
-                  whileInView={{ width: `${[72, 88, 95][i]}%` }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.4 + i * 0.15, duration: 1.2, ease: "easeOut" }}
-                />
+                <div className="flex h-16 items-center justify-center">
+                  {card.icon}
+                </div>
+                <div>
+                  <p className="font-calistoga text-lg text-[#1a0f00] leading-tight">{card.title}</p>
+                  <p className="mt-1 text-xs text-[#5c3d1a]/60 leading-snug">{card.desc}</p>
+                </div>
+                <div className="h-2 w-2 rounded-full" style={{ background: card.accent }} />
               </div>
             </motion.div>
           ))}
-        </motion.div>
-      </div>
-    </section>
+        </div>
+      </section>
+    </>
   );
 }
