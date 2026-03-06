@@ -43,7 +43,7 @@ function SignupForm() {
     setError("");
     const code = activationCode.trim().toUpperCase();
     if (!code) {
-      setError("Please enter your invite code (KOSMOS, AFX, or PCN50).");
+      setError("Please enter your invite code.");
       return;
     }
     const valid = await validateActivationCode();
@@ -70,6 +70,8 @@ function SignupForm() {
   }
 
   function validate(): string | null {
+    const code = activationCode.trim().toUpperCase();
+    if (!code) return "Please enter your invite code.";
     const trimmedName = name.trim();
     if (!trimmedName) return "Please enter your name.";
     if (trimmedName.length < 2) return "Name must be at least 2 characters.";
@@ -247,7 +249,7 @@ function SignupForm() {
                       required
                       value={activationCode}
                       onChange={(e) => setActivationCode(e.target.value)}
-                      placeholder="KOSMOS, AFX, or PCN50"
+                      placeholder="Invite code"
                       className="w-full rounded-xl border border-[#1a0f00]/12 bg-white px-4 py-3 text-sm text-[#1a0f00] placeholder-[#1a0f00]/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
                     />
                   </div>

@@ -32,7 +32,7 @@ export default function Waitlist() {
         router.push(`/signup?code=${encodeURIComponent(trimmed)}`);
         return;
       }
-      setError(data.error || "Invalid or expired code. Try KOSMOS, AFX, or PCN50.");
+      setError(data.error || "Invalid or expired invite code.");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -111,7 +111,7 @@ export default function Waitlist() {
                     required
                     value={code}
                     onChange={e => setCode(e.target.value)}
-                    placeholder="e.g. KOSMOS, AFX, PCN50"
+                    placeholder="Enter your invite code"
                     className="w-full rounded-xl border border-[#1a0f00]/15 bg-white px-4 py-3 text-sm text-[#1a0f00] placeholder-[#1a0f00]/30 outline-none transition-all focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
                   />
                 </div>

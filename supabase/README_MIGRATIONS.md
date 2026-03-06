@@ -33,7 +33,7 @@ If you use `supabase db push` or migrations, you don’t need to run `RUN_IN_SUP
 
 After running 006 (or the corresponding block in RUN_IN_SUPABASE_SQL_EDITOR.sql):
 
-- **Activation codes** KOSMOS, AFX, PCN50 are seeded. Signup requires one of these.
+- **Activation codes** are seeded. Signup requires a valid invite code.
 - **Existing users** are grandfathered (user_profiles created with is_activated=true).
 - **Product events** and **survey_responses** tables are ready for analytics.
 

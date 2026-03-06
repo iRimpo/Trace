@@ -44,17 +44,12 @@ const calistoga = Calistoga({
 });
 
 export const metadata: Metadata = {
-  title: "Trace — Stop Guessing Why Your Moves Don't Look Right",
+  title: "Trace",
   description:
     "AI-powered motion analysis for dancers. Trace uses Ghost Mirror technology to show you exactly where your technique breaks down.",
   icons: {
-    icon: [
-      { url: "/logos/trace-icon.png", sizes: "32x32", type: "image/png" },
-      { url: "/logos/trace-icon.png", sizes: "16x16", type: "image/png" },
-    ],
-    apple: [
-      { url: "/logos/trace-icon.png", sizes: "180x180", type: "image/png" },
-    ],
+    icon: [{ url: "/trace_logo.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/trace_logo.svg", type: "image/svg+xml" }],
   },
   openGraph: {
     title: "Trace",
