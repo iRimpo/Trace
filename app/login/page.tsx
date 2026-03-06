@@ -72,7 +72,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f8f4e0] px-6 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-[#f8f4e0] px-4 py-8 sm:px-6 sm:py-12">
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
@@ -90,7 +90,7 @@ function LoginForm() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-[#1a0f00]/08 bg-white p-8 shadow-sm sm:p-10">
+        <div className="rounded-2xl border border-[#1a0f00]/08 bg-white p-5 shadow-sm sm:p-8 md:p-10">
           <h1 className="font-calistoga text-2xl tracking-tight text-[#1a0f00]">
             Welcome back
           </h1>

@@ -686,9 +686,9 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
         ) : null}
       </div>
 
-      {/* ── Score breakdown floating side panel (right) ─────────── */}
+      {/* ── Score breakdown floating side panel (right) — hidden on phone, shown on tablet+ ─── */}
       {(feedbackItems.length > 0 || regionScores) && (
-        <div className="absolute right-3 top-14 bottom-44 z-10 w-56 overflow-y-auto rounded-2xl bg-black/50 backdrop-blur-xl border border-white/[0.06] p-3">
+        <div className="absolute right-3 top-14 bottom-44 z-10 hidden w-56 overflow-y-auto rounded-2xl bg-black/50 backdrop-blur-xl border border-white/[0.06] p-3 md:block">
 
           {/* Region scores */}
           {regionScores && (
@@ -818,7 +818,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
         <motion.div
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="absolute top-14 left-3 z-20 w-72 rounded-2xl border border-white/[0.08] bg-black/80 p-4 backdrop-blur-xl"
+          className="absolute left-2 right-2 top-14 z-20 rounded-2xl border border-white/[0.08] bg-black/80 p-3 backdrop-blur-xl sm:left-3 sm:right-auto sm:w-72 sm:p-4"
         >
           {/* Score */}
           <div className="mb-3 text-center">
@@ -946,8 +946,8 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
               {fmt(currentTime)} / {fmt(duration)}
             </span>
 
-            {/* Speed */}
-            <div className="flex items-center gap-0.5 rounded-lg border border-white/[0.06] p-0.5">
+            {/* Speed — full row on md+, compact toggle on mobile */}
+            <div className="hidden items-center gap-0.5 rounded-lg border border-white/[0.06] p-0.5 sm:flex">
               {SPEEDS.map(s => (
                 <button key={s}
                   onClick={() => {
@@ -963,11 +963,23 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
                 </button>
               ))}
             </div>
+            <button
+              className="flex items-center gap-0.5 rounded-lg border border-white/[0.06] px-2 py-1 text-[10px] font-bold text-white/50 sm:hidden"
+              onClick={() => {
+                const idx = SPEEDS.indexOf(speed as typeof SPEEDS[number]);
+                const next = SPEEDS[(idx + 1) % SPEEDS.length];
+                setSpeed(next);
+                if (userVideoRef.current) userVideoRef.current.playbackRate = next;
+                if (proVideoRef.current)  proVideoRef.current.playbackRate  = next;
+              }}
+            >
+              {speed}x
+            </button>
           </div>
 
           {/* Overlay controls row */}
-          <div className="mt-3 flex flex-wrap items-center gap-4 border-t border-white/[0.06] pt-3">
-            <div className="flex items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-white/[0.06] pt-3 sm:gap-4">
+            <div className="hidden items-center gap-2 sm:flex">
               <span className="text-[10px] font-medium text-white/30">Opacity</span>
               <input type="range" min="10" max="90" value={overlayOpacity}
                 onChange={e => setOverlayOpacity(parseInt(e.target.value))}

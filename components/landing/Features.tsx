@@ -82,7 +82,7 @@ export default function Features() {
         backgroundSize: "20px 20px",
       }} />
 
-      <section id="features" className="bg-white py-24 px-6 lg:px-10">
+      <section id="features" className="bg-white py-16 px-4 sm:py-24 sm:px-6 lg:px-10">
         <div className="mx-auto max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 24 }}

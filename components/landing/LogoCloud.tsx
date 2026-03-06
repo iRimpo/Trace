@@ -14,9 +14,9 @@ const platforms = [
 ];
 
 const SOCIAL_PROOF = [
-  { value: "500+",  label: "dancers on waitlist" },
-  { value: "4.9★",  label: "average rating"       },
-  { value: "Free",  label: "during beta"           },
+  { value: "500+",  label: "dancers joined" },
+  { value: "4.9★",  label: "average rating"  },
+  { value: "Free",  label: "during beta"     },
 ];
 
 export default function LogoCloud() {
@@ -29,7 +29,7 @@ export default function LogoCloud() {
       className="border-y border-white/[0.04] bg-[#0a0a14] py-14 overflow-hidden"
     >
       {/* Social proof stats */}
-      <div className="mb-10 flex items-center justify-center gap-8 lg:gap-16 px-6">
+      <div className="mb-10 flex items-center justify-center gap-6 px-4 sm:gap-8 sm:px-6 lg:gap-16">
         {SOCIAL_PROOF.map((s, i) => (
           <div key={i} className="flex flex-col items-center gap-0.5">
             <span className="font-hero text-xl font-bold text-white">{s.value}</span>

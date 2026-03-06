@@ -657,7 +657,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
   const trimLengthSec = trimEnd - trimStart;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">
       <AnimatePresence mode="wait">
 
         {/* ── Step 1: Frame ──────────────────────────────────────────── */}
@@ -668,18 +668,18 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, x: -20 }}
             transition={{ duration: 0.3 }}
-            className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-[#f8f4e0] shadow-2xl"
+            className="relative w-full max-w-2xl overflow-hidden rounded-xl bg-[#f8f4e0] shadow-2xl sm:rounded-2xl"
           >
             {/* Header */}
-            <div className="flex items-start justify-between border-b border-[#1a0f00]/08 bg-white px-5 py-4">
+            <div className="flex items-start justify-between border-b border-[#1a0f00]/08 bg-white px-3 py-3 sm:px-5 sm:py-4">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/30">Step 1 of 3</span>
-                  <div className="h-px flex-1 bg-[#1a0f00]/08 w-12" />
-                  <span className="text-[10px] text-[#1a0f00]/20">Trim →</span>
+                  <div className="hidden h-px flex-1 bg-[#1a0f00]/08 w-12 sm:block" />
+                  <span className="hidden text-[10px] text-[#1a0f00]/20 sm:inline">Trim →</span>
                 </div>
-                <h2 className="font-bold text-base text-[#1a0f00]">Frame Yourself</h2>
-                <p className="mt-0.5 text-xs text-[#1a0f00]/40 max-w-xs leading-relaxed">
+                <h2 className="font-bold text-sm text-[#1a0f00] sm:text-base">Frame Yourself</h2>
+                <p className="mt-0.5 text-[11px] text-[#1a0f00]/40 max-w-xs leading-relaxed sm:text-xs">
                   Position yourself so your skeleton aligns with the reference, then raise your palm to lock in the framing.
                 </p>
               </div>
@@ -780,9 +780,9 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                 )}
                 {palmProgress > 0 && <p className="text-xs font-medium text-emerald-600">Hold still… {Math.round(palmProgress * 100)}%</p>}
               </div>
-              <div className="flex shrink-0 items-center gap-3">
+              <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                 {(frameState === "ready" || frameState === "palm") && (
-                  <div className="flex items-center gap-2">
+                  <div className="hidden items-center gap-2 sm:flex">
                     <span className="text-[10px] text-[#1a0f00]/30">Overlay</span>
                     <input type="range" min={0} max={80} value={overlayOpacity}
                       onChange={e => setOverlayOpacity(parseInt(e.target.value))}

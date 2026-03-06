@@ -94,7 +94,7 @@ export default function HowItWorks() {
       <div className="h-7 w-full checkered-brown" />
 
       {/* Story section */}
-      <section id="how-it-works" className="bg-[#f8f4e0] py-28 px-6 lg:px-10 relative overflow-hidden">
+      <section id="how-it-works" className="bg-[#f8f4e0] py-16 px-4 sm:py-28 sm:px-6 lg:px-10 relative overflow-hidden">
         {/* Floating decorative joint dots */}
         <div className="pointer-events-none absolute inset-0">
           <motion.div
@@ -144,10 +144,37 @@ export default function HowItWorks() {
         </div>
       </section>
 
-      {/* Tilted card gallery */}
-      <section className="bg-[#f8f4e0] pb-28 px-6 overflow-hidden">
+      {/* Tilted card gallery — scrollable on mobile, overlapping on desktop */}
+      <section className="bg-[#f8f4e0] pb-16 sm:pb-28 overflow-hidden">
+        {/* Mobile: horizontal scroll */}
+        <div className="flex gap-4 overflow-x-auto px-4 pb-4 snap-x snap-mandatory md:hidden">
+          {CARDS.map((card, i) => (
+            <motion.div
+              key={card.title}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.08 }}
+              className="w-40 flex-shrink-0 snap-center"
+            >
+              <div
+                className="rounded-2xl border-2 bg-white p-4 shadow-lg flex flex-col gap-3"
+                style={{ borderColor: `${card.accent}35` }}
+              >
+                <div className="flex h-14 items-center justify-center">{card.icon}</div>
+                <div>
+                  <p className="font-calistoga text-base text-[#1a0f00] leading-tight">{card.title}</p>
+                  <p className="mt-1 text-[11px] text-[#5c3d1a]/60 leading-snug">{card.desc}</p>
+                </div>
+                <div className="h-2 w-2 rounded-full" style={{ background: card.accent }} />
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Desktop: overlapping tilted cards */}
         <div
-          className="relative mx-auto flex items-center justify-center"
+          className="relative mx-auto hidden items-center justify-center md:flex"
           style={{ height: 320, maxWidth: 900 }}
         >
           {CARDS.map((card, i) => (
@@ -168,9 +195,7 @@ export default function HowItWorks() {
                 className="w-44 rounded-2xl border-2 bg-white p-5 shadow-xl flex flex-col gap-3"
                 style={{ borderColor: `${card.accent}35` }}
               >
-                <div className="flex h-16 items-center justify-center">
-                  {card.icon}
-                </div>
+                <div className="flex h-16 items-center justify-center">{card.icon}</div>
                 <div>
                   <p className="font-calistoga text-lg text-[#1a0f00] leading-tight">{card.title}</p>
                   <p className="mt-1 text-xs text-[#5c3d1a]/60 leading-snug">{card.desc}</p>

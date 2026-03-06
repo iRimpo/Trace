@@ -129,7 +129,7 @@ export default function Hero() {
         }}
       />
 
-      <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center gap-16 px-6 py-24 lg:flex-row lg:items-center lg:gap-12 lg:px-10">
+      <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center gap-10 px-4 py-20 sm:gap-16 sm:px-6 sm:py-24 lg:flex-row lg:items-center lg:gap-12 lg:px-10">
 
         {/* ── Left: Text ───────────────────────────────────────── */}
         <div className="flex-1">
@@ -152,7 +152,7 @@ export default function Hero() {
           </motion.div>
 
           {/* Headline — staggered words */}
-          <h1 className="font-calistoga text-[clamp(2.8rem,5.5vw,5rem)] leading-[1.06] tracking-tight text-[#1a0f00]">
+          <h1 className="font-calistoga text-[clamp(2.2rem,5.5vw,5rem)] leading-[1.06] tracking-tight text-[#1a0f00]">
             {["Dance", "smarter.", "Move", "without", "limits."].map((word, i) => (
               <motion.span
                 key={i}
@@ -234,7 +234,7 @@ export default function Hero() {
           initial={{ opacity: 0, x: 28 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, delay: 0.25, ease: [0.075, 0.82, 0.165, 1] as [number,number,number,number] }}
-          className="relative flex-shrink-0"
+          className="relative flex-shrink-0 scale-[0.7] sm:scale-[0.85] lg:scale-100 origin-center"
         >
           {/* Soft glow behind skeleton */}
           <div className="absolute inset-0 -m-12 rounded-full bg-[#A78BFA]/12 blur-3xl" />

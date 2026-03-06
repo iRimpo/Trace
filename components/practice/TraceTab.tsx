@@ -1004,13 +1004,13 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
         {/* Dynamic island transport */}
         <div
           id="trace-transport"
-          className={`pointer-events-auto absolute bottom-4 left-1/2 z-30 w-[min(720px,90vw)] -translate-x-1/2 transition-transform duration-500 ${
+          className={`pointer-events-auto absolute bottom-2 left-1/2 z-30 w-[min(720px,96vw)] -translate-x-1/2 transition-transform duration-500 sm:bottom-4 sm:w-[min(720px,90vw)] ${
             controlsVisible ? "translate-y-0" : "translate-y-full"
           }`}
         >
-          <div className={`rounded-3xl ${GLASS} px-4 py-3`}>
+          <div className={`rounded-2xl ${GLASS} px-3 py-2 sm:rounded-3xl sm:px-4 sm:py-3`}>
             {/* ── Secondary controls row ─────────────────────────────────────── */}
-            <div id="trace-controls-row" className="mb-3 flex flex-wrap items-center gap-2">
+            <div id="trace-controls-row" className="mb-2 flex flex-wrap items-center gap-1.5 sm:mb-3 sm:gap-2">
               {/* View mode segmented control */}
               <div className="flex items-center gap-0.5 rounded-lg bg-[#1a0f00]/06 p-0.5">
                 {(["overlay", "side-by-side"] as ViewMode[]).map(m => (
@@ -1046,9 +1046,9 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
                 {feedbackEnabled ? "Feedback" : preScannedEvents.length === 0 ? "Scan & Feedback" : "Feedback"}
               </button>
 
-              {/* Opacity slider (overlay only) */}
+              {/* Opacity slider (overlay only, hidden on very small screens) */}
               {viewMode === "overlay" && (
-                <div className="flex items-center gap-1.5">
+                <div className="hidden items-center gap-1.5 sm:flex">
                   <span className="text-[10px] text-[#1a0f00]/40">Opacity</span>
                   <input type="range" min="10" max="90" value={overlayOpacity}
                     onChange={e => setOverlayOpacity(parseInt(e.target.value))}
@@ -1171,17 +1171,29 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
                 {fmt(currentTime)} / {fmt(duration)}
               </span>
 
-              {/* Speed pills */}
-              <div className="flex items-center gap-0.5 rounded-lg bg-[#1a0f00]/06 p-0.5">
+              {/* Speed pills — show all on md+, compact on mobile */}
+              <div className="hidden items-center gap-0.5 rounded-lg bg-[#1a0f00]/06 p-0.5 sm:flex">
                 {SPEEDS.map(s => (
                   <button key={s} onClick={() => { setSpeed(s); if (proVideoRef.current) proVideoRef.current.playbackRate = s; }}
                     className={`rounded-md px-2 py-1 text-[10px] font-bold transition-all ${speed === s ? "bg-white text-[#1a0f00] shadow-sm" : "text-[#1a0f00]/30 hover:text-[#1a0f00]/60"}`}
                   >{s}x</button>
                 ))}
               </div>
+              {/* Mobile speed toggle */}
+              <button
+                className="flex items-center gap-0.5 rounded-lg bg-[#1a0f00]/06 px-2 py-1 text-[10px] font-bold text-[#1a0f00]/60 sm:hidden"
+                onClick={() => {
+                  const idx = SPEEDS.indexOf(speed as typeof SPEEDS[number]);
+                  const next = SPEEDS[(idx + 1) % SPEEDS.length];
+                  setSpeed(next);
+                  if (proVideoRef.current) proVideoRef.current.playbackRate = next;
+                }}
+              >
+                {speed}x
+              </button>
 
-              {/* Volume */}
-              <div className="ml-auto flex items-center gap-2">
+              {/* Volume — hidden on mobile */}
+              <div className="ml-auto hidden items-center gap-2 sm:flex">
                 <button onClick={() => { const next = !muted; setMuted(next); if (proVideoRef.current) proVideoRef.current.muted = next; }} className="text-[#1a0f00]/30 hover:text-[#1a0f00]/60">
                   {muted
                     ? <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75 19.5 12m0 0 2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6 4.72-4.72a.75.75 0 0 1 1.28.53v16.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" /></svg>

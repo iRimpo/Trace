@@ -61,7 +61,7 @@ export default function PracticeView({ videoUrl, videoId, videoTitle, videoSourc
   }, []);
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-black">
+    <div className="relative h-[100dvh] w-full overflow-hidden bg-black md:h-screen">
       {/* Calibration modal */}
       {!calibrated && videoUrl && (
         <CalibrationModal videoUrl={videoUrl} onCalibrated={handleCalibrated} onSkip={handleCalibrationSkip} />

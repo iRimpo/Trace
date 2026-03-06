@@ -34,7 +34,7 @@ function CheckIcon({ className }: { className?: string }) {
 
 export default function Problem() {
   return (
-    <section className="relative overflow-hidden bg-brand-dark px-8 py-24 sm:py-32 lg:px-16">
+    <section className="relative overflow-hidden bg-brand-dark px-4 py-16 sm:px-8 sm:py-24 md:py-32 lg:px-16">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="blob absolute -bottom-32 -right-32 h-[400px] w-[400px] bg-[#A78BFA] opacity-10" />
       </div>

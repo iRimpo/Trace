@@ -192,7 +192,7 @@ export default function PracticePage() {
                     onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                     onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
                     onClick={() => fileInputRef.current?.click()}
-                    className={`group cursor-pointer rounded-2xl border-2 border-dashed p-12 text-center transition-all duration-200 ${
+                    className={`group cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition-all duration-200 sm:p-12 ${
                       dragActive
                         ? "border-[#080808] bg-[#080808]/5"
                         : "border-[#1a0f00]/10 hover:border-[#080808]/30 hover:bg-[#080808]/3"

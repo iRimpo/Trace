@@ -50,8 +50,8 @@ export default function Waitlist() {
 
       <section
         id="waitlist"
-        className="relative overflow-hidden bg-[#080808] px-6 py-32 lg:px-10"
-        style={{ minHeight: "680px" }}
+        className="relative overflow-hidden bg-[#080808] px-4 py-16 sm:px-6 sm:py-24 lg:px-10 lg:py-32"
+        style={{ minHeight: "auto" }}
       >
         {/* Cue-colored floating dots */}
         <div className="pointer-events-none absolute inset-0">
@@ -78,7 +78,7 @@ export default function Waitlist() {
         </div>
 
         {/* Floating form card */}
-        <div className="relative mx-auto max-w-xl">
+        <div className="relative mx-auto max-w-sm sm:max-w-xl">
           <motion.div
             initial={{ opacity: 0, y: 32 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -97,7 +97,7 @@ export default function Waitlist() {
             </div>
 
             {/* Card */}
-            <div className="rounded-3xl bg-[#f8f4e0] p-8 shadow-2xl">
+            <div className="rounded-2xl bg-[#f8f4e0] p-5 shadow-2xl sm:rounded-3xl sm:p-8">
               <motion.form
                 onSubmit={handleSubmit}
                 className="space-y-5"

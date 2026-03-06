@@ -27,7 +27,7 @@ export default function SessionPage() {
 
   if (authLoading || !checked) {
     return (
-      <div className="flex h-screen items-center justify-center bg-black">
+      <div className="flex h-screen flex-col items-center justify-center gap-6 bg-black">
         <div className="relative h-10 w-10">
           <div className="absolute inset-0 rounded-full border-2 border-white/10" />
           <motion.div
@@ -36,6 +36,14 @@ export default function SessionPage() {
             transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }}
           />
         </div>
+
+        <motion.img
+          src="/ChatGPT Image Feb 15, 2026, 06_45_31 PM(8).svg"
+          alt="Trace character"
+          className="h-16 w-16"
+          animate={{ rotate: [-6, 6, -6] }}
+          transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+        />
       </div>
     );
   }
