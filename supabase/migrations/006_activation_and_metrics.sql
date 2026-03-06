@@ -31,7 +31,6 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
 );
 
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "Users can view own profile"
   ON public.user_profiles FOR SELECT
   USING (auth.uid() = user_id);
