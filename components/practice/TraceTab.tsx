@@ -254,6 +254,20 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
     setShowBeatAlign(false);
   }, [bpm, countGrid]);
 
+  // Called when the auto-scan finishes: start the video playing and show the
+  // tutorial for first-time users. The 700ms delay lets the scan overlay's
+  // exit animation complete before the tutorial card appears.
+  function autoPlayAfterScan() {
+    const v = proVideoRef.current;
+    if (v && v.paused) {
+      v.play().then(() => setPlaying(true)).catch(() => {});
+    }
+    if (!tutorialShownRef.current && !localStorage.getItem("trace_tutorial_v1_done")) {
+      tutorialShownRef.current = true;
+      setTimeout(() => setShowTutorial(true), 700);
+    }
+  }
+
   const runScan = useCallback((source: "auto" | "feedback" = "auto", overridePersonCenter?: { x: number; y: number }) => {
     if (scanProgress !== null) return;
     scanAbortRef.current?.abort();
@@ -275,6 +289,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
       setScanCompleteFlash(true);
       setTimeout(() => setScanCompleteFlash(false), 2000);
       setScanProgress(null);
+      autoPlayAfterScan();
       return;
     }
 
@@ -306,6 +321,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
           setScanCompleteCount(result.events.length);
           setScanCompleteFlash(true);
           setTimeout(() => setScanCompleteFlash(false), 2000);
+          autoPlayAfterScan();
         }
         setScanProgress(null);
         setScanEtaSeconds(null);
@@ -470,16 +486,8 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
   // ── Video callbacks ─────────────────────────────────────────────
   const togglePlay = useCallback(async () => {
     const v = proVideoRef.current; if (!v) return;
-    if (v.paused) {
-      try { await v.play(); setPlaying(true); } catch { setVideoError("Cannot play this video."); return; }
-      // Show tutorial on first play for new users
-      if (!tutorialShownRef.current && !localStorage.getItem("trace_tutorial_v1_done")) {
-        tutorialShownRef.current = true;
-        setTimeout(() => setShowTutorial(true), 600);
-      }
-    } else {
-      v.pause(); setPlaying(false);
-    }
+    if (v.paused) { try { await v.play(); setPlaying(true); } catch { setVideoError("Cannot play this video."); } }
+    else { v.pause(); setPlaying(false); }
   }, []);
 
   const restart = useCallback(() => {
