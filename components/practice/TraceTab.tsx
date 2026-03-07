@@ -118,7 +118,6 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
   });
   const autoScanFiredRef    = useRef(false);
   const tutorialShownRef    = useRef(false);
-  const scanHasStartedRef   = useRef(false);
   const timelineDragRef  = useRef<"a" | "b" | null>(null);
   const traceStartTimeRef = useRef<number>(Date.now());
   const practiceStartedFiredRef = useRef(false);
@@ -214,23 +213,6 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoUrl]);
 
-  // Track when the auto-scan has started (scanProgress goes non-null)
-  useEffect(() => {
-    if (scanProgress !== null) scanHasStartedRef.current = true;
-  }, [scanProgress]);
-
-  // Show tutorial only after scan ends and no person dialog is open
-  useEffect(() => {
-    if (localStorage.getItem("trace_tutorial_v1_done")) return;
-    if (tutorialShownRef.current) return;
-    if (!scanHasStartedRef.current) return;  // wait for scan to start first
-    if (scanProgress !== null) return;        // scan in progress: wait
-    if (personChoices !== null) return;       // person-selection open: wait
-    tutorialShownRef.current = true;
-    const t = setTimeout(() => setShowTutorial(true), 600);
-    return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scanProgress, personChoices]);
 
   useEffect(() => {
     const handler = () => setIsFullscreen(!!document.fullscreenElement);
@@ -278,7 +260,6 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
     const abort = new AbortController();
     scanAbortRef.current = abort;
     setScanSource(source);
-    scanHasStartedRef.current = true;  // set directly so tutorial gate works even on cache hits
     setScanProgress(0);
     setScanEtaSeconds(null);
     const { start, end, personCenter } = trimBoundsRef.current;
@@ -489,8 +470,16 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
   // ── Video callbacks ─────────────────────────────────────────────
   const togglePlay = useCallback(async () => {
     const v = proVideoRef.current; if (!v) return;
-    if (v.paused) { try { await v.play(); setPlaying(true); } catch { setVideoError("Cannot play this video."); } }
-    else { v.pause(); setPlaying(false); }
+    if (v.paused) {
+      try { await v.play(); setPlaying(true); } catch { setVideoError("Cannot play this video."); return; }
+      // Show tutorial on first play for new users
+      if (!tutorialShownRef.current && !localStorage.getItem("trace_tutorial_v1_done")) {
+        tutorialShownRef.current = true;
+        setTimeout(() => setShowTutorial(true), 600);
+      }
+    } else {
+      v.pause(); setPlaying(false);
+    }
   }, []);
 
   const restart = useCallback(() => {
