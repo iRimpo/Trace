@@ -14,7 +14,7 @@ export default function FloatingCTA() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 1.2, duration: 0.5, ease: "backOut" }}
-      className="fixed bottom-4 left-3 z-50 flex items-center gap-1.5 sm:bottom-6 sm:left-6 sm:gap-2"
+      className="fixed bottom-6 left-6 z-50 hidden sm:flex items-center gap-2"
     >
       <Link
         href="/login"

@@ -128,33 +128,33 @@ function DashboardContent() {
 
         {/* Stats: keep dark */}
         {stats && (
-          <div className="flex gap-4 rounded-b-2xl border-t border-white/10 bg-[#080808] px-5 py-4 text-white">
+          <div className="flex rounded-b-2xl border-t border-white/10 bg-[#080808] px-4 py-4 text-white sm:px-5">
             <div className="flex-1 text-center">
-              <p className="font-bold text-xl text-white tabular-nums">
+              <p className="font-bold text-lg text-white tabular-nums sm:text-xl">
                 <AnimCount n={stats.total_sessions} />
               </p>
-              <p className="text-[11px] text-white/50">Sessions</p>
+              <p className="text-[10px] text-white/50 sm:text-[11px]">Sessions</p>
             </div>
             <div className="w-px bg-white/10" />
             <div className="flex-1 text-center">
-              <p className="font-bold text-xl text-white tabular-nums">
+              <p className="font-bold text-lg text-white tabular-nums sm:text-xl">
                 <AnimCount n={Math.round(stats.avg_score)} suffix="%" />
               </p>
-              <p className="text-[11px] text-white/50">Avg</p>
+              <p className="text-[10px] text-white/50 sm:text-[11px]">Avg</p>
             </div>
             <div className="w-px bg-white/10" />
             <div className="flex-1 text-center">
-              <p className="font-bold text-xl text-white tabular-nums">
+              <p className="font-bold text-lg text-white tabular-nums sm:text-xl">
                 <AnimCount n={Math.round(stats.best_score)} suffix="%" />
               </p>
-              <p className="text-[11px] text-white/50">Best</p>
+              <p className="text-[10px] text-white/50 sm:text-[11px]">Best</p>
             </div>
             <div className="w-px bg-white/10" />
             <div className="flex-1 text-center">
-              <p className="text-xl font-bold tabular-nums text-white">
+              <p className="text-lg font-bold tabular-nums text-white sm:text-xl">
                 <AnimCount n={stats.practice_days} />
               </p>
-              <p className="text-[11px] text-white/50">Days</p>
+              <p className="text-[10px] text-white/50 sm:text-[11px]">Days</p>
             </div>
           </div>
         )}

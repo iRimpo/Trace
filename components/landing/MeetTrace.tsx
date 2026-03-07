@@ -14,7 +14,7 @@ function Bubble({
   return (
     <span className="relative inline-flex align-middle mx-3 shrink-0" style={{ verticalAlign: "-0.25em" }}>
       <span
-        className={`inline-flex h-[80px] w-[110px] items-center justify-center rounded-[28px] overflow-hidden shadow-lg ${className}`}
+        className={`inline-flex h-[60px] w-[84px] sm:h-[80px] sm:w-[110px] items-center justify-center rounded-[20px] sm:rounded-[28px] overflow-hidden shadow-lg ${className}`}
       >
         {children}
       </span>
@@ -66,7 +66,7 @@ export default function MeetTrace() {
             variants={lineVariants}
             className="flex flex-wrap items-center justify-center"
           >
-            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(3rem,7vw,6rem)" }}>
+            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
               Skeleton
             </span>
             <Bubble
@@ -84,7 +84,7 @@ export default function MeetTrace() {
                 <line x1="35" y1="32" x2="55" y2="38" stroke="white" strokeWidth="1.5" opacity="0.4"/>
               </svg>
             </Bubble>
-            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(3rem,7vw,6rem)" }}>
+            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
               Tracking
             </span>
           </motion.div>
@@ -98,7 +98,7 @@ export default function MeetTrace() {
             variants={lineVariants}
             className="flex flex-wrap items-center justify-center"
           >
-            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(3rem,7vw,6rem)" }}>
+            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
               Beat
             </span>
             <Bubble
@@ -121,7 +121,7 @@ export default function MeetTrace() {
                 ))}
               </svg>
             </Bubble>
-            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(3rem,7vw,6rem)" }}>
+            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
               Sync
             </span>
           </motion.div>
@@ -135,7 +135,7 @@ export default function MeetTrace() {
             variants={lineVariants}
             className="flex flex-wrap items-center justify-center"
           >
-            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(3rem,7vw,6rem)" }}>
+            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
               Joint
             </span>
             <Bubble
@@ -149,7 +149,7 @@ export default function MeetTrace() {
                 ))}
               </div>
             </Bubble>
-            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(3rem,7vw,6rem)" }}>
+            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
               Guidance
             </span>
           </motion.div>
@@ -163,7 +163,7 @@ export default function MeetTrace() {
             variants={lineVariants}
             className="flex flex-wrap items-center justify-center"
           >
-            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(3rem,7vw,6rem)" }}>
+            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
               Progress
             </span>
             <Bubble

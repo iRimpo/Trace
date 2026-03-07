@@ -65,7 +65,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </header>
 
-      <main className="flex-1 p-6 sm:p-8">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8">
         <ErrorBoundary>{children}</ErrorBoundary>
       </main>
     </div>

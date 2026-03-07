@@ -131,7 +131,7 @@ export default function Features() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="mt-16 flex flex-wrap items-center justify-center gap-10 border-t border-[#1a0f00]/06 pt-10"
+            className="mt-16 grid grid-cols-2 gap-6 border-t border-[#1a0f00]/06 pt-10 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-10"
           >
             {[
               { value: "33", label: "Body keypoints" },

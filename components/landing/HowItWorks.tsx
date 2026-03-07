@@ -147,7 +147,10 @@ export default function HowItWorks() {
       {/* Tilted card gallery — scrollable on mobile, overlapping on desktop */}
       <section className="bg-[#f8f4e0] pb-16 sm:pb-28 overflow-hidden">
         {/* Mobile: horizontal scroll */}
-        <div className="flex gap-4 overflow-x-auto px-4 pb-4 snap-x snap-mandatory md:hidden">
+        <div className="relative md:hidden">
+          {/* Fade-right indicator */}
+          <div className="pointer-events-none absolute right-0 top-0 bottom-4 w-12 z-10 bg-gradient-to-l from-[#f8f4e0] to-transparent" />
+        <div className="flex gap-4 overflow-x-auto px-4 pb-4 snap-x snap-mandatory scrollbar-hide">
           {CARDS.map((card, i) => (
             <motion.div
               key={card.title}
@@ -155,7 +158,7 @@ export default function HowItWorks() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.08 }}
-              className="w-40 flex-shrink-0 snap-center"
+              className="w-44 flex-shrink-0 snap-center"
             >
               <div
                 className="rounded-2xl border-2 bg-white p-4 shadow-lg flex flex-col gap-3"
@@ -170,6 +173,7 @@ export default function HowItWorks() {
               </div>
             </motion.div>
           ))}
+        </div>
         </div>
 
         {/* Desktop: overlapping tilted cards */}

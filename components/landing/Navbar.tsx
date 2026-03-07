@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
@@ -90,26 +91,37 @@ export default function Navbar() {
       </div>
 
       {/* Mobile dropdown */}
-      {mobileOpen && (
-        <nav className="border-t border-[#1a0f00]/08 bg-white/95 backdrop-blur-md px-4 pb-4 pt-2 md:hidden">
-          <div className="flex flex-col gap-1">
-            {[
-              { href: "/", label: "Home" },
-              { href: "#how-it-works", label: "How it works" },
-              { href: "#features", label: "Features" },
-            ].map(item => (
-              <a
-                key={item.label}
-                href={item.href}
-                onClick={() => setMobileOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-sm font-medium text-[#1a0f00]/70 transition-colors hover:bg-[#1a0f00]/05"
-              >
-                {item.label}
-              </a>
-            ))}
-          </div>
-        </nav>
-      )}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.nav
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="overflow-hidden border-t border-[#1a0f00]/08 bg-white/95 backdrop-blur-md md:hidden"
+          >
+            <div className="flex flex-col gap-1 px-4 pb-4 pt-2">
+              {[
+                { href: "/", label: "Home" },
+                { href: "#how-it-works", label: "How it works" },
+                { href: "#features", label: "Features" },
+              ].map((item, i) => (
+                <motion.a
+                  key={item.label}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.18, delay: i * 0.05 }}
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-[#1a0f00]/70 transition-colors hover:bg-[#1a0f00]/05 active:bg-[#1a0f00]/08"
+                >
+                  {item.label}
+                </motion.a>
+              ))}
+            </div>
+          </motion.nav>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

@@ -221,7 +221,7 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
               {group.attempts.length > 1 && (
                 <div className="mb-5">
                   <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#5c3d1a]/40">History</p>
-                  <div className="flex gap-2 overflow-x-auto pb-1">
+                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                     {group.attempts.map((a, i) => {
                       const color = scoreColor(a.score);
                       const isLatest = i === group.attempts.length - 1;
@@ -295,13 +295,14 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
             onClick={() => setShowPracticeModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              initial={{ y: 24, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 24, opacity: 0 }}
+              transition={{ ease: "backOut", duration: 0.25 }}
               onClick={e => e.stopPropagation()}
               className="w-full max-w-sm rounded-2xl border border-[#1a0f00]/10 bg-white p-5 shadow-xl"
             >

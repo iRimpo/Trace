@@ -192,7 +192,7 @@ export default function PracticePage() {
                     onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                     onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
                     onClick={() => fileInputRef.current?.click()}
-                    className={`group cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition-all duration-200 sm:p-12 ${
+                    className={`group cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-all duration-200 sm:p-12 ${
                       dragActive
                         ? "border-[#080808] bg-[#080808]/5"
                         : "border-[#1a0f00]/10 hover:border-[#080808]/30 hover:bg-[#080808]/3"
@@ -205,8 +205,14 @@ export default function PracticePage() {
                     }`}>
                       <FaUpload className={`text-xl transition-colors ${dragActive ? "text-[#080808]" : "text-[#1a0f00]/30 group-hover:text-[#080808]"}`} />
                     </div>
-                    <p className="mt-4 text-sm font-semibold text-[#1a0f00]">Drag & drop your video here</p>
-                    <p className="mt-1 text-xs text-[#1a0f00]/30">or click to browse</p>
+                    <p className="mt-4 text-sm font-semibold text-[#1a0f00]">
+                      <span className="hidden sm:inline">Drag &amp; drop your video here</span>
+                      <span className="sm:hidden">Tap to select a video</span>
+                    </p>
+                    <p className="mt-1 text-xs text-[#1a0f00]/30">
+                      <span className="hidden sm:inline">or click to browse</span>
+                      <span className="sm:hidden">MP4, MOV, or WebM</span>
+                    </p>
                     <div className="mt-4 flex items-center justify-center gap-2">
                       {["MP4", "MOV", "WebM"].map((f) => (
                         <span key={f} className="rounded-full bg-[#080808]/06 px-3 py-1 text-[10px] font-bold text-[#1a0f00]/50">{f}</span>

@@ -129,7 +129,7 @@ export default function Hero() {
         }}
       />
 
-      <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center gap-10 px-4 py-20 sm:gap-16 sm:px-6 sm:py-24 lg:flex-row lg:items-center lg:gap-12 lg:px-10">
+      <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center gap-10 px-4 py-16 sm:gap-16 sm:px-6 sm:py-24 lg:flex-row lg:items-center lg:gap-12 lg:px-10">
 
         {/* ── Left: Text ───────────────────────────────────────── */}
         <div className="flex-1">
@@ -181,7 +181,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.82 }}
-            className="mt-8 flex flex-wrap items-center gap-3"
+            className="mt-8 flex flex-wrap items-start gap-3"
           >
             <a
               href="#waitlist"
@@ -200,7 +200,7 @@ export default function Hero() {
             </a>
             <a
               href="#how-it-works"
-              className="inline-flex h-11 items-center rounded-full border border-[#1a0f00]/14 px-7 text-sm font-medium text-[#1a0f00]/55 transition-all duration-200 hover:bg-[#1a0f00]/06"
+              className="inline-flex h-11 items-center rounded-full border border-[#1a0f00]/14 px-5 sm:px-7 text-sm font-medium text-[#1a0f00]/55 transition-all duration-200 hover:bg-[#1a0f00]/06 active:scale-95"
             >
               See how it works
             </a>
@@ -231,24 +231,24 @@ export default function Hero() {
 
         {/* ── Right: Skeleton comparison ───────────────────────── */}
         <motion.div
-          initial={{ opacity: 0, x: 28 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.25, ease: [0.075, 0.82, 0.165, 1] as [number,number,number,number] }}
-          className="relative flex-shrink-0 scale-[0.7] sm:scale-[0.85] lg:scale-100 origin-center"
+          className="relative flex-shrink-0"
         >
           {/* Soft glow behind skeleton */}
           <div className="absolute inset-0 -m-12 rounded-full bg-[#A78BFA]/12 blur-3xl" />
 
           <div className="relative flex items-center gap-4 sm:gap-8">
 
-            {/* Reference dancer */}
-            <div className="relative">
+            {/* Reference dancer — hidden on mobile to avoid overflow */}
+            <div className="relative hidden sm:block">
               <DancerSvg progress={1} dimmed />
               <p className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.2em] text-[#1a0f00]/25">Reference</p>
             </div>
 
-            {/* Seam divider with animated cue dots */}
-            <div className="relative h-60 w-px sm:h-80">
+            {/* Seam divider with animated cue dots — hidden on mobile */}
+            <div className="relative hidden sm:block h-60 w-px sm:h-80">
               <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#1a0f00]/12 to-transparent" />
               {CUE.map(({ color }, i) => (
                 <motion.div

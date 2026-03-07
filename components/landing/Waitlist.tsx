@@ -50,7 +50,7 @@ export default function Waitlist() {
 
       <section
         id="waitlist"
-        className="relative overflow-hidden bg-[#080808] px-4 py-16 sm:px-6 sm:py-24 lg:px-10 lg:py-32"
+        className="relative overflow-hidden bg-[#080808] px-4 py-16 sm:px-6 sm:py-24 lg:px-10 lg:py-32 pb-safe"
         style={{ minHeight: "auto" }}
       >
         {/* Cue-colored floating dots */}
