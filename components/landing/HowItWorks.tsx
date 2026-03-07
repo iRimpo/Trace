@@ -138,7 +138,7 @@ export default function HowItWorks() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
+              transition={{ duration: 0.5, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] }}
               className="w-full"
             >
               <div
@@ -166,9 +166,9 @@ export default function HowItWorks() {
               key={card.title}
               initial={{ opacity: 0, y: 40, rotate: card.rotate }}
               whileInView={{ opacity: 1, y: 0, rotate: card.rotate }}
-              viewport={{ once: true, margin: "-80px" }}
-              transition={{ duration: 0.6, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-              whileHover={{ y: -12, rotate: 0, scale: 1.05, zIndex: 20, transition: { duration: 0.25 } }}
+              viewport={{ once: true, margin: "-20px" }}
+              transition={{ duration: 0.55, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+              whileHover={{ y: -12, rotate: 0, scale: 1.05, zIndex: 20, transition: { type: "spring", stiffness: 320, damping: 22 } }}
               className="absolute cursor-default"
               style={{
                 left: `${8 + i * 17}%`,

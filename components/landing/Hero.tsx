@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 // ── Cue colors ────────────────────────────────────────────────────────
@@ -37,38 +36,42 @@ const BONES: [number, number][] = [
 ];
 
 // ── Skeleton SVG ──────────────────────────────────────────────────────
-function DancerSvg({ progress, dimmed }: { progress: number; dimmed?: boolean }) {
+// Non-dimmed joints animate in via CSS (GPU-composited, no React re-renders).
+function DancerSvg({ dimmed }: { dimmed?: boolean }) {
   return (
     <svg width="200" height="360" viewBox="0 0 220 380" fill="none">
       {BONES.map(([a, b], i) => {
         const ja = JOINTS[a], jb = JOINTS[b];
-        const bp = dimmed ? 0 : Math.min(1, Math.max(0, (progress - i * 0.04) * 3));
         return (
           <line key={i}
             x1={ja.x} y1={ja.y} x2={jb.x} y2={jb.y}
-            stroke={`rgba(26,15,0,${dimmed ? 0.08 : 0.08 + bp * 0.18})`}
+            stroke={dimmed ? "rgba(26,15,0,0.08)" : "rgba(26,15,0,0.22)"}
             strokeWidth={2}
             strokeLinecap="round"
+            style={dimmed ? undefined : {
+              animation: "skel-in 0.5s ease-out both",
+              animationDelay: `${0.4 + i * 0.04}s`,
+            }}
           />
         );
       })}
       {JOINTS.map((j, i) => {
-        const jp = dimmed ? 0 : Math.min(1, Math.max(0, (progress - i * 0.04) * 3));
         const isHead = j.label === "head";
         return (
-          <g key={i}>
-            {jp > 0.15 && (
-              <circle cx={j.x} cy={j.y} r={(j.r + 10) * jp}
-                fill={j.color} opacity={0.18 * jp}
-              />
+          <g key={i} style={dimmed ? undefined : {
+            animation: "skel-in 0.5s ease-out both",
+            animationDelay: `${0.5 + i * 0.06}s`,
+          }}>
+            {!dimmed && (
+              <circle cx={j.x} cy={j.y} r={j.r + 9} fill={j.color} opacity={0.18} />
             )}
             <circle cx={j.x} cy={j.y} r={j.r}
-              fill={dimmed ? "rgba(26,15,0,0.12)" : jp > 0.4 ? j.color : "rgba(26,15,0,0.12)"}
-              opacity={dimmed ? 1 : 0.25 + jp * 0.75}
+              fill={dimmed ? "rgba(26,15,0,0.12)" : j.color}
+              opacity={dimmed ? 1 : 0.95}
             />
             {isHead && (
               <circle cx={j.x} cy={j.y} r={j.r - 7}
-                fill={dimmed ? "rgba(26,15,0,0.05)" : jp > 0.4 ? j.color : "rgba(26,15,0,0.05)"}
+                fill={dimmed ? "rgba(26,15,0,0.05)" : j.color}
                 opacity={0.4}
               />
             )}
@@ -82,23 +85,6 @@ function DancerSvg({ progress, dimmed }: { progress: number; dimmed?: boolean })
 
 // ── Hero ──────────────────────────────────────────────────────────────
 export default function Hero() {
-  const [skelProgress, setSkelProgress] = useState(0);
-
-  // Animate skeleton joints on mount
-  useEffect(() => {
-    const start = Date.now();
-    const duration = 1600;
-    let raf: number;
-    const begin = setTimeout(() => {
-      function tick() {
-        const p = Math.min((Date.now() - start) / duration, 1);
-        setSkelProgress(p);
-        if (p < 1) raf = requestAnimationFrame(tick);
-      }
-      raf = requestAnimationFrame(tick);
-    }, 500);
-    return () => { clearTimeout(begin); cancelAnimationFrame(raf); };
-  }, []);
 
   return (
     <section className="relative min-h-screen overflow-hidden bg-[#f8f4e0] flex items-center">
@@ -151,7 +137,7 @@ export default function Hero() {
                 key={i}
                 initial={{ opacity: 0, y: 28 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.65, delay: 0.15 + i * 0.09, ease: [0.075, 0.82, 0.165, 1] as [number,number,number,number] }}
+                transition={{ duration: 0.65, delay: 0.15 + i * 0.09, ease: [0.22, 1, 0.36, 1] as [number,number,number,number] }}
                 className="inline-block mr-[0.22em]"
               >
                 {word}
@@ -226,7 +212,7 @@ export default function Hero() {
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.25, ease: [0.075, 0.82, 0.165, 1] as [number,number,number,number] }}
+          transition={{ duration: 0.8, delay: 0.25, ease: [0.22, 1, 0.36, 1] as [number,number,number,number] }}
           className="relative flex-shrink-0"
         >
           {/* Soft glow behind skeleton */}
@@ -236,7 +222,7 @@ export default function Hero() {
 
             {/* Reference dancer — hidden on mobile to avoid overflow */}
             <div className="relative hidden sm:block">
-              <DancerSvg progress={1} dimmed />
+              <DancerSvg dimmed />
               <p className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.2em] text-[#1a0f00]/25">Reference</p>
             </div>
 
@@ -256,7 +242,7 @@ export default function Hero() {
 
             {/* Analyzed dancer */}
             <div className="relative">
-              <DancerSvg progress={skelProgress} />
+              <DancerSvg />
               <p className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.2em] text-[#1a0f00]/25">You</p>
             </div>
           </div>

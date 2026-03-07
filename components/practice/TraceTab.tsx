@@ -199,6 +199,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
   const [keysOpen,        setKeysOpen]        = useState(false);
   const [showBeatAlign,   setShowBeatAlign]   = useState(false);
   const [showTutorial,    setShowTutorial]    = useState(false);
+  const [isFullscreen,    setIsFullscreen]    = useState(false);
 
   // ── Effects ─────────────────────────────────────────────────────
 
@@ -230,6 +231,20 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scanProgress, personChoices]);
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }
 
   const runBeatDetection = useCallback(async () => {
     setBeatDetecting(true);
@@ -600,6 +615,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
   return (
     <div
       onMouseMove={showControls}
+      onTouchStart={showControls}
       className="relative h-[calc(100vh-3rem)] w-full overflow-hidden bg-black"
     >
       {/* ══════════════════ FULL-BLEED VIDEO AREA ══════════════════ */}
@@ -830,6 +846,14 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
           <button onClick={() => setShowTutorial(true)} className={`h-8 w-8 rounded-lg ${GLASS} ${GLASS_BTN}`} title="Tutorial">
             <span className="text-sm">📚</span>
           </button>
+          {/* Fullscreen */}
+          <button onClick={toggleFullscreen} className={`h-8 w-8 rounded-lg ${GLASS} ${GLASS_BTN}`} title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}>
+            {isFullscreen ? (
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 15v4.5M9 15H4.5M15 9V4.5M15 9h4.5M15 15v4.5m0-4.5h4.5" /></svg>
+            ) : (
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" /></svg>
+            )}
+          </button>
         </div>
 
         {/* ── Keyboard shortcuts tooltip ──────────────────────── */}
@@ -1021,6 +1045,14 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
           }`}
         >
           <div className={`rounded-2xl ${GLASS} px-3 py-2 sm:rounded-3xl sm:px-4 sm:py-3`} style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}>
+            {/* Mobile drag handle — tap to collapse */}
+            <button
+              className="mb-1 flex w-full cursor-pointer items-center justify-center py-0.5 sm:hidden"
+              onClick={() => setControlsVisible(false)}
+              aria-label="Collapse controls"
+            >
+              <div className="h-1 w-8 rounded-full bg-[#1a0f00]/20" />
+            </button>
             {/* ── Secondary controls row ─────────────────────────────────────── */}
             <div id="trace-controls-row" className="mb-2 flex flex-wrap items-center gap-1.5 sm:mb-3 sm:gap-2">
               {/* View mode segmented control */}
@@ -1088,8 +1120,13 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
 
               {/* Live count + Adjust */}
               {bpm !== null && countsEnabled && countGrid && (
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-semibold text-[#1a0f00]/50">
+                <div className="flex items-center gap-1.5">
+                  {/* Mobile: large count number */}
+                  <span className="font-mono text-2xl font-bold tabular-nums text-[#1a0f00]/75 sm:hidden">
+                    {countGrid.count(currentTime)?.count ?? "–"}
+                  </span>
+                  {/* Desktop: small "Count: N" label */}
+                  <span className="hidden text-[10px] font-semibold text-[#1a0f00]/50 sm:inline">
                     Count: {countGrid.count(currentTime)?.count ?? "–"}
                   </span>
                   <button
@@ -1245,6 +1282,23 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             className="absolute bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-red-500/20 px-4 py-2 text-xs font-medium text-red-300 backdrop-blur"
           >{videoError}</motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile: peek handle — always visible, tap to show controls */}
+      <AnimatePresence>
+        {!controlsVisible && (
+          <motion.button
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.2 }}
+            className="pointer-events-auto absolute bottom-2 left-1/2 z-40 -translate-x-1/2 flex h-8 w-20 items-center justify-center sm:hidden"
+            onClick={showControls}
+            aria-label="Show controls"
+          >
+            <div className="h-1 w-10 rounded-full bg-white/50" />
+          </motion.button>
         )}
       </AnimatePresence>
 
