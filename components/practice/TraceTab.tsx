@@ -278,6 +278,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
     const abort = new AbortController();
     scanAbortRef.current = abort;
     setScanSource(source);
+    scanHasStartedRef.current = true;  // set directly so tutorial gate works even on cache hits
     setScanProgress(0);
     setScanEtaSeconds(null);
     const { start, end, personCenter } = trimBoundsRef.current;

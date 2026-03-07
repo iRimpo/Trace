@@ -114,7 +114,18 @@ function SignupForm() {
       return;
     }
 
-    if (data.session) {
+    // Resolve a session — signUp returns one directly when email confirmation is disabled.
+    // If not, attempt an immediate sign-in (also works without email confirmation).
+    let session = data.session;
+    if (!session && data.user) {
+      const { data: signInData } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      session = signInData.session;
+    }
+
+    if (session) {
       const recordRes = await fetch("/api/activation/record", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
