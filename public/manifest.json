@@ -1,0 +1,13 @@
+{
+  "name": "Trace",
+  "short_name": "Trace",
+  "description": "AI-powered dance analysis",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080808",
+  "theme_color": "#080808",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/trace_logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

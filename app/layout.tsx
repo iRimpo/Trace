@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { Inter, Space_Mono, Outfit, DM_Sans, Plus_Jakarta_Sans, Raleway, Calistoga } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
@@ -43,10 +43,25 @@ const calistoga = Calistoga({
   variable: "--font-calistoga",
 });
 
+export const viewport: Viewport = {
+  viewportFit: "cover",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#080808",
+};
+
 export const metadata: Metadata = {
   title: "Trace",
   description:
     "AI-powered motion analysis for dancers. Trace uses Ghost Mirror technology to show you exactly where your technique breaks down.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Trace",
+  },
   icons: {
     icon: [{ url: "/trace_logo.svg", type: "image/svg+xml" }],
     apple: [{ url: "/trace_logo.svg", type: "image/svg+xml" }],

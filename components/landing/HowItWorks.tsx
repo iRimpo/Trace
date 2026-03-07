@@ -95,28 +95,12 @@ export default function HowItWorks() {
 
       {/* Story section */}
       <section id="how-it-works" className="bg-[#f8f4e0] py-16 px-4 sm:py-28 sm:px-6 lg:px-10 relative overflow-hidden">
-        {/* Floating decorative joint dots */}
+        {/* Floating decorative joint dots — CSS-only animation */}
         <div className="pointer-events-none absolute inset-0">
-          <motion.div
-            animate={{ y: [0, -18, 0], rotate: [0, 8, 0] }}
-            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute top-20 left-12 h-10 w-10 rounded-full bg-[#60A5FA]/20 border-2 border-[#60A5FA]/30"
-          />
-          <motion.div
-            animate={{ y: [0, 14, 0], rotate: [0, -10, 0] }}
-            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-            className="absolute top-40 right-16 h-7 w-7 rounded-full bg-[#F472B6]/20 border-2 border-[#F472B6]/30"
-          />
-          <motion.div
-            animate={{ y: [0, -10, 0] }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-            className="absolute bottom-32 left-24 h-5 w-5 rounded-full bg-[#00D4FF]/20 border-2 border-[#00D4FF]/30"
-          />
-          <motion.div
-            animate={{ y: [0, 16, 0], x: [0, 8, 0] }}
-            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-            className="absolute bottom-24 right-20 h-8 w-8 rounded-full bg-[#34D399]/20 border-2 border-[#34D399]/30"
-          />
+          <div className="animate-float-slow absolute top-20 left-12 h-10 w-10 rounded-full bg-[#60A5FA]/20 border-2 border-[#60A5FA]/30" />
+          <div className="animate-float-reverse absolute top-40 right-16 h-7 w-7 rounded-full bg-[#F472B6]/20 border-2 border-[#F472B6]/30" />
+          <div className="animate-float-slow absolute bottom-32 left-24 h-5 w-5 rounded-full bg-[#00D4FF]/20 border-2 border-[#00D4FF]/30" />
+          <div className="animate-float-reverse absolute bottom-24 right-20 h-8 w-8 rounded-full bg-[#34D399]/20 border-2 border-[#34D399]/30" />
         </div>
 
         <div className="relative mx-auto max-w-3xl text-center">
@@ -146,11 +130,8 @@ export default function HowItWorks() {
 
       {/* Tilted card gallery — scrollable on mobile, overlapping on desktop */}
       <section className="bg-[#f8f4e0] pb-16 sm:pb-28 overflow-hidden">
-        {/* Mobile: horizontal scroll */}
-        <div className="relative md:hidden">
-          {/* Fade-right indicator */}
-          <div className="pointer-events-none absolute right-0 top-0 bottom-4 w-12 z-10 bg-gradient-to-l from-[#f8f4e0] to-transparent" />
-        <div className="flex gap-4 overflow-x-auto px-4 pb-4 snap-x snap-mandatory scrollbar-hide">
+        {/* Mobile: vertical 2-column grid */}
+        <div className="grid grid-cols-2 gap-3 px-4 pb-6 md:hidden">
           {CARDS.map((card, i) => (
             <motion.div
               key={card.title}
@@ -158,7 +139,7 @@ export default function HowItWorks() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.08 }}
-              className="w-44 flex-shrink-0 snap-center"
+              className="w-full"
             >
               <div
                 className="rounded-2xl border-2 bg-white p-4 shadow-lg flex flex-col gap-3"
@@ -173,7 +154,6 @@ export default function HowItWorks() {
               </div>
             </motion.div>
           ))}
-        </div>
         </div>
 
         {/* Desktop: overlapping tilted cards */}

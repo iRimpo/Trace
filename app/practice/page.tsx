@@ -179,7 +179,25 @@ export default function PracticePage() {
               placeholder="e.g., APT - Rose & Bruno Mars"
               maxLength={100}
               className="w-full rounded-xl border border-[#1a0f00]/10 bg-[#f8f4e0]/60 px-4 py-3 text-sm text-[#1a0f00] placeholder:text-[#1a0f00]/25 outline-none transition-all focus:border-[#080808]/30 focus:ring-2 focus:ring-[#080808]/08" />
-            <p className="mt-1 text-[11px] text-[#1a0f00]/25">Required · Used to group your practice sessions</p>
+            <div className="mt-1 flex items-center justify-between">
+              <p className="text-[11px] text-[#1a0f00]/25">Required · Min. 3 characters</p>
+              <AnimatePresence>
+                {songName.length > 0 && (
+                  <motion.span
+                    key={songName.trim().length >= 3 ? "ok" : "need"}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className={`text-[11px] font-medium ${songName.trim().length >= 3 ? "text-emerald-600" : "text-amber-500"}`}
+                  >
+                    {songName.trim().length >= 3
+                      ? "✓ Good to go"
+                      : `${3 - songName.trim().length} more char${3 - songName.trim().length === 1 ? "" : "s"} needed`}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           <AnimatePresence mode="wait">

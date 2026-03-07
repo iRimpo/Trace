@@ -93,14 +93,14 @@ html {
   50%       { transform: translateY(-14px) rotate(1.5deg); }
 }
 
-.animate-float-slow { animation: float-slow 7s ease-in-out infinite; }
+.animate-float-slow { animation: float-slow 7s ease-in-out infinite; will-change: transform; }
 
 @keyframes float-reverse {
   0%, 100% { transform: translateY(0px) rotate(0deg); }
   50%       { transform: translateY(10px) rotate(-1deg); }
 }
 
-.animate-float-reverse { animation: float-reverse 8s ease-in-out infinite; }
+.animate-float-reverse { animation: float-reverse 8s ease-in-out infinite; will-change: transform; }
 
 @media (prefers-reduced-motion: reduce) {
   *,

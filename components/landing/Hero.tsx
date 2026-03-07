@@ -79,17 +79,6 @@ function DancerSvg({ progress, dimmed }: { progress: number; dimmed?: boolean })
   );
 }
 
-// ── Floating orb ──────────────────────────────────────────────────────
-function Orb({ color, size, x, y, delay }: { color: string; size: number; x: string; y: string; delay: number }) {
-  return (
-    <motion.div
-      className="pointer-events-none absolute rounded-full"
-      style={{ width: size, height: size, left: x, top: y, backgroundColor: color, filter: "blur(60px)", opacity: 0.12 }}
-      animate={{ y: [0, -18, 0], scale: [1, 1.08, 1] }}
-      transition={{ duration: 5 + delay, repeat: Infinity, ease: "easeInOut", delay }}
-    />
-  );
-}
 
 // ── Hero ──────────────────────────────────────────────────────────────
 export default function Hero() {
@@ -114,11 +103,15 @@ export default function Hero() {
   return (
     <section className="relative min-h-screen overflow-hidden bg-[#f8f4e0] flex items-center">
 
-      {/* Background orbs */}
-      <Orb color="#A78BFA" size={340} x="65%"  y="10%"  delay={0}   />
-      <Orb color="#00D4FF" size={260} x="72%"  y="50%"  delay={1.2} />
-      <Orb color="#34D399" size={200} x="55%"  y="70%"  delay={2.1} />
-      <Orb color="#FBBF24" size={180} x="5%"   y="60%"  delay={1.7} />
+      {/* Background orbs — CSS-only animation, hidden on mobile */}
+      <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-slow"
+        style={{ width: 340, height: 340, left: "65%", top: "10%", backgroundColor: "#A78BFA", filter: "blur(60px)", opacity: 0.12 }} />
+      <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-reverse"
+        style={{ width: 260, height: 260, left: "72%", top: "50%", backgroundColor: "#00D4FF", filter: "blur(60px)", opacity: 0.12 }} />
+      <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-slow"
+        style={{ width: 200, height: 200, left: "55%", top: "70%", backgroundColor: "#34D399", filter: "blur(60px)", opacity: 0.12 }} />
+      <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-reverse"
+        style={{ width: 180, height: 180, left: "5%", top: "60%", backgroundColor: "#FBBF24", filter: "blur(60px)", opacity: 0.12 }} />
 
       {/* Subtle dot grid */}
       <div

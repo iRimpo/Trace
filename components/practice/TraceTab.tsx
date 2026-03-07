@@ -116,7 +116,9 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
     end:          initialFraming?.trimEnd,
     personCenter: initialFraming?.personCenter,
   });
-  const autoScanFiredRef = useRef(false);
+  const autoScanFiredRef    = useRef(false);
+  const tutorialShownRef    = useRef(false);
+  const scanHasStartedRef   = useRef(false);
   const timelineDragRef  = useRef<"a" | "b" | null>(null);
   const traceStartTimeRef = useRef<number>(Date.now());
   const practiceStartedFiredRef = useRef(false);
@@ -211,13 +213,23 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoUrl]);
 
-  // Show tutorial once after calibration (TraceTab only mounts post-calibration)
+  // Track when the auto-scan has started (scanProgress goes non-null)
+  useEffect(() => {
+    if (scanProgress !== null) scanHasStartedRef.current = true;
+  }, [scanProgress]);
+
+  // Show tutorial only after scan ends and no person dialog is open
   useEffect(() => {
     if (localStorage.getItem("trace_tutorial_v1_done")) return;
-    const t = setTimeout(() => setShowTutorial(true), 800);
+    if (tutorialShownRef.current) return;
+    if (!scanHasStartedRef.current) return;  // wait for scan to start first
+    if (scanProgress !== null) return;        // scan in progress: wait
+    if (personChoices !== null) return;       // person-selection open: wait
+    tutorialShownRef.current = true;
+    const t = setTimeout(() => setShowTutorial(true), 600);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [scanProgress, personChoices]);
 
   const runBeatDetection = useCallback(async () => {
     setBeatDetecting(true);
@@ -982,7 +994,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
           </AnimatePresence>
 
           {onComplete && (
-            <div className="flex flex-col items-end gap-1">
+            <div className="hidden sm:flex flex-col items-end gap-1">
               <button
                 id="trace-ready-btn"
                 onClick={() => {
@@ -1008,7 +1020,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
             controlsVisible ? "translate-y-0" : "translate-y-full"
           }`}
         >
-          <div className={`rounded-2xl ${GLASS} px-3 py-2 sm:rounded-3xl sm:px-4 sm:py-3`}>
+          <div className={`rounded-2xl ${GLASS} px-3 py-2 sm:rounded-3xl sm:px-4 sm:py-3`} style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}>
             {/* ── Secondary controls row ─────────────────────────────────────── */}
             <div id="trace-controls-row" className="mb-2 flex flex-wrap items-center gap-1.5 sm:mb-3 sm:gap-2">
               {/* View mode segmented control */}
@@ -1206,6 +1218,22 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
                 />
               </div>
             </div>
+
+            {/* Mobile: Ready to test CTA — inside transport panel, hidden on sm+ */}
+            {onComplete && (
+              <button
+                onClick={() => {
+                  const elapsed = Math.round((Date.now() - traceStartTimeRef.current) / 1000);
+                  onComplete(elapsed);
+                }}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#080808] py-2.5 text-sm font-semibold text-white active:scale-[0.98] sm:hidden"
+              >
+                Ready to test
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                </svg>
+              </button>
+            )}
           </div>
 
         </div>
