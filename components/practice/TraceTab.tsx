@@ -169,7 +169,6 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
   const [scanCompleteFlash,  setScanCompleteFlash]  = useState(false);
   const [scanCompleteCount,  setScanCompleteCount]  = useState<number | null>(null);
   const [scanSource,         setScanSource]         = useState<"auto" | "feedback" | null>(null);
-  const personChoiceResolverRef = useRef<((idx: number) => void) | null>(null);
   const scanAbortRef = useRef<AbortController | null>(null);
 
   // ── Beat / count grid ───────────────────────────────────────────
