@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import DashboardSkeleton from "@/components/skeletons/DashboardSkeleton";
 import SongCard from "@/components/dashboard/SongCard";
+import DashboardTutorial from "@/components/dashboard/DashboardTutorial";
 import type { SongGroup } from "@/app/api/progress/route";
 
 interface Stats {
@@ -50,6 +51,9 @@ function DashboardContent() {
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(() =>
+    typeof window !== "undefined" && !localStorage.getItem("trace_onboarding_v1_done")
+  );
 
   useEffect(() => {
     if (!user) return;
@@ -98,6 +102,7 @@ function DashboardContent() {
 
   return (
     <div className="mx-auto max-w-3xl">
+      {showTutorial && <DashboardTutorial onDone={() => setShowTutorial(false)} />}
 
       {/* ── Hero strip ──────────────────────────────────────────── */}
       <motion.div

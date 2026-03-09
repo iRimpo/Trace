@@ -602,6 +602,18 @@ function applyPersonClip(
   ctx.clip();
 }
 
+/**
+ * For crowded scenes (multiple dancers), compute a modified transform that
+ * maps the tracked person's horizontal center to the canvas center.
+ * This prevents feedback from appearing scattered across the screen.
+ */
+function centeredTransform(p: TransformParams, bounds: { x1: number; y1: number; x2: number; y2: number }): TransformParams {
+  const personCenterVX = ((bounds.x1 + bounds.x2) / 2) * p.pvW;
+  const [currentCX] = toCanvas(personCenterVX, 0, p);
+  const extraOffsetX = p.cW / 2 - currentCX;
+  return { ...p, offsetX: p.offsetX + extraOffsetX };
+}
+
 // ── Public entry points ───────────────────────────────────────────────────
 
 /**
@@ -618,17 +630,18 @@ export function renderCue(
   const progress = Math.min(1, (now - cue.addedAt) / cue.duration);
   const ev       = cue.event;
   const accent   = cue.snappedTick?.accent;
+  const t        = ev.crowded && ev.personBounds ? centeredTransform(transform, ev.personBounds) : transform;
 
   ctx.save();
-  applyPersonClip(ctx, ev.personBounds, transform, !!ev.crowded);
+  applyPersonClip(ctx, ev.personBounds, t, !!ev.crowded);
   switch (ev.type) {
-    case "move":     renderMoveArrow(ctx, ev, progress, transform, beatPhase);     break;
-    case "step":     renderStepPulse(ctx, ev, progress, transform, accent);        break;
-    case "head":     renderHeadNod(ctx, ev, progress, transform, beatPhase);       break;
-    case "elbow":    renderElbowArc(ctx, ev, progress, transform, beatPhase);      break;
-    case "hip":      renderHipSway(ctx, ev, progress, transform, beatPhase);       break;
-    case "shoulder": renderShoulderShift(ctx, ev, progress, transform, beatPhase); break;
-    case "arm-both": renderBothArms(ctx, ev, progress, transform, beatPhase);      break;
+    case "move":     renderMoveArrow(ctx, ev, progress, t, beatPhase);     break;
+    case "step":     renderStepPulse(ctx, ev, progress, t, accent);        break;
+    case "head":     renderHeadNod(ctx, ev, progress, t, beatPhase);       break;
+    case "elbow":    renderElbowArc(ctx, ev, progress, t, beatPhase);      break;
+    case "hip":      renderHipSway(ctx, ev, progress, t, beatPhase);       break;
+    case "shoulder": renderShoulderShift(ctx, ev, progress, t, beatPhase); break;
+    case "arm-both": renderBothArms(ctx, ev, progress, t, beatPhase);      break;
   }
   ctx.restore();
 }
@@ -645,16 +658,17 @@ export function renderEvent(
   beatPhase: number,
   accent?:   Accent,
 ): void {
+  const t = ev.crowded && ev.personBounds ? centeredTransform(transform, ev.personBounds) : transform;
   ctx.save();
-  applyPersonClip(ctx, ev.personBounds, transform, !!ev.crowded);
+  applyPersonClip(ctx, ev.personBounds, t, !!ev.crowded);
   switch (ev.type) {
-    case "move":     renderMoveArrow(ctx, ev, progress, transform, beatPhase);     break;
-    case "step":     renderStepPulse(ctx, ev, progress, transform, accent);        break;
-    case "head":     renderHeadNod(ctx, ev, progress, transform, beatPhase);       break;
-    case "elbow":    renderElbowArc(ctx, ev, progress, transform, beatPhase);      break;
-    case "hip":      renderHipSway(ctx, ev, progress, transform, beatPhase);       break;
-    case "shoulder": renderShoulderShift(ctx, ev, progress, transform, beatPhase); break;
-    case "arm-both": renderBothArms(ctx, ev, progress, transform, beatPhase);      break;
+    case "move":     renderMoveArrow(ctx, ev, progress, t, beatPhase);     break;
+    case "step":     renderStepPulse(ctx, ev, progress, t, accent);        break;
+    case "head":     renderHeadNod(ctx, ev, progress, t, beatPhase);       break;
+    case "elbow":    renderElbowArc(ctx, ev, progress, t, beatPhase);      break;
+    case "hip":      renderHipSway(ctx, ev, progress, t, beatPhase);       break;
+    case "shoulder": renderShoulderShift(ctx, ev, progress, t, beatPhase); break;
+    case "arm-both": renderBothArms(ctx, ev, progress, t, beatPhase);      break;
   }
   ctx.restore();
 }

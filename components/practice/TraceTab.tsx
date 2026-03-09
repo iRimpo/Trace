@@ -8,11 +8,13 @@ import BpmInput from "@/components/practice/BpmInput";
 import type { CalibrationData } from "@/components/practice/CalibrationModal";
 import { CountGrid } from "@/lib/countGrid";
 import { detectBeatsFromVideo } from "@/lib/beatDetector";
-import { preScanVideo, type PersonCenter, type PreScanResult } from "@/lib/videoPreScan";
+import { preScanVideo, type PreScanResult } from "@/lib/videoPreScan";
 import type { MovementEvent } from "@/lib/movementEventDetector";
 import type { Keypoint } from "@/lib/mediapipe";
 import { track } from "@/lib/analytics";
-import TraceTutorial from "@/components/practice/TraceTutorial";
+import DashboardTutorial from "@/components/dashboard/DashboardTutorial";
+
+const PRACTICE_TUTORIAL_KEY = "trace_practice_tutorial_dismissed";
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -116,9 +118,11 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
     end:          initialFraming?.trimEnd,
     personCenter: initialFraming?.personCenter,
   });
-  const autoScanFiredRef    = useRef(false);
-  const tutorialShownRef    = useRef(false);
-  const timelineDragRef  = useRef<"a" | "b" | null>(null);
+  const autoScanFiredRef      = useRef(false);
+  const tutorialTriggeredRef  = useRef(false);
+  const timelineDragRef       = useRef<"a" | "b" | null>(null);
+  const pinchStateRef    = useRef<{ dist: number; zoom: number } | null>(null);
+  const pinchActiveRef   = useRef(false);
   const traceStartTimeRef = useRef<number>(Date.now());
   const practiceStartedFiredRef = useRef(false);
 
@@ -148,7 +152,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
   const [isDragging, setIsDragging] = useState(false);
 
   // ── Loop ────────────────────────────────────────────────────────
-  const [loopAll,           setLoopAll]           = useState(false);
+  const [loopAll,           setLoopAll]           = useState(true);
   const [loopStart,         setLoopStart]         = useState<number | null>(null);
   const [loopEnd,           setLoopEnd]           = useState<number | null>(null);
   const [loopSectionActive, setLoopSectionActive] = useState(false);
@@ -165,24 +169,8 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
   const [scanCompleteFlash,  setScanCompleteFlash]  = useState(false);
   const [scanCompleteCount,  setScanCompleteCount]  = useState<number | null>(null);
   const [scanSource,         setScanSource]         = useState<"auto" | "feedback" | null>(null);
-  const [personChoices,      setPersonChoices]      = useState<PersonCenter[] | null>(null);
   const personChoiceResolverRef = useRef<((idx: number) => void) | null>(null);
   const scanAbortRef = useRef<AbortController | null>(null);
-  const [detectedDancers,    setDetectedDancers]    = useState<PersonCenter[]>([]);
-  const [focusedDancerIdx,   setFocusedDancerIdx]   = useState<number | null>(null);
-
-  function requestPersonChoice(persons: PersonCenter[]): Promise<number> {
-    setDetectedDancers(persons);
-    return new Promise(resolve => {
-      setPersonChoices(persons);
-      personChoiceResolverRef.current = (idx: number) => {
-        resolve(idx);
-        setPersonChoices(null);
-        personChoiceResolverRef.current = null;
-        setFocusedDancerIdx(idx);
-      };
-    });
-  }
 
   // ── Beat / count grid ───────────────────────────────────────────
   const [bpm,           setBpm]           = useState<number | null>(null);
@@ -197,8 +185,8 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
   const [toolsOpen,       setToolsOpen]       = useState(false);
   const [keysOpen,        setKeysOpen]        = useState(false);
   const [showBeatAlign,   setShowBeatAlign]   = useState(false);
-  const [showTutorial,    setShowTutorial]    = useState(false);
   const [isFullscreen,    setIsFullscreen]    = useState(false);
+  const [showTutorial,    setShowTutorial]    = useState(false);
 
   // ── Effects ─────────────────────────────────────────────────────
 
@@ -254,17 +242,16 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
     setShowBeatAlign(false);
   }, [bpm, countGrid]);
 
-  // Called when the auto-scan finishes: start the video playing and show the
-  // tutorial for first-time users. The 700ms delay lets the scan overlay's
-  // exit animation complete before the tutorial card appears.
+  // Auto-play the reference video once the scan finishes so the user
+  // immediately sees the result without having to press play manually.
   function autoPlayAfterScan() {
     const v = proVideoRef.current;
     if (v && v.paused) {
       v.play().then(() => setPlaying(true)).catch(() => {});
     }
-    if (!tutorialShownRef.current && !localStorage.getItem("trace_tutorial_v1_done")) {
-      tutorialShownRef.current = true;
-      setTimeout(() => setShowTutorial(true), 700);
+    if (!tutorialTriggeredRef.current && !localStorage.getItem(PRACTICE_TUTORIAL_KEY)) {
+      tutorialTriggeredRef.current = true;
+      setTimeout(() => setShowTutorial(true), 900);
     }
   }
 
@@ -311,7 +298,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
       start,
       end,
       effectiveCenter,
-      initialFraming?.solo ? undefined : requestPersonChoice,
+      undefined,
     )
       .then(result => {
         if (result && !abort.signal.aborted) {
@@ -563,13 +550,42 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
   // ── Drag-to-pan ─────────────────────────────────────────────────
   function handleCanvasPointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
     if (viewMode !== "overlay") return;
+    if (pinchActiveRef.current) return;
     (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
     const baseX = proOffsetX, baseY = proOffsetY, startX = e.clientX, startY = e.clientY;
     setIsDragging(true);
-    const onMove = (ev: PointerEvent) => { setProOffsetX(baseX + (ev.clientX - startX)); setProOffsetY(baseY + (ev.clientY - startY)); };
+    const onMove = (ev: PointerEvent) => {
+      if (pinchActiveRef.current) return;
+      setProOffsetX(baseX + (ev.clientX - startX));
+      setProOffsetY(baseY + (ev.clientY - startY));
+    };
     const onUp = () => { setIsDragging(false); window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+  }
+
+  function handleCanvasPinchStart(e: React.TouchEvent<HTMLCanvasElement>) {
+    if (viewMode !== "overlay" || e.touches.length < 2) return;
+    pinchActiveRef.current = true;
+    const t0 = e.touches[0], t1 = e.touches[1];
+    const dx = t1.clientX - t0.clientX, dy = t1.clientY - t0.clientY;
+    pinchStateRef.current = { dist: Math.sqrt(dx * dx + dy * dy), zoom: proZoom };
+  }
+
+  function handleCanvasPinchMove(e: React.TouchEvent<HTMLCanvasElement>) {
+    if (!pinchActiveRef.current || e.touches.length < 2 || !pinchStateRef.current) return;
+    e.preventDefault();
+    const t0 = e.touches[0], t1 = e.touches[1];
+    const dx = t1.clientX - t0.clientX, dy = t1.clientY - t0.clientY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    setProZoom(Math.min(Math.max(pinchStateRef.current.zoom * (dist / pinchStateRef.current.dist), 0.3), 3.0));
+  }
+
+  function handleCanvasPinchEnd(e: React.TouchEvent<HTMLCanvasElement>) {
+    if (e.touches.length < 2) {
+      pinchActiveRef.current = false;
+      pinchStateRef.current = null;
+    }
   }
 
   function handleLoopHandlePointerDown(e: React.PointerEvent<HTMLDivElement>, which: "a" | "b") {
@@ -633,6 +649,9 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
             className="absolute inset-0 h-full w-full"
             style={{ opacity: overlayOpacity / 100, cursor: isDragging ? "grabbing" : "grab", touchAction: "none" }}
             onPointerDown={handleCanvasPointerDown}
+            onTouchStart={handleCanvasPinchStart}
+            onTouchMove={handleCanvasPinchMove}
+            onTouchEnd={handleCanvasPinchEnd}
           />
 
           <FeedbackCanvas
@@ -732,57 +751,6 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
         )}
       </AnimatePresence>
 
-      {/* ══════════════════ PERSON SELECTION OVERLAY ════════════════ */}
-      <AnimatePresence>
-        {personChoices && personChoices.length > 1 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 flex items-center justify-center bg-black/60"
-          >
-            <motion.div
-              initial={{ scale: 0.96, y: 8 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.96, y: 8 }}
-              className={`w-[min(420px,92vw)] rounded-2xl ${GLASS} px-5 py-5`}
-            >
-              <h2 className="text-sm font-semibold text-[#1a0f00]">Who should Trace focus on?</h2>
-              <p className="mt-1 text-xs text-[#1a0f00]/55">
-                We detected multiple people in the video. Choose the dancer you want feedback for.
-              </p>
-
-              <div className="mt-4 flex flex-wrap items-end justify-center gap-3">
-                {personChoices.map((p, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => personChoiceResolverRef.current?.(idx)}
-                    className="group relative flex h-20 w-20 flex-col items-center justify-end rounded-2xl bg-[#1a0f00]/3 text-[#1a0f00]/70 shadow-sm transition-all hover:bg-[#1a0f00]/6 hover:text-[#1a0f00]"
-                  >
-                    <div className="absolute inset-x-3 top-3 h-1 rounded-full bg-gradient-to-r from-emerald-400/60 via-sky-400/60 to-violet-400/60 opacity-60" />
-                    <div className="mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-[#080808] text-[11px] font-semibold text-white shadow">
-                      {idx + 1}
-                    </div>
-                    <span className="mb-2 text-[10px] font-medium">
-                      {p.x < 0.33 ? "Left" : p.x > 0.66 ? "Right" : "Center"}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt-3 flex items-center justify-center">
-                <button
-                  onClick={() => personChoiceResolverRef.current?.(0)}
-                  className="text-[11px] font-medium text-[#1a0f00]/45 hover:text-[#1a0f00]/75"
-                >
-                  Or continue with Person 1
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Scan complete flash */}
       <AnimatePresence>
         {scanCompleteFlash && scanCompleteCount !== null && (
@@ -839,10 +807,6 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
           {/* Keyboard shortcuts help */}
           <button onClick={() => setKeysOpen(k => !k)} className={`h-8 w-8 rounded-lg ${GLASS} ${GLASS_BTN}`} title="Keyboard shortcuts">
             <span className="text-xs font-bold">?</span>
-          </button>
-          {/* Tutorial */}
-          <button onClick={() => setShowTutorial(true)} className={`h-8 w-8 rounded-lg ${GLASS} ${GLASS_BTN}`} title="Tutorial">
-            <span className="text-sm">📚</span>
           </button>
           {/* Fullscreen */}
           <button onClick={toggleFullscreen} className={`h-8 w-8 rounded-lg ${GLASS} ${GLASS_BTN}`} title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}>
@@ -914,12 +878,6 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
                   </div>
                 )}
 
-                <div className="border-t border-[#1a0f00]/08" />
-
-                {/* Tutorial re-open */}
-                <button onClick={() => setShowTutorial(true)} className="text-left text-[10px] text-[#1a0f00]/40 hover:text-[#1a0f00]/70">
-                  📚 View Tutorial
-                </button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -941,38 +899,6 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
             </svg>
           </button>
-
-          {/* Detected dancer pills */}
-          {detectedDancers.length > 1 && (
-            <div className="flex flex-col gap-1">
-              {detectedDancers.map((d, idx) => {
-                const isFocused = focusedDancerIdx === idx;
-                const isScanning = scanProgress !== null && isFocused;
-                const label = d.x < 0.33 ? "Left" : d.x > 0.66 ? "Right" : "Center";
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setFocusedDancerIdx(idx);
-                      runScan("feedback", d);
-                    }}
-                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-semibold transition-all backdrop-blur ${
-                      isFocused
-                        ? "bg-emerald-500 text-white shadow-md"
-                        : "bg-black/50 text-white/70 hover:bg-black/70 hover:text-white"
-                    }`}
-                  >
-                    {isScanning ? (
-                      <div className="h-2.5 w-2.5 animate-spin rounded-full border border-current border-t-transparent" />
-                    ) : (
-                      <span className={`h-2 w-2 rounded-full ${isFocused ? "bg-white" : "bg-emerald-400"}`} />
-                    )}
-                    Dancer {idx + 1} · {label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
 
         </div>
 
@@ -1090,11 +1016,11 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
 
               {/* Opacity slider (overlay only, hidden on very small screens) */}
               {viewMode === "overlay" && (
-                <div className="hidden items-center gap-1.5 sm:flex">
+                <div className="flex items-center gap-1.5">
                   <span className="text-[10px] text-[#1a0f00]/40">Opacity</span>
                   <input type="range" min="10" max="90" value={overlayOpacity}
                     onChange={e => setOverlayOpacity(parseInt(e.target.value))}
-                    className="h-0.5 w-20 cursor-pointer appearance-none rounded-full bg-[#1a0f00]/10 accent-[#080808]" />
+                    className="h-0.5 w-16 cursor-pointer appearance-none rounded-full bg-[#1a0f00]/10 accent-[#080808] sm:w-20" />
                   <span className="w-7 text-right text-[10px] tabular-nums text-[#1a0f00]/30">{overlayOpacity}%</span>
                 </div>
               )}
@@ -1116,15 +1042,10 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
                 </button>
               )}
 
-              {/* Live count + Adjust */}
+              {/* Live count + Adjust (desktop only — mobile has the floating badge above) */}
               {bpm !== null && countsEnabled && countGrid && (
-                <div className="flex items-center gap-1.5">
-                  {/* Mobile: large count number */}
-                  <span className="font-mono text-2xl font-bold tabular-nums text-[#1a0f00]/75 sm:hidden">
-                    {countGrid.count(currentTime)?.count ?? "–"}
-                  </span>
-                  {/* Desktop: small "Count: N" label */}
-                  <span className="hidden text-[10px] font-semibold text-[#1a0f00]/50 sm:inline">
+                <div className="hidden items-center gap-1 sm:flex">
+                  <span className="text-[10px] font-semibold text-[#1a0f00]/50">
                     Count: {countGrid.count(currentTime)?.count ?? "–"}
                   </span>
                   <button
@@ -1136,6 +1057,48 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
                 </div>
               )}
             </div>
+
+            {/* Mobile beat-align panel — inline, shown when Adjust is tapped on mobile */}
+            <AnimatePresence>
+              {showBeatAlign && bpm !== null && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.18 }}
+                  className="overflow-hidden sm:hidden"
+                >
+                  <div className="mb-2 rounded-xl bg-[#1a0f00]/06 p-3">
+                    <p className="mb-2 text-[10px] font-semibold text-[#1a0f00]/50">
+                      Pause on a beat you recognize — what count is playing?
+                    </p>
+                    <div className="grid grid-cols-8 gap-1">
+                      {[1,2,3,4,5,6,7,8].map(n => (
+                        <button
+                          key={n}
+                          onClick={() => handleAlignCount(n)}
+                          className="flex h-9 items-center justify-center rounded-lg bg-white text-sm font-bold text-[#1a0f00]/70 shadow-sm active:scale-95"
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Mobile: Adjust button — visible only on mobile next to Counts pill */}
+            {bpm !== null && countsEnabled && countGrid && (
+              <div className="flex items-center gap-1 sm:hidden">
+                <button
+                  onClick={() => setShowBeatAlign(a => !a)}
+                  className={`rounded-full px-3 py-1 text-[10px] font-semibold transition-colors ${showBeatAlign ? "bg-violet-100 text-violet-700" : "bg-[#1a0f00]/06 text-[#1a0f00]/50 hover:text-[#1a0f00]"}`}
+                >
+                  {showBeatAlign ? "Done" : "Adjust counts"}
+                </button>
+              </div>
+            )}
 
             {/* Timeline */}
             <div
@@ -1218,26 +1181,15 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
                 {fmt(currentTime)} / {fmt(duration)}
               </span>
 
-              {/* Speed pills — show all on md+, compact on mobile */}
-              <div className="hidden items-center gap-0.5 rounded-lg bg-[#1a0f00]/06 p-0.5 sm:flex">
+              {/* Speed — segmented control on all screen sizes */}
+              <div className="flex items-center gap-0.5 rounded-lg bg-[#1a0f00]/06 p-0.5">
                 {SPEEDS.map(s => (
-                  <button key={s} onClick={() => { setSpeed(s); if (proVideoRef.current) proVideoRef.current.playbackRate = s; }}
-                    className={`rounded-md px-2 py-1 text-[10px] font-bold transition-all ${speed === s ? "bg-white text-[#1a0f00] shadow-sm" : "text-[#1a0f00]/30 hover:text-[#1a0f00]/60"}`}
+                  <button key={s}
+                    onClick={() => { setSpeed(s); if (proVideoRef.current) proVideoRef.current.playbackRate = s; }}
+                    className={`rounded-md px-1.5 py-1 text-[10px] font-bold transition-all ${speed === s ? "bg-white text-[#1a0f00] shadow-sm" : "text-[#1a0f00]/30 hover:text-[#1a0f00]/60"}`}
                   >{s}x</button>
                 ))}
               </div>
-              {/* Mobile speed toggle */}
-              <button
-                className="flex items-center gap-0.5 rounded-lg bg-[#1a0f00]/06 px-2 py-1 text-[10px] font-bold text-[#1a0f00]/60 sm:hidden"
-                onClick={() => {
-                  const idx = SPEEDS.indexOf(speed as typeof SPEEDS[number]);
-                  const next = SPEEDS[(idx + 1) % SPEEDS.length];
-                  setSpeed(next);
-                  if (proVideoRef.current) proVideoRef.current.playbackRate = next;
-                }}
-              >
-                {speed}x
-              </button>
 
               {/* Volume — hidden on mobile */}
               <div className="ml-auto hidden items-center gap-2 sm:flex">
@@ -1300,10 +1252,15 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
         )}
       </AnimatePresence>
 
-      {/* Tutorial overlay */}
-      {showTutorial && (
-        <TraceTutorial onClose={() => setShowTutorial(false)} />
-      )}
+      {/* ══════════════════ PRACTICE TUTORIAL ══════════════════ */}
+      <AnimatePresence>
+        {showTutorial && (
+          <DashboardTutorial
+            onDone={() => setShowTutorial(false)}
+            dismissKey={PRACTICE_TUTORIAL_KEY}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
