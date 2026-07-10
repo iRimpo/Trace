@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
-import { loadVideoSession } from "@/lib/sessionVideoStorage";
+import { restoreVideoSession } from "@/lib/sessionVideoStorage";
 import PracticeView from "@/components/practice/PracticeView";
 
 export default function SessionPage() {
@@ -13,16 +13,24 @@ export default function SessionPage() {
   const [checked, setChecked] = useState(false);
   const [blobUrl,  setBlobUrl]  = useState<string | null>(null);
   const [title,    setTitle]    = useState("");
+  const [identityKey, setIdentityKey] = useState<string | null>(null);
 
   useEffect(() => {
-    const session = loadVideoSession();
-    if (!session) {
-      router.replace("/practice");
-      return;
-    }
-    setBlobUrl(session.blobUrl);
-    setTitle(session.songName || session.fileName);
-    setChecked(true);
+    let cancelled = false;
+    // Restore re-mints the blob URL from IndexedDB when possible — a plain
+    // sessionStorage blob URL is dead after any hard reload.
+    restoreVideoSession().then(session => {
+      if (cancelled) return;
+      if (!session) {
+        router.replace("/practice");
+        return;
+      }
+      setBlobUrl(session.blobUrl);
+      setTitle(session.songName || session.fileName);
+      setIdentityKey(session.identityKey ?? null);
+      setChecked(true);
+    });
+    return () => { cancelled = true; };
   }, [router]);
 
   if (authLoading || !checked) {
@@ -38,9 +46,9 @@ export default function SessionPage() {
         </div>
 
         <motion.img
-          src="/ChatGPT Image Feb 15, 2026, 06_45_31 PM(8).svg"
-          alt="Trace character"
-          className="h-16 w-16"
+          src="/trace_logo.svg"
+          alt="Trace"
+          className="h-16 w-16 rounded-full"
           animate={{ rotate: [-6, 6, -6] }}
           transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
         />
@@ -57,6 +65,7 @@ export default function SessionPage() {
       videoId={null}
       videoTitle={title}
       videoSource="upload"
+      identityKey={identityKey}
     />
   );
 }

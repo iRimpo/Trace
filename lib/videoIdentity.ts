@@ -54,3 +54,13 @@ export async function fileIdentity(file: Blob): Promise<VideoIdentity> {
 export function identityKey(v: VideoIdentity): string {
   return v.kind === "file" ? `file:${v.sha256}` : `${v.kind}:${v.id}`;
 }
+
+export function parseIdentityKey(key: string): VideoIdentity | null {
+  const sep = key.indexOf(":");
+  if (sep <= 0) return null;
+  const kind = key.slice(0, sep), rest = key.slice(sep + 1);
+  if (!rest) return null;
+  if (kind === "youtube" || kind === "tiktok") return { kind, id: rest };
+  if (kind === "file") return { kind, sha256: rest };
+  return null;
+}

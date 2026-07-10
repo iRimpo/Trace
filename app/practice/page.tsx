@@ -9,6 +9,8 @@ import { useAuth } from "@/context/AuthContext";
 import { track } from "@/lib/posthog";
 import { track as trackProduct } from "@/lib/analytics";
 import { storeVideoSession } from "@/lib/sessionVideoStorage";
+import { fileIdentity, identityKey } from "@/lib/videoIdentity";
+import { putVideo, idbAvailable } from "@/lib/videoStore";
 
 type UploadState = "idle" | "uploading" | "success" | "error";
 
@@ -49,6 +51,21 @@ function formatFileSize(bytes: number): string {
   return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
+/** Read a video file's duration in seconds; null on failure. */
+function getVideoDuration(file: File): Promise<number | null> {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    const url = URL.createObjectURL(file);
+    video.preload = "metadata";
+    video.src = url;
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(url);
+      resolve(isFinite(video.duration) ? video.duration : null);
+    };
+    video.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+  });
+}
+
 export default function PracticePage() {
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -61,6 +78,7 @@ export default function PracticePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive]   = useState(false);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  const [videoDuration, setVideoDuration] = useState<number | null>(null);
 
   // Pre-fill from ?song= param (Practice Again flow)
   useEffect(() => {
@@ -81,6 +99,7 @@ export default function PracticePage() {
     setError("");
     setSelectedFile(file);
     captureVideoThumbnail(file).then(t => setThumbnailUrl(t));
+    getVideoDuration(file).then(d => setVideoDuration(d));
   }, [validateFile]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -97,9 +116,22 @@ export default function PracticePage() {
     setProgress(0);
 
     try {
-      setProgress(50);
+      setProgress(25);
+      // Content-hash identity → shared scan cache + on-device persistence
+      const identity = await fileIdentity(selectedFile);
+      const key = identityKey(identity);
+      setProgress(55);
+      if (idbAvailable()) {
+        await putVideo({
+          key,
+          blob: selectedFile,
+          fileName: selectedFile.name,
+          songName: songName.trim(),
+          thumbnailUrl: thumbnailUrl ?? undefined,
+        });
+      }
       const blobUrl = URL.createObjectURL(selectedFile);
-      storeVideoSession({ blobUrl, fileName: selectedFile.name, songName: songName.trim(), thumbnailUrl: thumbnailUrl ?? undefined, createdAt: Date.now() });
+      storeVideoSession({ blobUrl, fileName: selectedFile.name, songName: songName.trim(), thumbnailUrl: thumbnailUrl ?? undefined, createdAt: Date.now(), identityKey: key });
       setProgress(100);
       setUploadState("success");
       track("video_uploaded", { mode: "file" });
@@ -249,11 +281,21 @@ export default function PracticePage() {
                         <p className="truncate text-sm font-semibold text-[#1a0f00]">{selectedFile.name}</p>
                         <p className="mt-0.5 text-xs text-[#1a0f00]/30">{formatFileSize(selectedFile.size)}</p>
                       </div>
-                      <button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                      <button onClick={() => { setSelectedFile(null); setVideoDuration(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
                         className="rounded-lg p-1.5 text-[#1a0f00]/20 hover:bg-[#1a0f00]/5 hover:text-[#1a0f00]/50 transition-colors">
                         <FaTimes className="h-4 w-4" />
                       </button>
                     </div>
+                    {videoDuration !== null && videoDuration > 60 && (
+                      <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-500/10 px-3 py-2.5">
+                        <FaExclamationCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-500" />
+                        <p className="text-xs leading-relaxed text-amber-700">
+                          Long video ({Math.round(videoDuration / 60)}+ min) — dancers learn best in
+                          sections. You&apos;ll pick the exact part to learn before practicing, and
+                          shorter sections scan much faster.
+                        </p>
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </motion.div>

@@ -10,17 +10,20 @@ import SyncTab from "@/components/practice/SyncTab";
 import CalibrationModal, { type CalibrationData } from "@/components/practice/CalibrationModal";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { track } from "@/lib/posthog";
+import { parseIdentityKey } from "@/lib/videoIdentity";
 
 export interface PracticeViewProps {
   videoUrl:    string;
   videoId:     string | null;
   videoTitle:  string;
   videoSource: "youtube" | "tiktok" | "upload";
+  /** identityKey (videoIdentity.ts) — enables the shared scan cache. */
+  identityKey?: string | null;
   /** Optional banner rendered below the header (e.g. session-only warning) */
   banner?: React.ReactNode;
 }
 
-export default function PracticeView({ videoUrl, videoId, videoTitle, videoSource, banner }: PracticeViewProps) {
+export default function PracticeView({ videoUrl, videoId, videoTitle, videoSource, identityKey, banner }: PracticeViewProps) {
   const router = useRouter();
   const [currentTab,    setCurrentTab]    = useState<TabId>("trace");
   const [completedTabs, setCompletedTabs] = useState<TabId[]>([]);
@@ -101,7 +104,12 @@ export default function PracticeView({ videoUrl, videoId, videoTitle, videoSourc
       {/* ── Tab content (full viewport) ──────────────────────────── */}
       <ErrorBoundary>
         {currentTab === "trace" && videoUrl && (
-          <TraceTab videoUrl={videoUrl} onComplete={handleTraceComplete} initialFraming={calibrationData ?? undefined} />
+          <TraceTab
+            videoUrl={videoUrl}
+            onComplete={handleTraceComplete}
+            initialFraming={calibrationData ?? undefined}
+            videoIdentity={identityKey ? parseIdentityKey(identityKey) : null}
+          />
         )}
 
         {currentTab === "test" && videoUrl && (

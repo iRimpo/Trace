@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import DashboardSkeleton from "@/components/skeletons/DashboardSkeleton";
 import SongCard from "@/components/dashboard/SongCard";
 import DashboardTutorial from "@/components/dashboard/DashboardTutorial";
+import DeviceVideos from "@/components/dashboard/DeviceVideos";
 import type { SongGroup } from "@/app/api/progress/route";
 
 interface Stats {
@@ -164,6 +165,9 @@ function DashboardContent() {
           </div>
         )}
       </motion.div>
+
+      {/* ── Videos saved on this device ─────────────────────────── */}
+      <DeviceVideos />
 
       {/* ── Section header ──────────────────────────────────────── */}
       <div className="mb-3 flex items-center justify-between">

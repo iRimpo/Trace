@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseLinkIdentity, fileIdentity, identityKey } from "../videoIdentity";
+import { parseLinkIdentity, fileIdentity, identityKey, parseIdentityKey } from "../videoIdentity";
 
 describe("parseLinkIdentity", () => {
   it("parses youtube watch URLs", () => {
@@ -40,5 +40,22 @@ describe("identityKey", () => {
     expect(identityKey({ kind: "youtube", id: "x1" })).toBe("youtube:x1");
     expect(identityKey({ kind: "tiktok", id: "99" })).toBe("tiktok:99");
     expect(identityKey({ kind: "file", sha256: "deadbeef" })).toBe("file:deadbeef");
+  });
+});
+
+describe("parseIdentityKey", () => {
+  it("round-trips every kind", () => {
+    for (const v of [
+      { kind: "youtube", id: "x1" },
+      { kind: "tiktok", id: "99" },
+      { kind: "file", sha256: "deadbeef" },
+    ] as const) {
+      expect(parseIdentityKey(identityKey(v))).toEqual(v);
+    }
+  });
+  it("rejects malformed keys", () => {
+    expect(parseIdentityKey("nonsense")).toBeNull();
+    expect(parseIdentityKey("vimeo:123")).toBeNull();
+    expect(parseIdentityKey("file:")).toBeNull();
   });
 });

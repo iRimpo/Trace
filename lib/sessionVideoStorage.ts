@@ -1,4 +1,5 @@
 import type { PoseFrame } from "./poseRecorder";
+import { getVideo } from "./videoStore";
 
 const VIDEO_KEY = "trace_video_session";
 const RECORDING_KEY = "trace_recording_session";
@@ -9,6 +10,8 @@ export interface VideoSession {
   songName: string;
   thumbnailUrl?: string;
   createdAt: number;
+  /** identityKey (videoIdentity.ts) — enables IndexedDB restore + scan cache. */
+  identityKey?: string;
 }
 
 export interface RecordingSession {
@@ -34,10 +37,29 @@ export function loadVideoSession(): VideoSession | null {
       songName: String(songName),
       thumbnailUrl: parsed.thumbnailUrl as string | undefined,
       createdAt: Number(parsed.createdAt),
+      identityKey: parsed.identityKey as string | undefined,
     };
   } catch {
     return null;
   }
+}
+
+/**
+ * Load the session, re-minting the blob URL from the on-device video store
+ * when possible. Object URLs die on hard reload — sessionStorage survives —
+ * so the stored blobUrl is only trustworthy within the page load that made
+ * it. With an identityKey we can always rebuild a fresh URL from IndexedDB.
+ */
+export async function restoreVideoSession(): Promise<VideoSession | null> {
+  const session = loadVideoSession();
+  if (!session) return null;
+  if (session.identityKey) {
+    const stored = await getVideo(session.identityKey);
+    if (stored) {
+      return { ...session, blobUrl: URL.createObjectURL(stored.blob) };
+    }
+  }
+  return session; // best effort — may be a live same-document blob URL
 }
 
 export function clearVideoSession(): void {
