@@ -4,6 +4,8 @@ import { Inter, Space_Mono, Outfit, DM_Sans, Plus_Jakarta_Sans, Raleway, Calisto
 import { AuthProvider } from "@/context/AuthContext";
 import PostHogProvider from "@/components/PostHogProvider";
 import ActivationGuard from "@/components/ActivationGuard";
+import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
+import InstallPrompt from "@/components/InstallPrompt";
 import "./globals.css";
 
 const inter = Inter({
@@ -63,8 +65,11 @@ export const metadata: Metadata = {
     title: "Trace",
   },
   icons: {
-    icon: [{ url: "/trace_logo.svg", type: "image/svg+xml" }],
-    apple: [{ url: "/trace_logo.svg", type: "image/svg+xml" }],
+    icon: [
+      { url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/trace_logo.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
   },
   openGraph: {
     title: "Trace",
@@ -91,6 +96,8 @@ export default function RootLayout({
             </Suspense>
           </ActivationGuard>
         </AuthProvider>
+        <ServiceWorkerRegistrar />
+        <InstallPrompt />
       </body>
     </html>
   );

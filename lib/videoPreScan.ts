@@ -98,11 +98,13 @@ export async function preScanVideo(
   onPersonChoice?: (persons: PersonCenter[]) => Promise<number>,
   grid?:         CountGrid | null,
 ): Promise<PreScanResult | null> {
-  if (!poseInitRef.current) {
-    const ok = await initPoseDetection();
-    if (!ok) return null;
-    poseInitRef.current = true;
+  // Lite model: ~2x faster per frame, plenty for movement-event extraction.
+  const ok = await initPoseDetection("lite");
+  if (!ok) {
+    // Fall back to whatever is already loaded (e.g. full from live practice)
+    if (!poseInitRef.current) return null;
   }
+  poseInitRef.current = true;
 
   const video = document.createElement("video");
   video.src         = videoUrl;
@@ -166,7 +168,7 @@ export async function preScanVideo(
 
     if (video.videoWidth === 0) continue;
 
-    const allPoses = detectAllPosesFromFrame(video);
+    const allPoses = detectAllPosesFromFrame(video, "lite");
     if (!allPoses || allPoses.length === 0) continue;
 
     // First multi-person frame with no lock yet: ask the user up front.

@@ -13,8 +13,16 @@ export interface Keypoint {
 /** Which model format — always blazepose with MediaPipe Tasks Vision */
 export type ModelFormat = "blazepose" | "movenet";
 
+/**
+ * Model variants — both self-hosted in public/models (no CDN download,
+ * precached by the service worker for offline practice):
+ * - "lite": ~5.5MB, ~2x faster per frame — used for pre-scanning videos
+ * - "full": ~9MB, more precise — used for live practice detection
+ */
+export type ModelVariant = "lite" | "full";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let poseLandmarker: any | null = null;
+const landmarkers: Partial<Record<ModelVariant, any>> = {};
 let initError: string | null = null;
 
 export function getInitError(): string | null {
@@ -25,21 +33,25 @@ export function getModelFormat(): ModelFormat {
   return "blazepose"; // MediaPipe Tasks Vision always uses 33-point BlazePose
 }
 
-async function loadPoseLandmarker() {
+/** Best available landmarker for a request — exact variant, else any loaded. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function pick(variant: ModelVariant): any | null {
+  return landmarkers[variant] ?? landmarkers.full ?? landmarkers.lite ?? null;
+}
+
+async function loadPoseLandmarker(variant: ModelVariant) {
+  if (landmarkers[variant]) return landmarkers[variant];
   const { PoseLandmarker, FilesetResolver } = await import(
     "@mediapipe/tasks-vision"
   );
 
-  console.log("[Trace] Loading MediaPipe WASM runtime...");
-  const vision = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm"
-  );
+  console.log("[Trace] Loading MediaPipe WASM runtime (local)...");
+  const vision = await FilesetResolver.forVisionTasks("/mediapipe-wasm");
 
-  console.log("[Trace] Creating PoseLandmarker (full model)...");
-  poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+  console.log(`[Trace] Creating PoseLandmarker (${variant} model)...`);
+  landmarkers[variant] = await PoseLandmarker.createFromOptions(vision, {
     baseOptions: {
-      modelAssetPath:
-        "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task",
+      modelAssetPath: `/models/pose_landmarker_${variant}.task`,
       delegate: "GPU",
     },
     runningMode: "IMAGE",
@@ -49,37 +61,39 @@ async function loadPoseLandmarker() {
     minTrackingConfidence:      0.3,
   });
 
-  return poseLandmarker;
+  return landmarkers[variant];
 }
 
-/** Pre-warm the model so first detection is fast */
-export async function initPoseDetection(): Promise<boolean> {
+/** Pre-warm a model so first detection is fast */
+export async function initPoseDetection(variant: ModelVariant = "full"): Promise<boolean> {
   try {
     initError = null;
-    await loadPoseLandmarker();
-    console.log("[Trace] PoseLandmarker ready");
+    await loadPoseLandmarker(variant);
+    console.log(`[Trace] PoseLandmarker (${variant}) ready`);
     return true;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     initError = msg;
     console.error("[Trace] Pose detection init failed:", msg);
-    poseLandmarker = null;
+    delete landmarkers[variant];
     return false;
   }
 }
 
 /** Retry model loading after a failure */
-export async function retryPoseDetection(): Promise<boolean> {
-  poseLandmarker = null;
+export async function retryPoseDetection(variant: ModelVariant = "full"): Promise<boolean> {
+  delete landmarkers[variant];
   initError = null;
-  return initPoseDetection();
+  return initPoseDetection(variant);
 }
 
 /** Detect pose from a video or canvas element. Returns pixel-space keypoints or null. */
 let detectErrorCount = 0;
 export function detectPose(
-  source: HTMLVideoElement | HTMLCanvasElement
+  source: HTMLVideoElement | HTMLCanvasElement,
+  variant: ModelVariant = "full",
 ): Keypoint[] | null {
+  const poseLandmarker = pick(variant);
   if (!poseLandmarker) return null;
 
   if (source instanceof HTMLVideoElement) {
@@ -124,8 +138,10 @@ export function detectPose(
 
 /** Detect all poses in a frame. Returns one keypoint array per person, or null. */
 export function detectAllPoses(
-  source: HTMLVideoElement | HTMLCanvasElement
+  source: HTMLVideoElement | HTMLCanvasElement,
+  variant: ModelVariant = "full",
 ): Keypoint[][] | null {
+  const poseLandmarker = pick(variant);
   if (!poseLandmarker) return null;
   if (source instanceof HTMLVideoElement) {
     if (source.readyState < 2 || source.videoWidth === 0) return null;
@@ -159,7 +175,9 @@ export function detectAllPoses(
  */
 export function detectAllPosesFromFrame(
   video: HTMLVideoElement,
+  variant: ModelVariant = "full",
 ): Keypoint[][] | null {
+  const poseLandmarker = pick(variant);
   if (!poseLandmarker) return null;
   if (video.readyState < 2 || video.videoWidth === 0) return null;
 
