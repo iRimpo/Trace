@@ -113,7 +113,11 @@ export async function listVideos(): Promise<StoredVideoMeta[]> {
     const all = await tx<StoredRecord[]>("readonly", s => s.getAll());
     return all
       .sort((a, b) => b.lastUsedAt - a.lastUsedAt)
-      .map(({ buf: _buf, type: _type, ...meta }) => meta);
+      .map(r => ({
+        key: r.key, fileName: r.fileName, songName: r.songName,
+        ...(r.thumbnailUrl ? { thumbnailUrl: r.thumbnailUrl } : {}),
+        bytes: r.bytes, lastUsedAt: r.lastUsedAt,
+      }));
   } catch {
     return [];
   }

@@ -3,10 +3,15 @@ import type { Keypoint } from "./mediapipe";
 import { PoseFrameBuffer } from "./motionAnalyzer";
 import { MovementEventDetector } from "./movementEventDetector";
 import type { MovementEvent } from "./movementEventDetector";
+import { DancerTracker } from "./dancerTracker";
+import { buildChoreoTimeline, type ChoreoTimeline } from "./choreoTimeline";
+import type { CountGrid } from "./countGrid";
 
 export interface PreScanResult {
   events:      MovementEvent[];
   videoHeight: number;
+  /** Beat-quantized, density-capped timeline — the cacheable scan product. */
+  timeline:    ChoreoTimeline;
 }
 
 export interface PreScanProgress {
@@ -82,22 +87,6 @@ function kpsToBounds(
   return { x1: Math.max(0, minX), y1: Math.max(0, minY), x2: Math.min(1, maxX), y2: Math.min(1, maxY) };
 }
 
-function pickPerson(
-  allPoses:   Keypoint[][],
-  target:     { x: number; y: number },
-  vW: number, vH: number,
-): Keypoint[] {
-  let best = allPoses[0];
-  let bestDist = Infinity;
-  for (const kps of allPoses) {
-    const c = poseCenter(kps, vW, vH);
-    if (!c) continue;
-    const d = (c.x - target.x) ** 2 + (c.y - target.y) ** 2;
-    if (d < bestDist) { bestDist = d; best = kps; }
-  }
-  return best;
-}
-
 export async function preScanVideo(
   videoUrl:      string,
   poseInitRef:   { current: boolean },
@@ -107,6 +96,7 @@ export async function preScanVideo(
   endTime?:      number,
   personCenter?: { x: number; y: number },
   onPersonChoice?: (persons: PersonCenter[]) => Promise<number>,
+  grid?:         CountGrid | null,
 ): Promise<PreScanResult | null> {
   if (!poseInitRef.current) {
     const ok = await initPoseDetection();
@@ -144,9 +134,28 @@ export async function preScanVideo(
   const allEvents: MovementEvent[] = [];
   const frameBuffer = new PoseFrameBuffer(30);
   const detector    = new MovementEventDetector();
+  const tracker     = new DancerTracker();
+  if (personCenter) tracker.lock(personCenter);
+  let choiceOffered = personCenter != null;
   let prevKps: Keypoint[] | null = null;
-  let trackedCenter = personCenter ?? null;
   let simTime = 0;
+
+  /** Ask the caller (user tap) which person to track; returns false if unanswered. */
+  async function askPersonChoice(allPoses: Keypoint[][]): Promise<boolean> {
+    if (!onPersonChoice) return false;
+    const centers: PersonCenter[] = [];
+    for (const kps of allPoses) {
+      const c = poseCenter(kps, video.videoWidth, video.videoHeight);
+      if (c) centers.push(c);
+    }
+    if (centers.length === 0) return false;
+    const idx = await onPersonChoice(centers).catch(() => -1);
+    if (idx >= 0 && idx < centers.length) {
+      tracker.lock(centers[idx]);
+      return true;
+    }
+    return false;
+  }
 
   for (let t = scanStart; t < scanEnd; t += frameInterval) {
     if (signal?.aborted) { video.src = ""; return null; }
@@ -160,42 +169,25 @@ export async function preScanVideo(
     const allPoses = detectAllPosesFromFrame(video);
     if (!allPoses || allPoses.length === 0) continue;
 
-    // Pick the person closest to the last known tracked center, optionally
-    // asking the caller which person should be tracked when multiple are present.
-    let rawKps: Keypoint[];
-    if (!trackedCenter && allPoses.length > 1 && onPersonChoice) {
-      const centers: PersonCenter[] = [];
-      for (const kps of allPoses) {
-        const c = poseCenter(kps, video.videoWidth, video.videoHeight);
-        if (c) centers.push(c);
-      }
-      if (centers.length > 1) {
-        const idx = await onPersonChoice(centers).catch(() => -1);
-        if (idx >= 0 && idx < centers.length) {
-          trackedCenter = centers[idx];
-        }
-      }
+    // First multi-person frame with no lock yet: ask the user up front.
+    if (!choiceOffered && allPoses.length > 1) {
+      choiceOffered = true;
+      await askPersonChoice(allPoses);
     }
 
-    if (trackedCenter) {
-      rawKps = pickPerson(allPoses, trackedCenter, video.videoWidth, video.videoHeight);
-    } else {
-      rawKps = allPoses[0];
-    }
-    // Update tracked center for next frame — only if the pick is plausibly the
-    // same person (within MAX_DRIFT norm units). If the tracked dancer is
-    // temporarily occluded, keep the old center rather than locking onto a
-    // neighbour.
-    const c = poseCenter(rawKps, video.videoWidth, video.videoHeight);
-    const MAX_DRIFT = 0.25;
-    if (c && trackedCenter) {
-      const dist = Math.sqrt((c.x - trackedCenter.x) ** 2 + (c.y - trackedCenter.y) ** 2);
-      if (dist < MAX_DRIFT) trackedCenter = c;
-      // else: keep old trackedCenter — dancer likely temporarily occluded
-    } else if (c) {
-      trackedCenter = c;
+    let track = tracker.step(allPoses, video.videoWidth, video.videoHeight);
+
+    // Tracking lost past the coast budget (formation crossing / occlusion):
+    // pause the scan on this frame and ask the user to re-tap their dancer.
+    if (track.needsReacquire) {
+      const relocked = await askPersonChoice(allPoses);
+      if (relocked) {
+        track = tracker.step(allPoses, video.videoWidth, video.videoHeight);
+      }
+      // Unanswered → continue coasting with best-guess tracking (spec).
     }
 
+    const rawKps = track.kps;
     if (rawKps) {
       const kps    = smoothKeypoints(prevKps, rawKps);
       prevKps      = kps;
@@ -207,7 +199,7 @@ export async function preScanVideo(
 
       // Detect crowding: is any OTHER person's hip-centre within 0.15 norm units?
       const CROWD_DIST = 0.15;
-      const tc = trackedCenter;
+      const tc = tracker.center;
       const crowded = tc !== null && allPoses.length > 1 && allPoses.some(kps => {
         if (kps === rawKps) return false;
         const oc = poseCenter(kps, video.videoWidth, video.videoHeight);
@@ -219,6 +211,7 @@ export async function preScanVideo(
       for (const ev of events) {
         if (bounds) ev.personBounds = bounds;
         if (crowded) ev.crowded = true;
+        if (track.confidence < 0.5) ev.lowConfidence = true;
       }
       allEvents.push(...events);
     }
@@ -229,5 +222,9 @@ export async function preScanVideo(
   video.src = "";
   onProgress?.({ current: scanEnd - scanStart, total: scanEnd - scanStart });
 
-  return { events: allEvents, videoHeight };
+  return {
+    events: allEvents,
+    videoHeight,
+    timeline: buildChoreoTimeline(allEvents, grid ?? null, videoHeight),
+  };
 }

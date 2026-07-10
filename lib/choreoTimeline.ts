@@ -71,14 +71,14 @@ export function buildChoreoTimeline(
   }
 
   const picked: { time: number; e: MovementEvent }[] = [];
-  for (const { time, events: bucket } of buckets.values()) {
+  for (const { time, events: bucket } of Array.from(buckets.values())) {
     // Dedupe per joint, keeping the strongest movement
     const byJoint = new Map<number, MovementEvent>();
     for (const e of bucket) {
       const cur = byJoint.get(e.jointIndex);
       if (!cur || e.magnitude > cur.magnitude) byJoint.set(e.jointIndex, e);
     }
-    const kept = [...byJoint.values()]
+    const kept = Array.from(byJoint.values())
       .sort((a, b) =>
         (PRIORITY[b.type] - PRIORITY[a.type]) || (b.magnitude - a.magnitude))
       .slice(0, MAX_PER_BUCKET);

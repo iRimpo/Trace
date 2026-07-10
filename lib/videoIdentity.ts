@@ -45,7 +45,7 @@ export function parseLinkIdentity(url: string): VideoIdentity | null {
 export async function fileIdentity(file: Blob): Promise<VideoIdentity> {
   const buf = await file.arrayBuffer();
   const digest = await crypto.subtle.digest("SHA-256", buf);
-  const sha256 = [...new Uint8Array(digest)]
+  const sha256 = Array.from(new Uint8Array(digest))
     .map(b => b.toString(16).padStart(2, "0"))
     .join("");
   return { kind: "file", sha256 };
