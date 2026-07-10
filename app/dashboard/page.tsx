@@ -221,7 +221,7 @@ function DashboardContent() {
         >
           <div className="mx-auto flex justify-center">
             <img
-              src="/ChatGPT-Image-Feb-15_-2026_-06_45_31-PM_4_.svg"
+              src="/character-start.svg"
               width="120" height="120" alt=""
               className="rounded-2xl"
             />

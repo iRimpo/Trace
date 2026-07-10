@@ -78,7 +78,7 @@ export default function Problem() {
             </div>
 
             <div className="mb-8 flex justify-center">
-              <img src="/ChatGPT-Image-Feb-15_-2026_-06_45_31-PM_5_.svg" width="140" height="140" alt="" className="rounded-2xl" />
+              <img src="/character-cheer.svg" width="140" height="140" alt="" className="rounded-2xl" />
             </div>
 
             <blockquote className="mb-8 rounded-2xl border border-zinc-700/40 bg-black/20 p-5 italic text-zinc-400 text-sm leading-relaxed">

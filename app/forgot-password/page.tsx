@@ -46,7 +46,7 @@ export default function ForgotPasswordPage() {
 
         {/* Illustration */}
         <div className="flex justify-center mb-6">
-          <img src="/ChatGPT-Image-Feb-15_-2026_-06_45_31-PM_3_.svg" width="100" height="100" alt="" className="rounded-2xl" />
+          <img src="/character-dance.svg" width="100" height="100" alt="" className="rounded-2xl" />
         </div>
 
         {/* Card */}

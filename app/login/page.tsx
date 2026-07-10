@@ -86,7 +86,7 @@ function LoginForm() {
 
         {/* Illustration */}
         <div className="flex justify-center mb-6">
-          <img src="/ChatGPT-Image-Feb-15_-2026_-06_45_31-PM_1_.svg" width="100" height="100" alt="" className="rounded-2xl" />
+          <img src="/character-wave.svg" width="100" height="100" alt="" className="rounded-2xl" />
         </div>
 
         {/* Card */}

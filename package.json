@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.32",
-    "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.95.3",
     "@types/three": "^0.183.1",
