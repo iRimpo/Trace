@@ -1,4 +1,3 @@
-import type { Cue } from "./cueScheduler";
 import type { MovementEvent } from "./movementEventDetector";
 import type { Accent } from "./countGrid";
 
@@ -615,36 +614,6 @@ function centeredTransform(p: TransformParams, bounds: { x1: number; y1: number;
 }
 
 // ── Public entry points ───────────────────────────────────────────────────
-
-/**
- * Render a single cue onto the canvas.
- * `now` is performance.now() for progress computation.
- */
-export function renderCue(
-  ctx:       CanvasRenderingContext2D,
-  cue:       Cue,
-  now:       number,
-  transform: TransformParams,
-  beatPhase: number,
-): void {
-  const progress = Math.min(1, (now - cue.addedAt) / cue.duration);
-  const ev       = cue.event;
-  const accent   = cue.snappedTick?.accent;
-  const t        = ev.crowded && ev.personBounds ? centeredTransform(transform, ev.personBounds) : transform;
-
-  ctx.save();
-  applyPersonClip(ctx, ev.personBounds, t, !!ev.crowded);
-  switch (ev.type) {
-    case "move":     renderMoveArrow(ctx, ev, progress, t, beatPhase);     break;
-    case "step":     renderStepPulse(ctx, ev, progress, t, accent);        break;
-    case "head":     renderHeadNod(ctx, ev, progress, t, beatPhase);       break;
-    case "elbow":    renderElbowArc(ctx, ev, progress, t, beatPhase);      break;
-    case "hip":      renderHipSway(ctx, ev, progress, t, beatPhase);       break;
-    case "shoulder": renderShoulderShift(ctx, ev, progress, t, beatPhase); break;
-    case "arm-both": renderBothArms(ctx, ev, progress, t, beatPhase);      break;
-  }
-  ctx.restore();
-}
 
 /**
  * Render a movement event directly with an explicit progress value (0–1).

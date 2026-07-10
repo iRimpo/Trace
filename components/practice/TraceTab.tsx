@@ -9,12 +9,17 @@ import type { CalibrationData } from "@/components/practice/CalibrationModal";
 import { CountGrid } from "@/lib/countGrid";
 import { detectBeatsFromVideo } from "@/lib/beatDetector";
 import { preScanVideo, type PreScanResult } from "@/lib/videoPreScan";
-import type { MovementEvent } from "@/lib/movementEventDetector";
 import type { Keypoint } from "@/lib/mediapipe";
+import type { ChoreoTimeline } from "@/lib/choreoTimeline";
+import { DEFAULT_LEAD_MS } from "@/lib/cueRuntime";
+import type { PoseFrame } from "@/lib/poseRecorder";
+import { getCachedTimeline, putCachedTimeline, type ScanCacheKey } from "@/lib/scanCache";
+import { parseLinkIdentity, type VideoIdentity } from "@/lib/videoIdentity";
 import { track } from "@/lib/analytics";
 import DashboardTutorial from "@/components/dashboard/DashboardTutorial";
 
 const PRACTICE_TUTORIAL_KEY = "trace_practice_tutorial_dismissed";
+const CUE_LEAD_KEY = "trace_cue_lead_ms";
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -99,11 +104,13 @@ interface TraceTabProps {
   videoUrl:       string;
   onComplete?:    (traceTimeSeconds: number) => void;
   initialFraming?: CalibrationData;
+  /** Stable identity for the video (enables the shared scan cache). */
+  videoIdentity?: VideoIdentity | null;
 }
 
 // ── Component ──────────────────────────────────────────────────────────
 
-export default function TraceTab({ videoUrl, onComplete, initialFraming }: TraceTabProps) {
+export default function TraceTab({ videoUrl, onComplete, initialFraming, videoIdentity }: TraceTabProps) {
   const proVideoRef      = useRef<HTMLVideoElement>(null);
   const webcamRef        = useRef<HTMLVideoElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -161,9 +168,16 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
   const [feedbackEnabled, setFeedbackEnabled] = useState(false);
   const [countsEnabled,   setCountsEnabled]   = useState(true);
   const [feedbackOffset,  setFeedbackOffset]  = useState(0);
+  const [cueLeadMs,       setCueLeadMs]       = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_LEAD_MS;
+    const saved = parseInt(localStorage.getItem(CUE_LEAD_KEY) ?? "", 10);
+    return Number.isFinite(saved) && saved >= 0 && saved <= 1500 ? saved : DEFAULT_LEAD_MS;
+  });
+  const userFramesRef      = useRef<PoseFrame[]>([]);
+  const userVideoHeightRef = useRef(0);
 
   // ── Pre-scan ────────────────────────────────────────────────────
-  const [preScannedEvents,   setPreScannedEvents]   = useState<MovementEvent[]>([]);
+  const [timeline,           setTimeline]           = useState<ChoreoTimeline | null>(null);
   const [scanProgress,       setScanProgress]       = useState<number | null>(null);
   const [scanEtaSeconds,     setScanEtaSeconds]     = useState<number | null>(null);
   const [scanCompleteFlash,  setScanCompleteFlash]  = useState(false);
@@ -254,6 +268,25 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
     }
   }
 
+  // Grid available inside runScan without re-creating the callback
+  const countGridRef = useRef(countGrid);
+  countGridRef.current = countGrid;
+
+  /** Adopt a finished/cached timeline into practice state. */
+  const adoptTimeline = useCallback((tl: ChoreoTimeline) => {
+    setTimeline(tl);
+    setFeedbackEnabled(true);
+    setScanCompleteCount(tl.entries.length);
+    setScanCompleteFlash(true);
+    setTimeout(() => setScanCompleteFlash(false), 2000);
+    // A cached timeline knows its BPM — adopt it if we have none yet
+    if (tl.bpm !== null) {
+      setBpm(prev => prev ?? tl.bpm);
+      setBeatOneOffset(prev => (prev === 0 ? tl.beatOneOffset : prev));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const runScan = useCallback((source: "auto" | "feedback" = "auto", overridePersonCenter?: { x: number; y: number }) => {
     if (scanProgress !== null) return;
     scanAbortRef.current?.abort();
@@ -266,59 +299,85 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
     const effectiveCenter = overridePersonCenter ?? personCenter;
     const cacheKey = `${videoUrl}|${start ?? 0}|${end ?? 0}|${effectiveCenter ? `${effectiveCenter.x.toFixed(2)},${effectiveCenter.y.toFixed(2)}` : "auto"}`;
 
-    // Use cached scan if available
+    // L1: in-memory cache for this page load
     const cached = preScanCache.get(cacheKey);
     if (cached) {
-      setPreScannedEvents(cached.events);
-      setFeedbackEnabled(true);
-      setScanCompleteCount(cached.events.length);
-      setScanCompleteFlash(true);
-      setTimeout(() => setScanCompleteFlash(false), 2000);
+      adoptTimeline(cached.timeline);
       setScanProgress(null);
       autoPlayAfterScan();
       return;
     }
 
-    const startedAt = performance.now();
-    preScanVideo(
-      videoUrl,
-      poseInitRef,
-      (p) => {
-        const pct = p.total > 0 ? (p.current / p.total) * 100 : 0;
-        setScanProgress(Math.round(pct));
-        if (pct > 5 && pct < 100) {
-          const elapsed = (performance.now() - startedAt) / 1000;
-          const estTotal = elapsed / (pct / 100);
-          const remaining = Math.max(0, estTotal - elapsed);
-          setScanEtaSeconds(Math.round(remaining));
-        }
-      },
-      abort.signal,
-      start,
-      end,
-      effectiveCenter,
-      undefined,
-    )
-      .then(result => {
-        if (result && !abort.signal.aborted) {
-          preScanCache.set(cacheKey, result);
-          setPreScannedEvents(result.events);
-          setFeedbackEnabled(true);
-          setScanCompleteCount(result.events.length);
-          setScanCompleteFlash(true);
-          setTimeout(() => setScanCompleteFlash(false), 2000);
-          autoPlayAfterScan();
-        }
-        setScanProgress(null);
-        setScanEtaSeconds(null);
-        setScanSource(null);
-      })
-      .catch(() => {
-        setScanProgress(null);
-        setScanEtaSeconds(null);
-        setScanSource(null);
-      });
-  }, [videoUrl, scanProgress]);
+    // Shared scan-cache key (Supabase) — only for identifiable videos
+    const identity: VideoIdentity | null =
+      videoIdentity ?? parseLinkIdentity(videoUrl);
+    const scanKey: ScanCacheKey | null = identity
+      ? { identity, segmentStart: start ?? 0, segmentEnd: end ?? 0 }
+      : null;
+
+    const runFreshScan = () => {
+      const startedAt = performance.now();
+      preScanVideo(
+        videoUrl,
+        poseInitRef,
+        (p) => {
+          const pct = p.total > 0 ? (p.current / p.total) * 100 : 0;
+          setScanProgress(Math.round(pct));
+          if (pct > 5 && pct < 100) {
+            const elapsed = (performance.now() - startedAt) / 1000;
+            const estTotal = elapsed / (pct / 100);
+            const remaining = Math.max(0, estTotal - elapsed);
+            setScanEtaSeconds(Math.round(remaining));
+          }
+        },
+        abort.signal,
+        start,
+        end,
+        effectiveCenter,
+        undefined,
+        countGridRef.current,
+      )
+        .then(result => {
+          if (result && !abort.signal.aborted) {
+            preScanCache.set(cacheKey, result);
+            adoptTimeline(result.timeline);
+            autoPlayAfterScan();
+            if (scanKey) {
+              // Best-effort shared cache write — never blocks practice
+              putCachedTimeline(scanKey, result.timeline, identity!.kind === "file");
+            }
+          }
+          setScanProgress(null);
+          setScanEtaSeconds(null);
+          setScanSource(null);
+        })
+        .catch(() => {
+          setScanProgress(null);
+          setScanEtaSeconds(null);
+          setScanSource(null);
+        });
+    };
+
+    // L2: shared Supabase cache — instant repeat practice across sessions
+    if (scanKey) {
+      getCachedTimeline(scanKey)
+        .then(tl => {
+          if (abort.signal.aborted) return;
+          if (tl) {
+            adoptTimeline(tl);
+            setScanProgress(null);
+            setScanSource(null);
+            autoPlayAfterScan();
+          } else {
+            runFreshScan();
+          }
+        })
+        .catch(() => { if (!abort.signal.aborted) runFreshScan(); });
+    } else {
+      runFreshScan();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoUrl, scanProgress, videoIdentity, adoptTimeline]);
 
   useEffect(() => { return () => { scanAbortRef.current?.abort(); }; }, []);
 
@@ -461,6 +520,27 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
     if (webcam && stream && !webcam.srcObject) { webcam.srcObject = stream; webcam.play().catch(() => {}); }
   }, [viewMode]);
 
+  // ── Live user pose sampler (feeds cue hit/miss judging) ─────────
+  // ~10Hz is enough for travel-magnitude judging and cheap on mobile.
+  useEffect(() => {
+    if (!feedbackEnabled || !webcamReady) return;
+    const id = setInterval(() => {
+      const webcam = webcamRef.current, pro = proVideoRef.current;
+      if (!webcam || !pro || pro.paused || !poseInitRef.current) return;
+      const kps = detectPose(webcam);
+      if (!kps) return;
+      userVideoHeightRef.current = webcam.videoHeight;
+      const buf = userFramesRef.current;
+      buf.push({ t: pro.currentTime * 1000, kps: kps.map(k => [k.x, k.y, k.score ?? 0]) });
+      if (buf.length > 40) buf.splice(0, buf.length - 40);
+    }, 100);
+    return () => clearInterval(id);
+  }, [feedbackEnabled, webcamReady]);
+
+  // ── Persist cue lead time ────────────────────────────────────────
+  useEffect(() => {
+    localStorage.setItem(CUE_LEAD_KEY, String(cueLeadMs));
+  }, [cueLeadMs]);
 
   // ── Auto-hide controls ──────────────────────────────────────────
   const showControls = useCallback(() => {
@@ -656,8 +736,9 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
           <FeedbackCanvas
             proVideoRef={proVideoRef} enabled={feedbackEnabled} showCounts={countsEnabled}
             proOffsetX={proOffsetX} proOffsetY={proOffsetY} proZoom={proZoom} mirrored={mirrored}
-            preScannedEvents={preScannedEvents} countGrid={countGrid} feedbackOffset={feedbackOffset}
-            topOffset={64}
+            timeline={timeline} countGrid={countGrid} feedbackOffset={feedbackOffset}
+            topOffset={64} leadMs={cueLeadMs}
+            userFramesRef={userFramesRef} userVideoHeightRef={userVideoHeightRef}
           />
 
           <video ref={proVideoRef} {...proProps} className="hidden" />
@@ -877,6 +958,25 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
                   </div>
                 )}
 
+                {/* Cue lead time — how far ahead cues appear */}
+                {feedbackEnabled && (
+                  <div className="flex items-center gap-2">
+                    <span className="w-14 text-[10px] text-[#1a0f00]/40">Lead</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1200"
+                      step="100"
+                      value={cueLeadMs}
+                      onChange={e => setCueLeadMs(parseInt(e.target.value, 10))}
+                      className="h-0.5 flex-1 cursor-pointer appearance-none rounded-full bg-[#1a0f00]/10 accent-[#080808]"
+                    />
+                    <span className="min-w-[3.5rem] text-right text-[10px] tabular-nums text-[#1a0f00]/40">
+                      {cueLeadMs}ms
+                    </span>
+                  </div>
+                )}
+
               </motion.div>
             )}
           </AnimatePresence>
@@ -1001,8 +1101,8 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
               <button
                 id="trace-feedback-pill"
                 onClick={() => {
-                  if (preScannedEvents.length === 0 && scanProgress === null) { runScan("feedback"); return; }
-                  if (preScannedEvents.length > 0) setFeedbackEnabled(f => !f);
+                  if (timeline === null && scanProgress === null) { runScan("feedback"); return; }
+                  if (timeline !== null) setFeedbackEnabled(f => !f);
                 }}
                 className={glassToggle(feedbackEnabled, "emerald")}
               >
@@ -1010,7 +1110,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming }: Trace
                   ? <span className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
                   : <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" /></svg>
                 }
-                {feedbackEnabled ? "Feedback" : preScannedEvents.length === 0 ? "Scan & Feedback" : "Feedback"}
+                {feedbackEnabled ? "Feedback" : timeline === null ? "Scan & Feedback" : "Feedback"}
               </button>
 
               {/* Opacity slider (overlay only, hidden on very small screens) */}

@@ -2,29 +2,14 @@
 
 import { useRef, useEffect } from "react";
 import type { RefObject } from "react";
-import type { MovementEvent, EventType } from "@/lib/movementEventDetector";
 import { renderEvent } from "@/lib/overlayRenderer";
 import type { TransformParams } from "@/lib/overlayRenderer";
 import type { CountGrid } from "@/lib/countGrid";
-import type { Accent } from "@/lib/countGrid";
-
-// ── Cue duration in video-seconds per event type ─────────────────────────
-
-const DURATION_S: Record<EventType, number> = {
-  step:       0.95,
-  "arm-both": 0.90,
-  move:       0.85,
-  head:       1.00,
-  hip:        0.80,
-  elbow:      0.80,
-  shoulder:   0.75,
-};
-
-const MAX_VISIBLE = 8;
-
-const PRIORITY: Record<EventType, number> = {
-  step: 5, "arm-both": 4, move: 3, head: 2, hip: 2, elbow: 1, shoulder: 1,
-};
+import { CueRuntime, judgeCue, DEFAULT_LEAD_MS, JUDGE_TOLERANCE_MS } from "@/lib/cueRuntime";
+import type { CueState } from "@/lib/cueRuntime";
+import { entryToEvent } from "@/lib/choreoTimeline";
+import type { ChoreoTimeline, TimelineEntry } from "@/lib/choreoTimeline";
+import type { PoseFrame } from "@/lib/poseRecorder";
 
 // ── Props ────────────────────────────────────────────────────────────────
 
@@ -36,10 +21,16 @@ export interface FeedbackCanvasProps {
   proOffsetY:       number;
   proZoom:          number;
   mirrored:         boolean;
-  preScannedEvents: MovementEvent[];
+  timeline:         ChoreoTimeline | null;
   countGrid?:       CountGrid | null;
   feedbackOffset?:  number;
   topOffset?:       number;
+  /** Cue lead time in ms — how far ahead of the move cues appear. */
+  leadMs?:          number;
+  /** Rolling buffer of live user pose frames (t = reference video ms). */
+  userFramesRef?:   RefObject<PoseFrame[]>;
+  /** Height of the user's webcam video, for normalized judging. */
+  userVideoHeightRef?: RefObject<number>;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────
@@ -52,10 +43,13 @@ export default function FeedbackCanvas({
   proOffsetY,
   proZoom,
   mirrored,
-  preScannedEvents,
+  timeline,
   countGrid = null,
   feedbackOffset = 0,
   topOffset = 0,
+  leadMs = DEFAULT_LEAD_MS,
+  userFramesRef,
+  userVideoHeightRef,
 }: FeedbackCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -66,8 +60,6 @@ export default function FeedbackCanvas({
 
   const countGridRef    = useRef(countGrid);
   countGridRef.current  = countGrid;
-  const eventsRef       = useRef(preScannedEvents);
-  eventsRef.current     = preScannedEvents;
   const enabledRef        = useRef(enabled);
   enabledRef.current      = enabled;
   const showCountsRef     = useRef(showCounts);
@@ -76,6 +68,16 @@ export default function FeedbackCanvas({
   fbOffsetRef.current     = feedbackOffset;
   const topOffsetRef      = useRef(topOffset);
   topOffsetRef.current    = topOffset;
+
+  // Deterministic cue playback — rebuilt when the timeline or lead changes.
+  const runtimeRef = useRef<CueRuntime | null>(null);
+  const timelineRef = useRef(timeline);
+  useEffect(() => {
+    timelineRef.current = timeline;
+    runtimeRef.current = timeline ? new CueRuntime(timeline, { leadMs }) : null;
+  }, [timeline, leadMs]);
+
+  const lastTimeRef = useRef(0);
 
   useEffect(() => {
     if (!enabled && !showCounts) {
@@ -118,16 +120,40 @@ export default function FeedbackCanvas({
       const ctx = canvas.getContext("2d")!;
       ctx.clearRect(0, 0, cW, cH);
 
-      // ── Deterministic event replay ─────────────────────────────────
-      if (enabledRef.current && pvW > 0 && pvH > 0) {
-        const events = eventsRef.current;
+      const runtime = runtimeRef.current;
+
+      // Seek backwards / loop restart → cues become re-attemptable.
+      if (videoTime < lastTimeRef.current - 0.5) runtime?.resetResolutions();
+      lastTimeRef.current = videoTime;
+
+      // ── Deterministic anticipatory cue playback ────────────────────
+      if (enabledRef.current && runtime && pvW > 0 && pvH > 0) {
         const { offsetX, offsetY, zoom, mirrored: mir } = transformRef.current;
         const transform: TransformParams = { pvW, pvH, cW, cH, offsetX, offsetY, zoom, mirrored: mir };
+        const t = videoTime + fbOffsetRef.current;
 
-        const active = collectActive(events, videoTime + fbOffsetRef.current);
+        // Judge cues whose tolerance window just closed, from live user poses.
+        const frames = userFramesRef?.current;
+        const userH  = userVideoHeightRef?.current ?? 0;
+        const tl     = timelineRef.current;
+        if (frames && frames.length > 0 && userH > 0 && tl) {
+          for (const cue of runtime.cuesAt(t)) {
+            if (cue.state !== "active") continue;
+            if (t * 1000 - cue.entry.time * 1000 >= JUDGE_TOLERANCE_MS) {
+              runtime.resolve(
+                cue.entry.id,
+                judgeCue(cue.entry, tl.videoHeight, frames, userH),
+              );
+            }
+          }
+        }
 
-        for (const { event, progress, accent } of active) {
-          renderEvent(ctx, event, progress, transform, beatPhase, accent);
+        for (const cue of runtime.cuesAt(t)) {
+          renderEvent(
+            ctx, entryToEvent(cue.entry), cue.progress, transform, beatPhase,
+            cue.entry.accent ?? undefined,
+          );
+          drawCueBadge(ctx, cue.entry, cue.state, transform);
         }
       }
 
@@ -144,7 +170,7 @@ export default function FeedbackCanvas({
 
     rafId = requestAnimationFrame(loop);
     return () => { running = false; cancelAnimationFrame(rafId); };
-  }, [enabled, showCounts, proVideoRef]);
+  }, [enabled, showCounts, proVideoRef, userFramesRef, userVideoHeightRef]);
 
   return (
     <canvas
@@ -155,50 +181,60 @@ export default function FeedbackCanvas({
   );
 }
 
-// ── Collect active events for the current video time ──────────────────────
+// ── Cue badge: count label + hit/miss feedback ────────────────────────────
 
-interface ActiveEvent {
-  event:    MovementEvent;
-  progress: number;
-  accent?:  Accent;
-}
+const BADGE_COLORS: Partial<Record<CueState, string>> = {
+  hit:     "rgba(74,222,128,0.95)",   // green
+  partial: "rgba(250,204,21,0.95)",   // yellow
+  miss:    "rgba(248,113,113,0.95)",  // red
+};
 
-function collectActive(
-  events:    MovementEvent[],
-  videoTime: number,
-): ActiveEvent[] {
-  const maxLookback = 1.0;
-  const startIdx = lowerBound(events, videoTime - maxLookback);
-  const result: ActiveEvent[] = [];
+function drawCueBadge(
+  ctx:       CanvasRenderingContext2D,
+  entry:     TimelineEntry,
+  state:     CueState,
+  transform: TransformParams,
+): void {
+  const { pvW, pvH, cW, cH, offsetX, offsetY, zoom, mirrored } = transform;
+  const scale = Math.max(cW / pvW, cH / pvH) * zoom;
+  const drawW = pvW * scale, drawH = pvH * scale;
+  let x = (cW - drawW) / 2 + offsetX + entry.x * scale;
+  const y = (cH - drawH) / 2 + offsetY + entry.y * scale;
+  if (mirrored) x = cW - x;
 
-  for (let i = startIdx; i < events.length; i++) {
-    const ev = events[i];
-    if (ev.videoTime > videoTime) break;
-
-    const dur      = DURATION_S[ev.type];
-    const elapsed  = videoTime - ev.videoTime;
-    if (elapsed > dur) continue;
-
-    const progress = elapsed / dur;
-    result.push({ event: ev, progress });
+  ctx.save();
+  if (state === "upcoming" && entry.count !== null) {
+    // Count label floating above the cue: "5"
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "bold 13px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.shadowColor = "rgba(0,0,0,0.8)";
+    ctx.shadowBlur = 4;
+    ctx.fillText(String(entry.count), x, y - 26);
+  } else if (state === "hit" || state === "partial" || state === "miss") {
+    const color = BADGE_COLORS[state]!;
+    ctx.globalAlpha = 0.95;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x, y, 14, 0, Math.PI * 2);
+    ctx.stroke();
+    if (state === "hit") {
+      ctx.beginPath();
+      ctx.moveTo(x - 6, y);
+      ctx.lineTo(x - 2, y + 5);
+      ctx.lineTo(x + 6, y - 5);
+      ctx.stroke();
+    } else if (state === "miss") {
+      ctx.beginPath();
+      ctx.moveTo(x - 5, y - 5); ctx.lineTo(x + 5, y + 5);
+      ctx.moveTo(x + 5, y - 5); ctx.lineTo(x - 5, y + 5);
+      ctx.stroke();
+    }
   }
-
-  if (result.length > MAX_VISIBLE) {
-    result.sort((a, b) => PRIORITY[b.event.type] - PRIORITY[a.event.type] || a.progress - b.progress);
-    result.length = MAX_VISIBLE;
-  }
-
-  return result;
-}
-
-function lowerBound(events: MovementEvent[], time: number): number {
-  let lo = 0, hi = events.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >>> 1;
-    if (events[mid].videoTime < time) lo = mid + 1;
-    else hi = mid;
-  }
-  return lo;
+  ctx.restore();
 }
 
 // ── Count indicator ───────────────────────────────────────────────────────

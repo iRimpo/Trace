@@ -22,6 +22,7 @@ export interface TimelineEntry {
   x: number; y: number; anchorX: number; anchorY: number;
   dx: number; dy: number; magnitude: number;
   personBounds?: { x1: number; y1: number; x2: number; y2: number };
+  crowded?: boolean;
   lowConfidence?: boolean;
 }
 
@@ -102,6 +103,7 @@ export function buildChoreoTimeline(
       x: e.x, y: e.y, anchorX: e.anchorX, anchorY: e.anchorY,
       dx: e.dx, dy: e.dy, magnitude: e.magnitude,
       ...(e.personBounds ? { personBounds: e.personBounds } : {}),
+      ...(e.crowded ? { crowded: true } : {}),
       ...(e.lowConfidence ? { lowConfidence: true } : {}),
     };
   });
@@ -112,5 +114,26 @@ export function buildChoreoTimeline(
     beatOneOffset: grid?.beatOneOffset ?? 0,
     videoHeight,
     entries,
+  };
+}
+
+/**
+ * Adapt a timeline entry to the MovementEvent shape the canvas renderers
+ * consume. Rendering only reads coordinates/type/bounds — `videoTime` maps
+ * from the quantized time.
+ */
+export function entryToEvent(entry: TimelineEntry): MovementEvent {
+  return {
+    type: entry.type,
+    jointIndex: entry.jointIndex,
+    jointName: entry.jointName,
+    videoTime: entry.time,
+    x: entry.x, y: entry.y,
+    anchorX: entry.anchorX, anchorY: entry.anchorY,
+    dx: entry.dx, dy: entry.dy,
+    magnitude: entry.magnitude,
+    ...(entry.personBounds ? { personBounds: entry.personBounds } : {}),
+    ...(entry.crowded ? { crowded: true } : {}),
+    ...(entry.lowConfidence ? { lowConfidence: true } : {}),
   };
 }
