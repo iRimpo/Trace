@@ -136,6 +136,8 @@ export interface MovementEvent {
   personBounds?: { x1: number; y1: number; x2: number; y2: number };
   /** True when another dancer's hip-centre is within 0.15 normalised units. */
   crowded?: boolean;
+  /** True when the dancer tracker's confidence was low at this frame. */
+  lowConfidence?: boolean;
 }
 
 // ── Event type assignment ─────────────────────────────────────────────────
