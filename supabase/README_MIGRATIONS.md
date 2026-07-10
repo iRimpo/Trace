@@ -38,3 +38,4 @@ After running 006 (or the corresponding block in RUN_IN_SUPABASE_SQL_EDITOR.sql)
 - **Product events** and **survey_responses** tables are ready for analytics.
 
 See docs/METRICS_QUERIES.md for saved SQL queries and the weekly PM checklist.
+- 007_scan_cache.sql — scan_cache table (shared choreo timeline cache) + practice_sessions segment columns. Run in Supabase SQL editor.
