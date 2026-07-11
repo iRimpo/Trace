@@ -172,7 +172,7 @@ export default function PracticePage() {
   return (
     <div className="min-h-screen bg-[#f8f4e0]">
       {/* Header */}
-      <header className="border-b border-[#1a0f00]/08 bg-[#f8f4e0]">
+      <header className="border-b border-[#1a0f00]/[0.08] bg-[#f8f4e0]">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-6">
           <Link href="/dashboard"
             className="flex items-center gap-2 text-sm text-[#1a0f00]/40 hover:text-[#1a0f00] transition-colors">
@@ -200,7 +200,7 @@ export default function PracticePage() {
 
         {/* Card */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
-          className="mt-8 rounded-3xl border border-[#1a0f00]/08 bg-white p-6 shadow-sm sm:p-8">
+          className="mt-8 rounded-3xl border border-[#1a0f00]/[0.08] bg-white p-6 shadow-sm sm:p-8">
 
           {/* Song or trend name (required) */}
           <div className="mb-6">
@@ -210,7 +210,7 @@ export default function PracticePage() {
             <input type="text" value={songName} onChange={(e) => setSongName(e.target.value)}
               placeholder="e.g., APT - Rose & Bruno Mars"
               maxLength={100}
-              className="w-full rounded-xl border border-[#1a0f00]/10 bg-[#f8f4e0]/60 px-4 py-3 text-sm text-[#1a0f00] placeholder:text-[#1a0f00]/25 outline-none transition-all focus:border-[#080808]/30 focus:ring-2 focus:ring-[#080808]/08" />
+              className="w-full rounded-xl border border-[#1a0f00]/10 bg-[#f8f4e0]/60 px-4 py-3 text-sm text-[#1a0f00] placeholder:text-[#1a0f00]/25 outline-none transition-all focus:border-[#080808]/30 focus:ring-2 focus:ring-[#080808]/[0.08]" />
             <div className="mt-1 flex items-center justify-between">
               <p className="text-[11px] text-[#1a0f00]/25">Required · Min. 3 characters</p>
               <AnimatePresence>
@@ -312,7 +312,7 @@ export default function PracticePage() {
                     animate={{ rotate: -360 }} transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }} />
                 </div>
                 <p className="mt-5 text-sm font-semibold text-[#1a0f00]">Preparing your session...</p>
-                <div className="mx-auto mt-4 h-1.5 max-w-xs overflow-hidden rounded-full bg-[#1a0f00]/08">
+                <div className="mx-auto mt-4 h-1.5 max-w-xs overflow-hidden rounded-full bg-[#1a0f00]/[0.08]">
                   <motion.div className="h-full rounded-full bg-[#080808]"
                     style={{ width: `${Math.min(progress, 100)}%` }} transition={{ duration: 0.3 }} />
                 </div>
@@ -355,7 +355,7 @@ export default function PracticePage() {
                 className={`flex flex-1 items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold transition-all duration-200 ${
                   canUpload
                     ? "bg-[#080808] text-white shadow-lg hover:bg-[#1a1a1a] active:scale-[0.98]"
-                    : "cursor-not-allowed bg-[#1a0f00]/08 text-[#1a0f00]/25"
+                    : "cursor-not-allowed bg-[#1a0f00]/[0.08] text-[#1a0f00]/25"
                 }`}>
                 {uploadState === "error" ? "Retry" : "Start Session"}
                 {canUpload && <FaArrowRight className="text-xs" />}

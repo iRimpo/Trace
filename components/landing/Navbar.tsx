@@ -98,7 +98,7 @@ export default function Navbar() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
-            className="overflow-hidden border-t border-[#1a0f00]/08 bg-white/95 backdrop-blur-md md:hidden"
+            className="overflow-hidden border-t border-[#1a0f00]/[0.08] bg-white/95 backdrop-blur-md md:hidden"
           >
             <div className="flex flex-col gap-1 px-4 pb-4 pt-2">
               {[
@@ -113,7 +113,7 @@ export default function Navbar() {
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.18, delay: i * 0.05 }}
-                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-[#1a0f00]/70 transition-colors hover:bg-[#1a0f00]/05 active:bg-[#1a0f00]/08"
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-[#1a0f00]/70 transition-colors hover:bg-[#1a0f00]/05 active:bg-[#1a0f00]/[0.08]"
                 >
                   {item.label}
                 </motion.a>

@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-[#1a0f00]/08 bg-white p-5 shadow-sm sm:p-8 md:p-10">
+        <div className="rounded-2xl border border-[#1a0f00]/[0.08] bg-white p-5 shadow-sm sm:p-8 md:p-10">
           <AnimatePresence mode="wait">
             {sent ? (
               <motion.div

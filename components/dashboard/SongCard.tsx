@@ -36,7 +36,7 @@ function ScoreBar({ label, value, color }: { label: string; value: number; color
   return (
     <div className="flex items-center gap-2.5">
       <span className="w-20 shrink-0 text-xs text-[#5c3d1a]/60">{label}</span>
-      <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-[#1a0f00]/08">
+      <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-[#1a0f00]/[0.08]">
         <motion.div
           className="absolute left-0 top-0 h-full rounded-full"
           style={{ backgroundColor: color }}
@@ -92,7 +92,7 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
 
   return (
     <div
-      className="rounded-2xl border border-[#1a0f00]/08 bg-white overflow-hidden shadow-sm"
+      className="rounded-2xl border border-[#1a0f00]/[0.08] bg-white overflow-hidden shadow-sm"
       style={{ borderLeftWidth: 4, borderLeftColor: borderColor }}
     >
       {/* ── Header ──────────────────────────────────────── */}

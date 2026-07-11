@@ -108,7 +108,7 @@ export default function Features() {
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ duration: 0.55, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
                 whileHover={{ y: -6, transition: { duration: 0.2 } }}
-                className="group rounded-2xl border border-[#1a0f00]/08 bg-[#faf8f3] p-6 flex flex-col gap-4"
+                className="group rounded-2xl border border-[#1a0f00]/[0.08] bg-[#faf8f3] p-6 flex flex-col gap-4"
               >
                 <div className="flex h-20 items-center justify-start">
                   {f.icon}

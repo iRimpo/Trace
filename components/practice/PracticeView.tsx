@@ -71,7 +71,10 @@ export default function PracticeView({ videoUrl, videoId, videoTitle, videoSourc
       )}
 
       {/* ── Floating header bar ──────────────────────────────────── */}
-      <div className="pointer-events-none absolute left-0 right-0 top-0 z-50 px-3 py-3">
+      <div
+        className="pointer-events-none absolute left-0 right-0 top-0 z-50 px-3 py-3"
+        style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
+      >
         <div className="flex items-center justify-between">
           {/* Back + title */}
           <div className="pointer-events-auto flex items-center gap-3">

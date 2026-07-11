@@ -292,7 +292,7 @@ export default function DashboardTutorial({ onDone, dismissKey }: DashboardTutor
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 16 }}
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-[#1a0f00]/08 bg-white shadow-2xl"
+        className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-[#1a0f00]/[0.08] bg-white shadow-2xl"
       >
         {/* Skip */}
         <button

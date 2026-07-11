@@ -1,5 +1,15 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Remaster Phase 1 (July 2026)
+
+Key architecture (see `docs/superpowers/specs/2026-07-10-trace-remaster-design.md`):
+
+- **All pose AI is on-device** (MediaPipe, self-hosted in `public/models/` + `public/mediapipe-wasm/`; `lite` model for scans, `full` for live practice). No server AI costs.
+- **Zero-storage**: reference videos persist in the user's IndexedDB (`lib/videoStore.ts`); Supabase stores only metadata + choreo timelines (`scan_cache`).
+- **Scan once, practice forever**: scans produce a beat-quantized `ChoreoTimeline` (`lib/choreoTimeline.ts`), cached in Supabase keyed by video identity + segment. **Requires migration `supabase/migrations/007_scan_cache.sql` — run it in the Supabase SQL editor.**
+- **PWA**: service worker (`public/sw.js`) precaches models for offline practice. Bump `CACHE_VERSION` in `sw.js` when precached assets change. Regenerate icons with `node scripts/generate-icons.mjs`.
+- Tests: `npm test` (Vitest, `lib/__tests__/`).
+
 ## Getting Started
 
 First, run the development server:

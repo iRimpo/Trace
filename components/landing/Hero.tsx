@@ -252,7 +252,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 1.4 }}
-            className="absolute -top-4 right-0 flex items-center gap-1.5 rounded-full border border-[#1a0f00]/08 bg-white/80 px-3 py-1.5 backdrop-blur-sm"
+            className="absolute -top-4 right-0 flex items-center gap-1.5 rounded-full border border-[#1a0f00]/[0.08] bg-white/80 px-3 py-1.5 backdrop-blur-sm"
           >
             <motion.div
               className="h-1.5 w-1.5 rounded-full bg-[#34D399]"
@@ -267,7 +267,7 @@ export default function Hero() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 1.6 }}
-            className="absolute -bottom-2 right-4 flex h-10 w-10 items-center justify-center rounded-full border border-[#1a0f00]/08 bg-white/80 backdrop-blur-sm"
+            className="absolute -bottom-2 right-4 flex h-10 w-10 items-center justify-center rounded-full border border-[#1a0f00]/[0.08] bg-white/80 backdrop-blur-sm"
           >
             <span className="font-calistoga text-lg font-bold text-[#1a0f00]">3</span>
           </motion.div>

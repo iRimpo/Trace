@@ -59,7 +59,7 @@ export default function DeviceVideos() {
             key={meta.key}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="group relative w-44 flex-shrink-0 overflow-hidden rounded-2xl border border-[#1a0f00]/08 bg-white shadow-sm"
+            className="group relative w-44 flex-shrink-0 overflow-hidden rounded-2xl border border-[#1a0f00]/[0.08] bg-white shadow-sm"
           >
             <button
               onClick={() => openVideo(meta)}

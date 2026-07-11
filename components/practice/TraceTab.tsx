@@ -911,7 +911,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   ["L", "Loop"], ["[/]", "Set A/B"], ["T", "Tap BPM"], ["B", "Set beat-1"],
                 ].map(([key, label]) => (
                   <div key={key} className="flex items-center gap-2">
-                    <kbd className="rounded bg-[#1a0f00]/08 px-1.5 py-0.5 font-mono text-[9px] text-[#1a0f00]/50">{key}</kbd>
+                    <kbd className="rounded bg-[#1a0f00]/[0.08] px-1.5 py-0.5 font-mono text-[9px] text-[#1a0f00]/50">{key}</kbd>
                     <span className="text-[9px] text-[#1a0f00]/40">{label}</span>
                   </div>
                 ))}
@@ -986,7 +986,10 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
         {/* ── Bottom satellites + dynamic island transport ─────── */}
 
         {/* Left satellites: tools + feedback + dancer pills */}
-        <div className={`pointer-events-auto absolute bottom-4 left-4 flex flex-col gap-2 transition-opacity duration-500 ${controlsVisible ? "opacity-100" : "opacity-0"}`}>
+        <div
+          className={`pointer-events-auto absolute bottom-4 left-4 flex flex-col gap-2 transition-opacity duration-500 ${controlsVisible ? "opacity-100" : "opacity-0"}`}
+          style={{ bottom: "max(1rem, env(safe-area-inset-bottom))" }}
+        >
           {/* Tools circle */}
           <button
             onClick={() => setToolsOpen(o => !o)}
@@ -1002,7 +1005,10 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
         </div>
 
         {/* Right satellites: beat align + ready */}
-        <div className={`pointer-events-auto absolute bottom-4 right-4 flex flex-col items-end gap-3 transition-opacity duration-500 ${controlsVisible ? "opacity-100" : "opacity-0"}`}>
+        <div
+          className={`pointer-events-auto absolute bottom-4 right-4 flex flex-col items-end gap-3 transition-opacity duration-500 ${controlsVisible ? "opacity-100" : "opacity-0"}`}
+          style={{ bottom: "max(1rem, env(safe-area-inset-bottom))" }}
+        >
           {/* Beat alignment popover */}
           <AnimatePresence>
             {showBeatAlign && bpm !== null && (
@@ -1066,6 +1072,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
           className={`pointer-events-auto absolute bottom-2 left-1/2 z-30 w-[min(720px,96vw)] -translate-x-1/2 transition-transform duration-500 sm:bottom-4 sm:w-[min(720px,90vw)] ${
             controlsVisible ? "translate-y-0" : "translate-y-full"
           }`}
+          style={{ bottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
         >
           <div className={`rounded-2xl ${GLASS} px-3 py-2 sm:rounded-3xl sm:px-4 sm:py-3`} style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}>
             {/* Mobile drag handle — tap to collapse */}

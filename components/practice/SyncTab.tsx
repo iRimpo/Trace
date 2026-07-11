@@ -896,7 +896,10 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
       )}
 
       {/* ── Bottom floating playback bar ───────────────────────── */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 p-3">
+      <div
+        className="absolute bottom-0 left-0 right-0 z-10 p-3"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+      >
         <div className="rounded-2xl bg-black/50 backdrop-blur-xl border border-white/[0.06] p-3">
 
           {/* Score timeline bars */}
