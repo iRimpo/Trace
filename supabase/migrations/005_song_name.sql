@@ -11,7 +11,6 @@ UPDATE public.practice_sessions
 UPDATE public.practice_sessions
   SET song_name = 'Session ' || SUBSTRING(id::text, 1, 8)
   WHERE song_name IS NULL;
-  #
 
 -- Index for grouping queries
 CREATE INDEX IF NOT EXISTS idx_practice_sessions_user_song
