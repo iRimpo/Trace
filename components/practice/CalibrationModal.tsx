@@ -684,7 +684,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                 </p>
               </div>
               <button onClick={() => goToTrim({ zoom: 1, offsetXNorm: 0, offsetYNorm: 0 })}
-                className="ml-4 mt-0.5 shrink-0 rounded-lg bg-[#1a0f00]/06 px-3 py-1.5 text-xs font-medium text-[#1a0f00]/40 hover:bg-[#1a0f00]/10 hover:text-[#1a0f00]/60 transition-all">
+                className="ml-4 mt-0.5 shrink-0 rounded-lg bg-[#1a0f00]/[0.06] px-3 py-1.5 text-xs font-medium text-[#1a0f00]/40 hover:bg-[#1a0f00]/10 hover:text-[#1a0f00]/60 transition-all">
                 Skip
               </button>
             </div>
@@ -831,7 +831,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                 </p>
               </div>
               <button onClick={onSkip}
-                className="ml-4 mt-0.5 shrink-0 rounded-lg bg-[#1a0f00]/06 px-3 py-1.5 text-xs font-medium text-[#1a0f00]/40 hover:bg-[#1a0f00]/10 hover:text-[#1a0f00]/60 transition-all">
+                className="ml-4 mt-0.5 shrink-0 rounded-lg bg-[#1a0f00]/[0.06] px-3 py-1.5 text-xs font-medium text-[#1a0f00]/40 hover:bg-[#1a0f00]/10 hover:text-[#1a0f00]/60 transition-all">
                 Skip All
               </button>
             </div>
@@ -1002,7 +1002,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             {/* Footer */}
             <div className="flex items-center justify-start gap-4 px-5 py-3.5 bg-white border-t border-[#1a0f00]/[0.08]">
               <button onClick={() => setCalibStep("trim")}
-                className="flex items-center gap-1.5 rounded-full bg-[#1a0f00]/06 px-4 py-1.5 text-xs font-medium text-[#1a0f00]/50 hover:bg-[#1a0f00]/10 hover:text-[#1a0f00]/70 transition-all">
+                className="flex items-center gap-1.5 rounded-full bg-[#1a0f00]/[0.06] px-4 py-1.5 text-xs font-medium text-[#1a0f00]/50 hover:bg-[#1a0f00]/10 hover:text-[#1a0f00]/70 transition-all">
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                 </svg>
@@ -1142,7 +1142,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                         }`}
                       >
                         {/* Thumbnail or stick-figure fallback */}
-                        <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-[#1a0f00]/05">
+                        <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-[#1a0f00]/[0.05]">
                           {faceThumbnails[i] ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -1194,7 +1194,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             {/* Footer */}
             <div className="flex items-center justify-between gap-4 px-5 py-3.5 bg-white border-t border-[#1a0f00]/[0.08]">
               <button onClick={() => setCalibStep("mode")}
-                className="flex items-center gap-1.5 rounded-full bg-[#1a0f00]/06 px-4 py-1.5 text-xs font-medium text-[#1a0f00]/50 hover:bg-[#1a0f00]/10 hover:text-[#1a0f00]/70 transition-all">
+                className="flex items-center gap-1.5 rounded-full bg-[#1a0f00]/[0.06] px-4 py-1.5 text-xs font-medium text-[#1a0f00]/50 hover:bg-[#1a0f00]/10 hover:text-[#1a0f00]/70 transition-all">
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                 </svg>

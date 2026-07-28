@@ -113,7 +113,7 @@ export default function Navbar() {
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.18, delay: i * 0.05 }}
-                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-[#1a0f00]/70 transition-colors hover:bg-[#1a0f00]/05 active:bg-[#1a0f00]/[0.08]"
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-[#1a0f00]/70 transition-colors hover:bg-[#1a0f00]/[0.05] active:bg-[#1a0f00]/[0.08]"
                 >
                   {item.label}
                 </motion.a>

@@ -89,13 +89,28 @@ function drawProVideo(
 // ── Glass style constants ──────────────────────────────────────────────
 
 const GLASS = "bg-white/90 backdrop-blur-xl border border-[#1a0f00]/10 shadow-sm";
-const GLASS_BTN = "flex items-center justify-center rounded-lg transition-all text-[#1a0f00]/40 hover:text-[#1a0f00] hover:bg-[#1a0f00]/06";
+const GLASS_BTN = "flex items-center justify-center rounded-lg transition-all text-[#1a0f00]/40 hover:text-[#1a0f00] hover:bg-[#1a0f00]/[0.06]";
 const GLASS_PILL = "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all";
 
-function glassToggle(active: boolean, color: string) {
+/**
+ * Active-state styles must be written out in full: Tailwind's JIT scans source
+ * text, so an interpolated `bg-${color}-100` is invisible to it and the rule is
+ * never generated. These previously rendered only when some unrelated file
+ * happened to use the same class — blue had no active state at all, and the
+ * emerald toggle lost its text colour.
+ */
+const TOGGLE_ACTIVE = {
+  blue:    "bg-blue-100 text-blue-700",
+  emerald: "bg-emerald-100 text-emerald-700",
+  violet:  "bg-violet-100 text-violet-700",
+} as const;
+
+type ToggleColor = keyof typeof TOGGLE_ACTIVE;
+
+function glassToggle(active: boolean, color: ToggleColor) {
   return active
-    ? `${GLASS_PILL} bg-${color}-100 text-${color}-700`
-    : `${GLASS_PILL} text-[#1a0f00]/35 hover:text-[#1a0f00]/60 hover:bg-[#1a0f00]/05`;
+    ? `${GLASS_PILL} ${TOGGLE_ACTIVE[color]}`
+    : `${GLASS_PILL} text-[#1a0f00]/35 hover:text-[#1a0f00]/60 hover:bg-[#1a0f00]/[0.05]`;
 }
 
 // ── Props ──────────────────────────────────────────────────────────────
@@ -1064,7 +1079,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                     <button
                       key={n}
                       onClick={() => handleAlignCount(n)}
-                      className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#1a0f00]/06 text-xs font-bold text-[#1a0f00]/60 transition-all hover:bg-[#1a0f00]/12 hover:text-[#1a0f00] active:scale-95"
+                      className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#1a0f00]/[0.06] text-xs font-bold text-[#1a0f00]/60 transition-all hover:bg-[#1a0f00]/12 hover:text-[#1a0f00] active:scale-95"
                     >
                       {n}
                     </button>
@@ -1120,7 +1135,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
             {/* ── Secondary controls row ─────────────────────────────────────── */}
             <div id="trace-controls-row" className="mb-2 flex flex-wrap items-center gap-1.5 sm:mb-3 sm:gap-2">
               {/* View mode segmented control */}
-              <div className="flex items-center gap-0.5 rounded-lg bg-[#1a0f00]/06 p-0.5">
+              <div className="flex items-center gap-0.5 rounded-lg bg-[#1a0f00]/[0.06] p-0.5">
                 {(["overlay", "side-by-side"] as ViewMode[]).map(m => (
                   <button key={m} onClick={() => switchMode(m)}
                     className={`rounded-md px-2 py-1 text-[10px] font-bold transition-all ${viewMode === m ? "bg-white text-[#1a0f00] shadow-sm" : "text-[#1a0f00]/30 hover:text-[#1a0f00]/60"}`}>
@@ -1208,7 +1223,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   transition={{ duration: 0.18 }}
                   className="overflow-hidden sm:hidden"
                 >
-                  <div className="mb-2 rounded-xl bg-[#1a0f00]/06 p-3">
+                  <div className="mb-2 rounded-xl bg-[#1a0f00]/[0.06] p-3">
                     <p className="mb-2 text-[10px] font-semibold text-[#1a0f00]/50">
                       Pause on a beat you recognize — what count is playing?
                     </p>
@@ -1233,7 +1248,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               <div className="flex items-center gap-1 sm:hidden">
                 <button
                   onClick={() => setShowBeatAlign(a => !a)}
-                  className={`rounded-full px-3 py-1 text-[10px] font-semibold transition-colors ${showBeatAlign ? "bg-violet-100 text-violet-700" : "bg-[#1a0f00]/06 text-[#1a0f00]/50 hover:text-[#1a0f00]"}`}
+                  className={`rounded-full px-3 py-1 text-[10px] font-semibold transition-colors ${showBeatAlign ? "bg-violet-100 text-violet-700" : "bg-[#1a0f00]/[0.06] text-[#1a0f00]/50 hover:text-[#1a0f00]"}`}
                 >
                   {showBeatAlign ? "Done" : "Adjust counts"}
                 </button>
@@ -1308,7 +1323,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 }}
                 className={`${GLASS_PILL} ${(canSection ? loopSectionActive : loopAll)
                   ? "bg-amber-100 text-amber-700"
-                  : "text-[#1a0f00]/35 hover:text-[#1a0f00]/60 hover:bg-[#1a0f00]/05"}`}
+                  : "text-[#1a0f00]/35 hover:text-[#1a0f00]/60 hover:bg-[#1a0f00]/[0.05]"}`}
                 title="Toggle loop (L)"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" /></svg>
@@ -1322,7 +1337,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               </span>
 
               {/* Speed — segmented control on all screen sizes */}
-              <div className="flex items-center gap-0.5 rounded-lg bg-[#1a0f00]/06 p-0.5">
+              <div className="flex items-center gap-0.5 rounded-lg bg-[#1a0f00]/[0.06] p-0.5">
                 {SPEEDS.map(s => (
                   <button key={s}
                     onClick={() => { setSpeed(s); if (proVideoRef.current) proVideoRef.current.playbackRate = s; }}

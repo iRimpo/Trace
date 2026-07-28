@@ -173,13 +173,13 @@ export default function Hero() {
             </a>
             <a
               href="/login"
-              className="inline-flex h-11 items-center rounded-full border border-[#1a0f00]/14 px-7 text-sm font-medium text-[#1a0f00]/55 transition-all duration-200 hover:bg-[#1a0f00]/06"
+              className="inline-flex h-11 items-center rounded-full border border-[#1a0f00]/14 px-7 text-sm font-medium text-[#1a0f00]/55 transition-all duration-200 hover:bg-[#1a0f00]/[0.06]"
             >
               Log in
             </a>
             <a
               href="#how-it-works"
-              className="inline-flex h-11 items-center rounded-full border border-[#1a0f00]/14 px-5 sm:px-7 text-sm font-medium text-[#1a0f00]/55 transition-all duration-200 hover:bg-[#1a0f00]/06 active:scale-95"
+              className="inline-flex h-11 items-center rounded-full border border-[#1a0f00]/14 px-5 sm:px-7 text-sm font-medium text-[#1a0f00]/55 transition-all duration-200 hover:bg-[#1a0f00]/[0.06] active:scale-95"
             >
               See how it works
             </a>

@@ -251,7 +251,7 @@ export default function PracticePage() {
                     <input ref={fileInputRef} type="file" accept="video/mp4,video/quicktime,video/webm"
                       onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }} className="hidden" />
                     <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-2xl transition-colors ${
-                      dragActive ? "bg-[#080808]/15" : "bg-[#080808]/06 group-hover:bg-[#080808]/12"
+                      dragActive ? "bg-[#080808]/15" : "bg-[#080808]/[0.06] group-hover:bg-[#080808]/12"
                     }`}>
                       <FaUpload className={`text-xl transition-colors ${dragActive ? "text-[#080808]" : "text-[#1a0f00]/30 group-hover:text-[#080808]"}`} />
                     </div>
@@ -265,7 +265,7 @@ export default function PracticePage() {
                     </p>
                     <div className="mt-4 flex items-center justify-center gap-2">
                       {["MP4", "MOV", "WebM"].map((f) => (
-                        <span key={f} className="rounded-full bg-[#080808]/06 px-3 py-1 text-[10px] font-bold text-[#1a0f00]/50">{f}</span>
+                        <span key={f} className="rounded-full bg-[#080808]/[0.06] px-3 py-1 text-[10px] font-bold text-[#1a0f00]/50">{f}</span>
                       ))}
                       <span className="text-[10px] text-[#1a0f00]/20">Max 200MB</span>
                     </div>

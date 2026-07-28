@@ -101,7 +101,7 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
         className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-[#1a0f00]/[0.02] transition-colors"
       >
         {/* Thumbnail or placeholder */}
-        <div className="relative h-11 w-[52px] shrink-0 overflow-hidden rounded-lg bg-[#1a0f00]/06">
+        <div className="relative h-11 w-[52px] shrink-0 overflow-hidden rounded-lg bg-[#1a0f00]/[0.06]">
           {thumbnailSignedUrl ? (
             <img
               src={thumbnailSignedUrl}
@@ -160,7 +160,7 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
             transition={{ duration: 0.25, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="border-t border-[#1a0f00]/06 px-5 pb-5 pt-4">
+            <div className="border-t border-[#1a0f00]/[0.06] px-5 pb-5 pt-4">
 
               {/* Graph */}
               <div className="mb-5 rounded-xl bg-[#f8f4e0]/60 px-3 py-2">
@@ -312,7 +312,7 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
                 <button
                   type="button"
                   onClick={() => setShowPracticeModal(false)}
-                  className="flex-1 rounded-full border border-[#1a0f00]/15 px-4 py-2 text-xs font-semibold text-[#5c3d1a]/70 hover:bg-[#1a0f00]/05"
+                  className="flex-1 rounded-full border border-[#1a0f00]/15 px-4 py-2 text-xs font-semibold text-[#5c3d1a]/70 hover:bg-[#1a0f00]/[0.05]"
                 >
                   Cancel
                 </button>

@@ -175,7 +175,7 @@ function VisualSpeed() {
   const [sel, setSel] = useState(0.5);
   return (
     <div className="flex flex-col items-center justify-center gap-5 h-full">
-      <div className="flex items-center gap-1 rounded-xl bg-[#1a0f00]/06 p-1">
+      <div className="flex items-center gap-1 rounded-xl bg-[#1a0f00]/[0.06] p-1">
         {speeds.map(s => (
           <button key={s} onClick={() => setSel(s)}
             className={`rounded-lg px-2.5 py-1.5 text-sm font-bold transition-all ${sel === s ? "bg-white text-[#1a0f00] shadow" : "text-[#1a0f00]/30"}`}

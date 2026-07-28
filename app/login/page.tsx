@@ -103,7 +103,7 @@ function LoginForm() {
               type="button"
               onClick={handleGoogleLogin}
               disabled={googleLoading}
-              className="flex w-full items-center justify-center gap-2 rounded-full border border-[#1a0f00]/15 bg-white py-3 text-sm font-semibold text-[#1a0f00] shadow-sm transition-colors hover:bg-[#1a0f00]/05 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-full border border-[#1a0f00]/15 bg-white py-3 text-sm font-semibold text-[#1a0f00] shadow-sm transition-colors hover:bg-[#1a0f00]/[0.05] disabled:opacity-50"
             >
               {googleLoading ? (
                 <>
