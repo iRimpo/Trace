@@ -77,10 +77,33 @@ function toVideo({ buf, type, ...rest }: StoredRecord): StoredVideo {
   return { ...rest, blob: new Blob([buf], { type }) };
 }
 
+let persistRequested = false;
+
+/**
+ * Ask the browser to make this origin's storage persistent, so saved videos
+ * survive eviction under storage pressure. Without it iOS can silently clear
+ * IndexedDB and the user's videos vanish between sessions.
+ *
+ * Best-effort and fire-once: the browser may grant, deny, or ignore it, and
+ * denial is not an error worth surfacing.
+ */
+async function requestPersistentStorage(): Promise<void> {
+  if (persistRequested) return;
+  persistRequested = true;
+  try {
+    if (typeof navigator === "undefined" || !navigator.storage?.persist) return;
+    if (await navigator.storage.persisted()) return;
+    await navigator.storage.persist();
+  } catch {
+    // Unsupported or blocked — storage is simply evictable.
+  }
+}
+
 export async function putVideo(
   v: Omit<StoredVideo, "bytes" | "lastUsedAt">,
 ): Promise<void> {
   if (!idbAvailable()) return;
+  void requestPersistentStorage();
   try {
     const { blob, ...rest } = v;
     const buf = await blob.arrayBuffer();

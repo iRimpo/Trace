@@ -7,7 +7,10 @@ import type { CountGrid, Accent } from "./countGrid";
  * once, so the runtime is deterministic. This JSON is what scan_cache stores.
  */
 
-export const SCAN_VERSION = 1;
+// 2: scan sampling moved to a real video-time clock (was a fixed 100ms/frame
+//    simulated clock), so cue density no longer varies with scan frame rate.
+//    Timelines cached under v1 have different cue spacing and must be re-scanned.
+export const SCAN_VERSION = 2;
 
 export interface TimelineEntry {
   id: number;                    // stable index within timeline

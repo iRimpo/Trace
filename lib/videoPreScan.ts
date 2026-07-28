@@ -26,12 +26,18 @@ export interface PersonCenter {
   thumbnail: string;
 }
 
-// Adaptive FPS: aim for at most 300 frames per scan, minimum 4 fps.
-// This keeps a 3-min clip at ~1.7 fps (180 frames) instead of 2700 frames.
-// Movement detection still works because we simulate consistent wall-clock
-// timing via SIM_FRAME_MS regardless of actual video FPS sampled.
+// Adaptive FPS: aim for at most MAX_FRAMES frames per scan.
+//
+// MIN_FPS is a floor on sampling resolution, so it overrides the frame budget
+// on long videos — a 3-min clip samples at MIN_FPS, not MAX_FRAMES/duration.
+// Keep that in mind when tuning: the effective frame count is
+// `max(MIN_FPS, min(MAX_FPS, MAX_FRAMES / span)) * span`, which exceeds
+// MAX_FRAMES for any span longer than MAX_FRAMES / MIN_FPS seconds.
+//
+// Every frame costs a seek plus a pose-detection pass, so this count is the
+// single biggest driver of scan wall-time on mobile.
 const MAX_FRAMES     = 300;
-const MIN_FPS        = 4;
+const MIN_FPS        = 2;
 const MAX_FPS        = 10;
 
 function scanFps(spanSeconds: number): number {
@@ -40,8 +46,6 @@ function scanFps(spanSeconds: number): number {
   return Math.max(MIN_FPS, Math.min(MAX_FPS, fps));
 }
 
-const SIM_FPS        = 10; // wall-clock simulation rate (constant for detector)
-const SIM_FRAME_MS   = 1000 / SIM_FPS;
 
 function waitForSeek(video: HTMLVideoElement): Promise<void> {
   return new Promise(resolve => {
@@ -164,7 +168,6 @@ export async function preScanVideo(
   if (personCenter) tracker.lock(personCenter);
   let choiceOffered = personCenter != null;
   let prevKps: Keypoint[] | null = null;
-  let simTime = 0;
 
   /** Ask the caller (user tap) which person to track; returns false if unanswered. */
   async function askPersonChoice(allPoses: Keypoint[][]): Promise<boolean> {
@@ -241,9 +244,15 @@ export async function preScanVideo(
     if (rawKps) {
       const kps    = smoothKeypoints(prevKps, rawKps);
       prevKps      = kps;
-      simTime     += SIM_FRAME_MS;
 
-      frameBuffer.push({ kps, videoTime: t, wallTime: simTime });
+      // wallTime is real video time, so joint velocity comes out in true px/s
+      // and the detector's cooldowns are real video ms. Both were previously
+      // driven by a fixed 100ms-per-frame simulated clock, which silently tied
+      // them to the frame count: at 4 fps an 800ms cooldown spanned 2s of video,
+      // at 1.67 fps nearly 5s. Cue density now holds steady across scan rates.
+      const videoTimeMs = t * 1000;
+
+      frameBuffer.push({ kps, videoTime: t, wallTime: videoTimeMs });
 
       const bounds = kpsToBounds(rawKps, video.videoWidth, video.videoHeight);
 
@@ -257,7 +266,7 @@ export async function preScanVideo(
         return (oc.x - tc.x) ** 2 + (oc.y - tc.y) ** 2 < CROWD_DIST ** 2;
       });
 
-      const events = detector.process(frameBuffer.frames, videoHeight, simTime);
+      const events = detector.process(frameBuffer.frames, videoHeight, videoTimeMs);
       for (const ev of events) {
         if (bounds) ev.personBounds = bounds;
         if (crowded) ev.crowded = true;

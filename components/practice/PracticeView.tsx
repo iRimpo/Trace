@@ -11,6 +11,7 @@ import CalibrationModal, { type CalibrationData } from "@/components/practice/Ca
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { track } from "@/lib/posthog";
 import { parseIdentityKey } from "@/lib/videoIdentity";
+import { useWakeLock } from "@/lib/useWakeLock";
 
 export interface PracticeViewProps {
   videoUrl:    string;
@@ -32,6 +33,10 @@ export default function PracticeView({ videoUrl, videoId, videoTitle, videoSourc
 
   const [calibrated,      setCalibrated]      = useState(false);
   const [calibrationData, setCalibrationData] = useState<CalibrationData | null>(null);
+
+  // The user is dancing away from the phone for the whole session — don't let
+  // the screen sleep mid-song.
+  useWakeLock();
 
   const handleTraceComplete = useCallback((seconds: number) => {
     setTraceTimeSeconds(seconds);
