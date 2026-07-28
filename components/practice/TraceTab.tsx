@@ -837,59 +837,28 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
         )}
       </AnimatePresence>
 
-      {/* ══════════════════ SCAN PROGRESS OVERLAY ══════════════════ */}
+      {/* ══════════════════ SCAN PROGRESS PILL ══════════════════ */}
+      {/*
+        Deliberately non-blocking. Watching the reference dancer is the whole
+        point of this tab and needs no scan — the scan only adds anticipatory
+        cues on top. A full-screen overlay here used to lock the user out of
+        the video for the entire scan, so the slowest part of the app blocked
+        its most useful part. Cues fade in when the timeline lands.
+      */}
       <AnimatePresence>
-        {scanProgress !== null && scanSource !== "feedback" && reacquireCandidates === null && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-40 flex items-center justify-center bg-black/60"
-          >
-            <motion.div
-              initial={{ scale: 0.96, y: 8 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.96, y: 8 }}
-              className={`w-[min(360px,90vw)] rounded-2xl ${GLASS} px-5 py-4`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#080808] text-white">
-                  <div className="h-4 w-4 animate-spin rounded-full border border-white/30 border-t-transparent" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-[#1a0f00]/80">Scanning video… {scanProgress}%</p>
-                  <p className="mt-0.5 text-[11px] text-[#1a0f00]/45">
-                    Analyzing movement patterns and counts
-                    {scanEtaSeconds != null && scanEtaSeconds > 0 && (
-                      <> · ~{scanEtaSeconds}s remaining</>
-                    )}
-                  </p>
-                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#1a0f00]/10">
-                    <div
-                      className="h-full rounded-full bg-emerald-500 transition-all duration-300"
-                      style={{ width: `${scanProgress}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Compact scan pill when scan started from feedback button */}
-      <AnimatePresence>
-        {scanProgress !== null && scanSource === "feedback" && (
+        {scanProgress !== null && reacquireCandidates === null && (
           <motion.div
             initial={{ opacity: 0, y: 8, x: -8 }}
             animate={{ opacity: 1, y: 0, x: 0 }}
             exit={{ opacity: 0, y: 8, x: -8 }}
             className="pointer-events-none absolute bottom-20 left-4 z-40"
           >
-            <div className={`flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5 text-[11px] text-white backdrop-blur`}>
+            <div className="flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5 text-[11px] text-white backdrop-blur">
               <div className="h-3 w-3 animate-spin rounded-full border border-white/40 border-t-transparent" />
               <span>
-                Scanning for feedback… {scanProgress}%{scanEtaSeconds != null && scanEtaSeconds > 0 ? ` · ~${scanEtaSeconds}s` : ""}
+                {scanSource === "feedback" ? "Scanning for feedback" : "Finding counts & cues"}
+                {" "}{scanProgress}%
+                {scanEtaSeconds != null && scanEtaSeconds > 0 ? ` · ~${scanEtaSeconds}s` : ""}
               </span>
             </div>
           </motion.div>
