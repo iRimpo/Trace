@@ -22,6 +22,8 @@ export interface PreScanProgress {
 export interface PersonCenter {
   x: number;
   y: number;
+  /** Small cropped JPEG data URL of this candidate at the current scan frame, for the reacquire picker UI. */
+  thumbnail: string;
 }
 
 // Adaptive FPS: aim for at most 300 frames per scan, minimum 4 fps.
@@ -87,6 +89,28 @@ function kpsToBounds(
   return { x1: Math.max(0, minX), y1: Math.max(0, minY), x2: Math.min(1, maxX), y2: Math.min(1, maxY) };
 }
 
+const THUMB_W = 96, THUMB_H = 128;
+
+/** Crop a padded region around `bounds` out of `frameCanvas` into a small identification thumbnail. */
+function cropThumbnail(
+  frameCanvas: HTMLCanvasElement,
+  bounds: { x1: number; y1: number; x2: number; y2: number },
+  vW: number, vH: number,
+): string {
+  const padX = (bounds.x2 - bounds.x1) * 0.2;
+  const padY = (bounds.y2 - bounds.y1) * 0.15;
+  const x1 = Math.max(0, bounds.x1 - padX), x2 = Math.min(1, bounds.x2 + padX);
+  const y1 = Math.max(0, bounds.y1 - padY), y2 = Math.min(1, bounds.y2 + padY);
+  const sw = (x2 - x1) * vW, sh = (y2 - y1) * vH;
+  if (sw <= 0 || sh <= 0) return "";
+  const out = document.createElement("canvas");
+  out.width = THUMB_W; out.height = THUMB_H;
+  const octx = out.getContext("2d");
+  if (!octx) return "";
+  octx.drawImage(frameCanvas, x1 * vW, y1 * vH, sw, sh, 0, 0, THUMB_W, THUMB_H);
+  return out.toDataURL("image/jpeg", 0.7);
+}
+
 export async function preScanVideo(
   videoUrl:      string,
   poseInitRef:   { current: boolean },
@@ -145,15 +169,39 @@ export async function preScanVideo(
   /** Ask the caller (user tap) which person to track; returns false if unanswered. */
   async function askPersonChoice(allPoses: Keypoint[][]): Promise<boolean> {
     if (!onPersonChoice) return false;
-    const centers: PersonCenter[] = [];
+    const vW = video.videoWidth, vH = video.videoHeight;
+    const frameCanvas = document.createElement("canvas");
+    frameCanvas.width = vW; frameCanvas.height = vH;
+    const fctx = frameCanvas.getContext("2d");
+    fctx?.drawImage(video, 0, 0, vW, vH);
+
+    const candidates: PersonCenter[] = [];
     for (const kps of allPoses) {
-      const c = poseCenter(kps, video.videoWidth, video.videoHeight);
-      if (c) centers.push(c);
+      const c = poseCenter(kps, vW, vH);
+      if (!c) continue;
+      const bounds = kpsToBounds(kps, vW, vH);
+      const thumbnail = bounds && fctx ? cropThumbnail(frameCanvas, bounds, vW, vH) : "";
+      candidates.push({ ...c, thumbnail });
     }
-    if (centers.length === 0) return false;
-    const idx = await onPersonChoice(centers).catch(() => -1);
-    if (idx >= 0 && idx < centers.length) {
-      tracker.lock(centers[idx]);
+    if (candidates.length === 0) return false;
+
+    // The caller resolves this only on a user tap, so an abort (new scan started,
+    // or the component unmounted) would otherwise park this loop forever, leaking
+    // the video element and the pose detector. Race the tap against the signal.
+    const choice = onPersonChoice(candidates).catch(() => -1);
+    const idx = signal
+      ? await Promise.race([
+          choice,
+          new Promise<number>(resolve => {
+            if (signal.aborted) return resolve(-1);
+            signal.addEventListener("abort", () => resolve(-1), { once: true });
+          }),
+        ])
+      : await choice;
+
+    if (signal?.aborted) return false;
+    if (idx >= 0 && idx < candidates.length) {
+      tracker.lock(candidates[idx]);
       return true;
     }
     return false;

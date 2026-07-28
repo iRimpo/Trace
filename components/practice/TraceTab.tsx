@@ -8,7 +8,7 @@ import BpmInput from "@/components/practice/BpmInput";
 import type { CalibrationData } from "@/components/practice/CalibrationModal";
 import { CountGrid } from "@/lib/countGrid";
 import { detectBeatsFromVideo } from "@/lib/beatDetector";
-import { preScanVideo, type PreScanResult } from "@/lib/videoPreScan";
+import { preScanVideo, type PreScanResult, type PersonCenter } from "@/lib/videoPreScan";
 import type { Keypoint } from "@/lib/mediapipe";
 import type { ChoreoTimeline } from "@/lib/choreoTimeline";
 import { DEFAULT_LEAD_MS } from "@/lib/cueRuntime";
@@ -184,6 +184,20 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
   const [scanCompleteCount,  setScanCompleteCount]  = useState<number | null>(null);
   const [scanSource,         setScanSource]         = useState<"auto" | "feedback" | null>(null);
   const scanAbortRef = useRef<AbortController | null>(null);
+  const [reacquireCandidates, setReacquireCandidates] = useState<PersonCenter[] | null>(null);
+  const reacquireResolveRef = useRef<((idx: number) => void) | null>(null);
+
+  /** Mid-scan reacquire: pause and let the user tap their dancer after a hard occlusion/crossing. */
+  const handlePersonChoice = useCallback((persons: PersonCenter[]): Promise<number> => {
+    return new Promise(resolve => {
+      setReacquireCandidates(persons);
+      reacquireResolveRef.current = (idx: number) => {
+        setReacquireCandidates(null);
+        reacquireResolveRef.current = null;
+        resolve(idx);
+      };
+    });
+  }, []);
 
   // ── Beat / count grid ───────────────────────────────────────────
   const [bpm,           setBpm]           = useState<number | null>(null);
@@ -290,6 +304,9 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
   const runScan = useCallback((source: "auto" | "feedback" = "auto", overridePersonCenter?: { x: number; y: number }) => {
     if (scanProgress !== null) return;
     scanAbortRef.current?.abort();
+    // Abort tears down the old scan's pending reacquire prompt; drop its UI too.
+    reacquireResolveRef.current = null;
+    setReacquireCandidates(null);
     const abort = new AbortController();
     scanAbortRef.current = abort;
     setScanSource(source);
@@ -334,7 +351,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
         start,
         end,
         effectiveCenter,
-        undefined,
+        handlePersonChoice,
         countGridRef.current,
       )
         .then(result => {
@@ -377,7 +394,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
       runFreshScan();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoUrl, scanProgress, videoIdentity, adoptTimeline]);
+  }, [videoUrl, scanProgress, videoIdentity, adoptTimeline, handlePersonChoice]);
 
   useEffect(() => { return () => { scanAbortRef.current?.abort(); }; }, []);
 
@@ -772,9 +789,57 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
         </div>
       )}
 
+      {/* ══════════════════ MID-SCAN REACQUIRE PROMPT ══════════════════ */}
+      <AnimatePresence>
+        {reacquireCandidates !== null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 px-6"
+          >
+            <motion.div
+              initial={{ scale: 0.96, y: 8 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.96, y: 8 }}
+              className={`w-[min(420px,92vw)] rounded-2xl ${GLASS} px-5 py-5`}
+            >
+              <p className="text-sm font-semibold text-[#1a0f00]/85">Lost track of your dancer</p>
+              <p className="mt-1 text-xs leading-relaxed text-[#1a0f00]/50">
+                Tap the dancer you&apos;re following to keep the scan on track.
+              </p>
+              <div className="mt-4 grid grid-cols-3 gap-2.5">
+                {reacquireCandidates.map((p, i) => (
+                  <button
+                    key={i}
+                    onClick={() => reacquireResolveRef.current?.(i)}
+                    className="group overflow-hidden rounded-xl border-2 border-transparent bg-[#1a0f00]/5 transition-all hover:border-emerald-500"
+                  >
+                    {p.thumbnail ? (
+                      <img src={p.thumbnail} alt={`Dancer ${i + 1}`} className="aspect-[3/4] w-full object-cover" />
+                    ) : (
+                      <div className="flex aspect-[3/4] w-full items-center justify-center text-xs text-[#1a0f00]/30">?</div>
+                    )}
+                    <span className="block bg-[#1a0f00]/5 py-1 text-center text-[10px] font-semibold text-[#1a0f00]/50 group-hover:text-emerald-700">
+                      Dancer {i + 1}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => reacquireResolveRef.current?.(-1)}
+                className="mt-4 w-full rounded-full py-2 text-xs font-medium text-[#1a0f00]/35 hover:text-[#1a0f00]/60 transition-colors"
+              >
+                Not sure — keep best guess
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ══════════════════ SCAN PROGRESS OVERLAY ══════════════════ */}
       <AnimatePresence>
-        {scanProgress !== null && scanSource !== "feedback" && (
+        {scanProgress !== null && scanSource !== "feedback" && reacquireCandidates === null && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
