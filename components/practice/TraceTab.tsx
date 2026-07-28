@@ -378,6 +378,18 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               // Best-effort shared cache write — never blocks practice
               putCachedTimeline(scanKey, result.timeline, identity!.kind === "file");
             }
+            // Scan cost is dominated by device speed, and the phones that feel
+            // slow are exactly the ones we can't profile locally. Report the
+            // breakdown so the real distribution is visible.
+            const { frames, totalMs, seekMs, detectMs, fps } = result.timings;
+            track("scan_performance", {
+              frames, totalMs, seekMs, detectMs, fps,
+              msPerFrame:  frames > 0 ? Math.round(totalMs / frames) : null,
+              seekShare:   totalMs > 0 ? +(seekMs / totalMs).toFixed(2) : null,
+              detectShare: totalMs > 0 ? +(detectMs / totalMs).toFixed(2) : null,
+              cueCount:    result.timeline.entries.length,
+              source:      source,
+            });
           }
           setScanProgress(null);
           setScanEtaSeconds(null);

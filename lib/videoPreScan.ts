@@ -7,11 +7,31 @@ import { DancerTracker } from "./dancerTracker";
 import { buildChoreoTimeline, type ChoreoTimeline } from "./choreoTimeline";
 import type { CountGrid } from "./countGrid";
 
+/**
+ * Where a scan actually spent its time. Desktop measurement puts seeking at
+ * ~38ms/frame, so a 360-frame scan is ~14s of seeking — nowhere near slow
+ * enough to explain the stalls reported on phones. Mobile seek and inference
+ * costs are the unknown, and they can only be measured on a real device, so
+ * every scan reports its own breakdown rather than being profiled by hand.
+ */
+export interface PreScanTimings {
+  frames:      number;
+  /** Wall-clock for the whole scan loop. */
+  totalMs:     number;
+  /** Seeking to each sample point — the suspected mobile bottleneck. */
+  seekMs:      number;
+  /** MediaPipe inference across all frames. */
+  detectMs:    number;
+  /** Sampling rate actually used, after the MIN_FPS floor. */
+  fps:         number;
+}
+
 export interface PreScanResult {
   events:      MovementEvent[];
   videoHeight: number;
   /** Beat-quantized, density-capped timeline — the cacheable scan product. */
   timeline:    ChoreoTimeline;
+  timings:     PreScanTimings;
 }
 
 export interface PreScanProgress {
@@ -210,16 +230,25 @@ export async function preScanVideo(
     return false;
   }
 
+  const scanStartedAt = performance.now();
+  let seekMs = 0, detectMs = 0, framesProcessed = 0;
+
   for (let t = scanStart; t < scanEnd; t += frameInterval) {
     if (signal?.aborted) { video.src = ""; return null; }
 
+    const seekStart = performance.now();
     video.currentTime = t;
     await waitForSeek(video);
     await waitForFrame(video);
+    seekMs += performance.now() - seekStart;
 
     if (video.videoWidth === 0) continue;
 
+    const detectStart = performance.now();
     const allPoses = detectAllPosesFromFrame(video, "lite");
+    detectMs += performance.now() - detectStart;
+    framesProcessed++;
+
     if (!allPoses || allPoses.length === 0) continue;
 
     // First multi-person frame with no lock yet: ask the user up front.
@@ -285,5 +314,12 @@ export async function preScanVideo(
     events: allEvents,
     videoHeight,
     timeline: buildChoreoTimeline(allEvents, grid ?? null, videoHeight),
+    timings: {
+      frames:   framesProcessed,
+      totalMs:  Math.round(performance.now() - scanStartedAt),
+      seekMs:   Math.round(seekMs),
+      detectMs: Math.round(detectMs),
+      fps:      +fps.toFixed(2),
+    },
   };
 }
