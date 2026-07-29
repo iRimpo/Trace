@@ -6,7 +6,10 @@ import { motion } from "framer-motion";
 interface TapTempoSheetProps {
   onConfirm: (bpm: number) => void;
   onCancel:  () => void;
+  onRetry:   () => void;
   detecting: boolean;
+  /** Why auto-detection failed, if it has run and failed. */
+  failure:   string | null;
 }
 
 const MIN_TAPS = 4;
@@ -21,7 +24,9 @@ const TAP_RESET_MS = 2500;
  * produced instructions on a meaningless 0.1s spacing and no counts at all —
  * feedback now requires a tempo, and this is how you supply one.
  */
-export default function TapTempoSheet({ onConfirm, onCancel, detecting }: TapTempoSheetProps) {
+export default function TapTempoSheet({
+  onConfirm, onCancel, onRetry, detecting, failure,
+}: TapTempoSheetProps) {
   const tapsRef = useRef<number[]>([]);
   const [bpm, setBpm] = useState<number | null>(null);
   const [taps, setTaps] = useState(0);
@@ -56,6 +61,23 @@ export default function TapTempoSheet({ onConfirm, onCancel, detecting }: TapTem
             ? "Still listening to the track — or tap it out yourself."
             : "Cues land on counts, so Trace needs the tempo. Tap along with the beat."}
         </p>
+
+        {/* Naming the failure matters: "couldn't find a beat" means retry on a
+            different section, "no audio track" means never bother. */}
+        {!detecting && failure && (
+          <div className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 p-2.5">
+            <span aria-hidden className="text-[11px] leading-none">⚠</span>
+            <div className="flex-1">
+              <p className="text-[11px] leading-relaxed text-amber-900">{failure}</p>
+              <button
+                onClick={onRetry}
+                className="mt-1 text-[10px] font-semibold text-amber-900/70 underline underline-offset-2"
+              >
+                Try detecting again
+              </button>
+            </div>
+          </div>
+        )}
 
         <button
           onClick={tap}

@@ -9,7 +9,8 @@ import TapTempoSheet from "@/components/practice/TapTempoSheet";
 import BpmInput from "@/components/practice/BpmInput";
 import type { CalibrationData } from "@/components/practice/CalibrationModal";
 import { CountGrid } from "@/lib/countGrid";
-import { detectBeatsFromVideo } from "@/lib/beatDetector";
+import { detectBeatsFromVideo, BEAT_FAILURE_COPY } from "@/lib/beatDetector";
+import type { BeatFailure } from "@/lib/beatDetector";
 import { preScanVideo, type PreScanResult, type PersonCenter } from "@/lib/videoPreScan";
 import type { Keypoint } from "@/lib/mediapipe";
 import { composeCueScript } from "@/lib/cueScript";
@@ -215,6 +216,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
   const [beatOneOffset, setBeatOneOffset] = useState(0);
   const [countGrid,     setCountGrid]     = useState<CountGrid | null>(null);
   const [beatDetecting, setBeatDetecting] = useState(false);
+  const [beatFailure,   setBeatFailure]   = useState<BeatFailure | null>(null);
   const beatDetectedRef = useRef(false);
   const tapTimesRef     = useRef<number[]>([]);
 
@@ -256,12 +258,33 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
 
   const runBeatDetection = useCallback(async () => {
     setBeatDetecting(true);
+    setBeatFailure(null);
+    const startedAt = performance.now();
     try {
-      const result = await detectBeatsFromVideo(videoUrl);
-      if (result) {
-        setBpm(result.bpm);
-        if (result.firstBeatTime !== undefined) setBeatOneOffset(result.firstBeatTime);
+      // Analyse the section the user actually trimmed to. Reading the first 30
+      // seconds instead meant a clip that opens on a logo card or a talking
+      // intro was fed to the detector as if it were the song.
+      const { start, end } = trimBoundsRef.current;
+      const outcome = await detectBeatsFromVideo(videoUrl, { start, end });
+
+      if (outcome.ok) {
+        setBpm(outcome.bpm);
+        if (outcome.firstBeatTime !== undefined) setBeatOneOffset(outcome.firstBeatTime);
+      } else {
+        setBeatFailure(outcome.reason);
       }
+
+      // Which failure fires is the one thing that could not be established
+      // from a phone before, and feedback is now gated on having a tempo.
+      track("beat_detection", {
+        ok:      outcome.ok,
+        reason:  outcome.ok ? null : outcome.reason,
+        detail:  outcome.ok ? null : outcome.detail ?? null,
+        bpm:     outcome.ok ? outcome.bpm : null,
+        from:    outcome.ok ? outcome.from : null,
+        seconds: outcome.ok ? outcome.seconds : null,
+        ms:      Math.round(performance.now() - startedAt),
+      });
     } finally { setBeatDetecting(false); }
   }, [videoUrl]);
 
@@ -801,6 +824,8 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
         {showTapTempo && (
           <TapTempoSheet
             detecting={beatDetecting}
+            failure={beatFailure ? BEAT_FAILURE_COPY[beatFailure] : null}
+            onRetry={runBeatDetection}
             onCancel={() => setShowTapTempo(false)}
             onConfirm={(v) => {
               // The user has just been tapping along, so this is precisely the
