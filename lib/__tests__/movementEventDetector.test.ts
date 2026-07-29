@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { MovementEventDetector } from "../movementEventDetector";
+import { MovementEventDetector, movementOrigin } from "../movementEventDetector";
 import { PoseFrameBuffer } from "../motionAnalyzer";
+import type { PoseFrame } from "../motionAnalyzer";
 import type { Keypoint } from "../mediapipe";
 
 const VIDEO_H = 1000;
@@ -85,5 +86,39 @@ describe("MovementEventDetector — scan-rate invariance", () => {
     for (const fps of [10, 4, 2]) {
       expect(wristCuesAtFps(fps, 20)).toBeLessThanOrEqual(Math.ceil(20 / 0.8));
     }
+  });
+});
+
+// ── Travel origin ─────────────────────────────────────────────────────────
+
+/** Frames at 10fps where the joint is still, then accelerates right. */
+function stillThenMove(): PoseFrame[] {
+  const xs = [50, 50, 50, 50, 60, 80, 110, 150];
+  return xs.map((x, i) => ({
+    kps: Array.from({ length: 33 }, () => ({ x, y: 100, score: 0.9 })),
+    videoTime: i * 0.1,
+    wallTime:  i * 100,
+  })) as PoseFrame[];
+}
+
+describe("movementOrigin", () => {
+  it("returns the position where the joint was at rest, not the newest frame", () => {
+    const o = movementOrigin(stillThenMove(), 15)!;
+    expect(o.x).toBeCloseTo(50, 5);
+  });
+
+  it("returns null when the joint is never confidently visible", () => {
+    const frames = stillThenMove().map(f => ({
+      ...f,
+      kps: f.kps.map(() => ({ x: 0, y: 0, score: 0.05 })),
+    })) as PoseFrame[];
+    expect(movementOrigin(frames, 15)).toBeNull();
+  });
+
+  it("ignores frames older than the lookback window", () => {
+    // With a 250ms lookback only the newest few frames are in scope, so the
+    // rest position at x=50 is out of reach.
+    const o = movementOrigin(stillThenMove(), 15, 250)!;
+    expect(o.x).toBeGreaterThan(50);
   });
 });

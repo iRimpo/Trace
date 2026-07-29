@@ -83,6 +83,48 @@ const PARENT_JOINT: Readonly<Record<number, number | null>> = {
   32: 28,    // R Foot Index relative to R Ankle
 };
 
+// ── Movement origin ───────────────────────────────────────────────────────
+
+/** How far back to look for the start of the current gesture. */
+const ORIGIN_LOOKBACK_MS = 600;
+
+/**
+ * Where the current movement actually began: the slowest point within the
+ * lookback window.
+ *
+ * The detector's own `anchorX/anchorY` cannot answer this. That anchor is
+ * reset when a joint's cooldown expires, so it marks an arbitrary moment up
+ * to 1.2s before the gesture — which is why arrow length never represented
+ * how far a limb travels. Walking back to the velocity minimum finds the rest
+ * position the limb actually left from.
+ */
+export function movementOrigin(
+  frames:     PoseFrame[],
+  jointIdx:   number,
+  lookbackMs: number = ORIGIN_LOOKBACK_MS,
+  minConf:    number = 0.3,
+): { x: number; y: number } | null {
+  if (frames.length < 2) return null;
+  const newest = frames[frames.length - 1];
+  const cutoff = newest.wallTime - lookbackMs;
+
+  let best: { x: number; y: number } | null = null;
+  let bestSpeed = Infinity;
+
+  for (let i = 0; i < frames.length - 1; i++) {
+    const f = frames[i], next = frames[i + 1];
+    if (f.wallTime < cutoff) continue;
+    const a = f.kps[jointIdx], b = next.kps[jointIdx];
+    if (!a || !b || (a.score ?? 0) < minConf || (b.score ?? 0) < minConf) continue;
+
+    const dtS   = Math.max(0.001, (next.wallTime - f.wallTime) / 1000);
+    const speed = Math.hypot(b.x - a.x, b.y - a.y) / dtS;
+    if (speed < bestSpeed) { bestSpeed = speed; best = { x: a.x, y: a.y }; }
+  }
+
+  return best;
+}
+
 // ── Joints tracked ────────────────────────────────────────────────────────
 
 /** Priority order — extremities first, then core. */
@@ -268,6 +310,11 @@ export class MovementEventDetector {
       const effectiveFrac  = thr.dispFrac * velocityScale;
 
       if (dispPx / videoHeight >= effectiveFrac) {
+        // Render from where the gesture actually started, not from the
+        // cooldown-reset anchor. `dx`/`dy` deliberately stay parent-relative:
+        // they drive the threshold test above, and rewriting them would change
+        // which events fire.
+        const origin = movementOrigin(frames, idx) ?? { x: st.anchorX, y: st.anchorY };
         rawEvents.push({
           type:       eventTypeFor(idx),
           jointIndex: idx,
@@ -275,8 +322,8 @@ export class MovementEventDetector {
           videoTime:  lastFrame.videoTime,
           x:          kp.x,
           y:          kp.y,
-          anchorX:    st.anchorX,
-          anchorY:    st.anchorY,
+          anchorX:    origin.x,
+          anchorY:    origin.y,
           dx,
           dy,
           magnitude:  dispPx,
