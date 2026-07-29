@@ -1,25 +1,26 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { initPoseDetection, detectPose } from "@/lib/mediapipe";
 import FeedbackCanvas from "@/components/practice/FeedbackCanvas";
+import CountStrip from "@/components/practice/CountStrip";
+import TapTempoSheet from "@/components/practice/TapTempoSheet";
 import BpmInput from "@/components/practice/BpmInput";
 import type { CalibrationData } from "@/components/practice/CalibrationModal";
 import { CountGrid } from "@/lib/countGrid";
 import { detectBeatsFromVideo } from "@/lib/beatDetector";
 import { preScanVideo, type PreScanResult, type PersonCenter } from "@/lib/videoPreScan";
 import type { Keypoint } from "@/lib/mediapipe";
-import type { ChoreoTimeline } from "@/lib/choreoTimeline";
-import { DEFAULT_LEAD_MS } from "@/lib/cueRuntime";
-import type { PoseFrame } from "@/lib/poseRecorder";
-import { getCachedTimeline, putCachedTimeline, type ScanCacheKey } from "@/lib/scanCache";
+import { composeCueScript } from "@/lib/cueScript";
+import type { CueScript } from "@/lib/cueScript";
+import type { MovementEvent } from "@/lib/movementEventDetector";
+import { getCachedScan, putCachedScan, type ScanCacheKey } from "@/lib/scanCache";
 import { parseLinkIdentity, type VideoIdentity } from "@/lib/videoIdentity";
 import { track } from "@/lib/analytics";
 import DashboardTutorial from "@/components/dashboard/DashboardTutorial";
 
 const PRACTICE_TUTORIAL_KEY = "trace_practice_tutorial_dismissed";
-const CUE_LEAD_KEY = "trace_cue_lead_ms";
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -183,16 +184,11 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
   const [feedbackEnabled, setFeedbackEnabled] = useState(false);
   const [countsEnabled,   setCountsEnabled]   = useState(true);
   const [feedbackOffset,  setFeedbackOffset]  = useState(0);
-  const [cueLeadMs,       setCueLeadMs]       = useState(() => {
-    if (typeof window === "undefined") return DEFAULT_LEAD_MS;
-    const saved = parseInt(localStorage.getItem(CUE_LEAD_KEY) ?? "", 10);
-    return Number.isFinite(saved) && saved >= 0 && saved <= 1500 ? saved : DEFAULT_LEAD_MS;
-  });
-  const userFramesRef      = useRef<PoseFrame[]>([]);
-  const userVideoHeightRef = useRef(0);
+  const [showTapTempo,    setShowTapTempo]    = useState(false);
 
   // ── Pre-scan ────────────────────────────────────────────────────
-  const [timeline,           setTimeline]           = useState<ChoreoTimeline | null>(null);
+  const [scanEvents,      setScanEvents]      = useState<MovementEvent[] | null>(null);
+  const [scanVideoHeight, setScanVideoHeight] = useState(0);
   const [scanProgress,       setScanProgress]       = useState<number | null>(null);
   const [scanEtaSeconds,     setScanEtaSeconds]     = useState<number | null>(null);
   const [scanCompleteFlash,  setScanCompleteFlash]  = useState(false);
@@ -297,23 +293,24 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
     }
   }
 
-  // Grid available inside runScan without re-creating the callback
-  const countGridRef = useRef(countGrid);
-  countGridRef.current = countGrid;
+  /**
+   * The cue script is derived, never stored. Recomposing when the tempo or the
+   * count-1 offset changes is what makes correcting the beat instant instead of
+   * a rescan — the scan output itself is tempo-free.
+   */
+  const script: CueScript | null = useMemo(
+    () => (scanEvents ? composeCueScript(scanEvents, countGrid, scanVideoHeight) : null),
+    [scanEvents, countGrid, scanVideoHeight],
+  );
 
-  /** Adopt a finished/cached timeline into practice state. */
-  const adoptTimeline = useCallback((tl: ChoreoTimeline) => {
-    setTimeline(tl);
+  /** Adopt finished/cached scan output into practice state. */
+  const adoptScan = useCallback((events: MovementEvent[], videoHeight: number) => {
+    setScanEvents(events);
+    setScanVideoHeight(videoHeight);
     setFeedbackEnabled(true);
-    setScanCompleteCount(tl.entries.length);
+    setScanCompleteCount(events.length);
     setScanCompleteFlash(true);
     setTimeout(() => setScanCompleteFlash(false), 2000);
-    // A cached timeline knows its BPM — adopt it if we have none yet
-    if (tl.bpm !== null) {
-      setBpm(prev => prev ?? tl.bpm);
-      setBeatOneOffset(prev => (prev === 0 ? tl.beatOneOffset : prev));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const runScan = useCallback((source: "auto" | "feedback" = "auto", overridePersonCenter?: { x: number; y: number }) => {
@@ -334,7 +331,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
     // L1: in-memory cache for this page load
     const cached = preScanCache.get(cacheKey);
     if (cached) {
-      adoptTimeline(cached.timeline);
+      adoptScan(cached.events, cached.videoHeight);
       setScanProgress(null);
       autoPlayAfterScan();
       return;
@@ -367,16 +364,19 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
         end,
         effectiveCenter,
         handlePersonChoice,
-        countGridRef.current,
       )
         .then(result => {
           if (result && !abort.signal.aborted) {
             preScanCache.set(cacheKey, result);
-            adoptTimeline(result.timeline);
+            adoptScan(result.events, result.videoHeight);
             autoPlayAfterScan();
             if (scanKey) {
               // Best-effort shared cache write — never blocks practice
-              putCachedTimeline(scanKey, result.timeline, identity!.kind === "file");
+              putCachedScan(
+                scanKey,
+                { events: result.events, videoHeight: result.videoHeight },
+                identity!.kind === "file",
+              );
             }
             // Scan cost is dominated by device speed, and the phones that feel
             // slow are exactly the ones we can't profile locally. Report the
@@ -387,7 +387,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               msPerFrame:  frames > 0 ? Math.round(totalMs / frames) : null,
               seekShare:   totalMs > 0 ? +(seekMs / totalMs).toFixed(2) : null,
               detectShare: totalMs > 0 ? +(detectMs / totalMs).toFixed(2) : null,
-              cueCount:    result.timeline.entries.length,
+              cueCount:    result.events.length,
               source:      source,
             });
           }
@@ -404,11 +404,11 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
 
     // L2: shared Supabase cache — instant repeat practice across sessions
     if (scanKey) {
-      getCachedTimeline(scanKey)
-        .then(tl => {
+      getCachedScan(scanKey)
+        .then(payload => {
           if (abort.signal.aborted) return;
-          if (tl) {
-            adoptTimeline(tl);
+          if (payload) {
+            adoptScan(payload.events, payload.videoHeight);
             setScanProgress(null);
             setScanSource(null);
             autoPlayAfterScan();
@@ -421,7 +421,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
       runFreshScan();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoUrl, scanProgress, videoIdentity, adoptTimeline, handlePersonChoice]);
+  }, [videoUrl, scanProgress, videoIdentity, adoptScan, handlePersonChoice]);
 
   useEffect(() => { return () => { scanAbortRef.current?.abort(); }; }, []);
 
@@ -563,28 +563,6 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
     const webcam = webcamRef.current, stream = webcamStreamRef.current;
     if (webcam && stream && !webcam.srcObject) { webcam.srcObject = stream; webcam.play().catch(() => {}); }
   }, [viewMode]);
-
-  // ── Live user pose sampler (feeds cue hit/miss judging) ─────────
-  // ~10Hz is enough for travel-magnitude judging and cheap on mobile.
-  useEffect(() => {
-    if (!feedbackEnabled || !webcamReady) return;
-    const id = setInterval(() => {
-      const webcam = webcamRef.current, pro = proVideoRef.current;
-      if (!webcam || !pro || pro.paused || !poseInitRef.current) return;
-      const kps = detectPose(webcam);
-      if (!kps) return;
-      userVideoHeightRef.current = webcam.videoHeight;
-      const buf = userFramesRef.current;
-      buf.push({ t: pro.currentTime * 1000, kps: kps.map(k => [k.x, k.y, k.score ?? 0]) });
-      if (buf.length > 40) buf.splice(0, buf.length - 40);
-    }, 100);
-    return () => clearInterval(id);
-  }, [feedbackEnabled, webcamReady]);
-
-  // ── Persist cue lead time ────────────────────────────────────────
-  useEffect(() => {
-    localStorage.setItem(CUE_LEAD_KEY, String(cueLeadMs));
-  }, [cueLeadMs]);
 
   // ── Auto-hide controls ──────────────────────────────────────────
   const showControls = useCallback(() => {
@@ -778,11 +756,13 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
           />
 
           <FeedbackCanvas
-            proVideoRef={proVideoRef} enabled={feedbackEnabled} showCounts={countsEnabled}
+            proVideoRef={proVideoRef} enabled={feedbackEnabled}
             proOffsetX={proOffsetX} proOffsetY={proOffsetY} proZoom={proZoom} mirrored={mirrored}
-            timeline={timeline} countGrid={countGrid} feedbackOffset={feedbackOffset}
-            topOffset={64} leadMs={cueLeadMs}
-            userFramesRef={userFramesRef} userVideoHeightRef={userVideoHeightRef}
+            script={script} feedbackOffset={feedbackOffset}
+          />
+          <CountStrip
+            proVideoRef={proVideoRef} grid={countGrid} script={script}
+            visible={countsEnabled}
           />
 
           <video ref={proVideoRef} {...proProps} className="hidden" />
@@ -815,6 +795,23 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
           </div>
         </div>
       )}
+
+      {/* ══════════════════ TEMPO GATE ══════════════════ */}
+      <AnimatePresence>
+        {showTapTempo && (
+          <TapTempoSheet
+            detecting={beatDetecting}
+            onCancel={() => setShowTapTempo(false)}
+            onConfirm={(v) => {
+              // The user has just been tapping along, so this is precisely the
+              // moment they know where "1" falls — mark it while they do.
+              setBpm(v);
+              setBeatOneOffset(proVideoRef.current?.currentTime ?? 0);
+              setShowTapTempo(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ══════════════════ MID-SCAN REACQUIRE PROMPT ══════════════════ */}
       <AnimatePresence>
@@ -870,7 +867,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
         point of this tab and needs no scan — the scan only adds anticipatory
         cues on top. A full-screen overlay here used to lock the user out of
         the video for the entire scan, so the slowest part of the app blocked
-        its most useful part. Cues fade in when the timeline lands.
+        its most useful part. Cues fade in when the scan lands.
       */}
       <AnimatePresence>
         {scanProgress !== null && reacquireCandidates === null && (
@@ -1019,25 +1016,6 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   </div>
                 )}
 
-                {/* Cue lead time — how far ahead cues appear */}
-                {feedbackEnabled && (
-                  <div className="flex items-center gap-2">
-                    <span className="w-14 text-[10px] text-ink/40">Lead</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1200"
-                      step="100"
-                      value={cueLeadMs}
-                      onChange={e => setCueLeadMs(parseInt(e.target.value, 10))}
-                      className="h-0.5 flex-1 cursor-pointer appearance-none rounded-full bg-ink/10 accent-[#080808]"
-                    />
-                    <span className="min-w-[3.5rem] text-right text-[10px] tabular-nums text-ink/40">
-                      {cueLeadMs}ms
-                    </span>
-                  </div>
-                )}
-
               </motion.div>
             )}
           </AnimatePresence>
@@ -1169,8 +1147,12 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               <button
                 id="trace-feedback-pill"
                 onClick={() => {
-                  if (timeline === null && scanProgress === null) { runScan("feedback"); return; }
-                  if (timeline !== null) setFeedbackEnabled(f => !f);
+                  // Cues land on counts, so a grid is a hard prerequisite. Without
+                  // one the old code silently composed against a 0.1s spacing and
+                  // showed no counts at all.
+                  if (!countGrid?.hasBpm) { setShowTapTempo(true); return; }
+                  if (scanEvents === null && scanProgress === null) { runScan("feedback"); return; }
+                  if (scanEvents !== null) setFeedbackEnabled(f => !f);
                 }}
                 className={glassToggle(feedbackEnabled, "emerald")}
               >
@@ -1178,7 +1160,10 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   ? <span className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
                   : <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" /></svg>
                 }
-                {feedbackEnabled ? "Feedback" : timeline === null ? "Scan & Feedback" : "Feedback"}
+                {!countGrid?.hasBpm
+                  ? "Set tempo"
+                  : feedbackEnabled ? "Feedback"
+                  : scanEvents === null ? "Scan & Feedback" : "Feedback"}
               </button>
 
               {/* Opacity slider (overlay only, hidden on very small screens) */}
