@@ -33,6 +33,37 @@ separate pure function. Cue windows are exactly one beat wide (`LEAD_BEATS 0.75 
 by circuity (path length ÷ net displacement). Feedback now requires a count grid; without one
 the Feedback button opens tap-tempo. `judgeCue` left the practice loop entirely.
 
+### Mobile chrome fixes (2026-07-29, after a real installed-PWA screenshot)
+
+The installed PWA stacked three layers of chrome under the iPhone status bar.
+**Root cause:** PracticeView's header applied a safe-area inset but centred the
+tab bar with `absolute top-1/2`, which centres on the *padding* box — so a 59px
+Dynamic Island inset counted as centreable space. TraceTab's controls used a
+bare `top-3` with no inset at all; the count strip used a third value; both
+TestTab HUDs used `top-4`.
+
+Measured at a simulated 59px inset: tab bar was at **35px**, now **59px**, no
+horizontal collision down to a 320px viewport. One shared `TOP_STACK` in
+`components/practice/chrome.ts` now owns the offset — **import it rather than
+adding a fourth guess.**
+
+Also: transport sheet is drag/flick-dismissible; auto-hide no longer fires
+while paused (dancing reads as idle); recording HUD is a full-bleed red edge
+glow rather than an 8px dot; touch targets raised to 44px on mobile (56px for
+play), with `sm:` overrides keeping desktop compact.
+
+**Cues are now Beta and off by default** — Richard deprioritised the feedback
+feature. Consequence: **scan speed is no longer worth the risky rewrite**, since
+the scan exists only to produce cues. Revisit only if cues come out of Beta.
+
+### Storage — iOS evicts IndexedDB after 7 days
+
+`navigator.storage.persist()` (`lib/videoStore.ts:96`) is effectively denied in
+a normal iOS Safari tab, and iOS evicts IndexedDB after 7 days without
+interaction. Videos live in IndexedDB. **Installed PWAs are exempt.** So
+`InstallGate` protects the user's videos, not just their screen space — its copy
+should probably say so.
+
 ### Still to do — REQUIRES RICHARD
 
 1. **Migration `008_scan_cache_v3.sql` has NOT been applied.** It contains
