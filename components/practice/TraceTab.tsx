@@ -973,7 +973,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
         <div className="pointer-events-auto absolute right-3 flex items-center gap-2" style={{ top: TOP_STACK }}>
           {/* Auto-align */}
           {viewMode === "overlay" && (
-            <button onClick={autoAlign} disabled={aligning} className={`h-8 w-8 rounded-lg ${GLASS} ${GLASS_BTN} disabled:opacity-40`} title="Auto-align">
+            <button onClick={autoAlign} disabled={aligning} className={`h-11 w-11 rounded-lg sm:h-8 sm:w-8 ${GLASS} ${GLASS_BTN} disabled:opacity-40`} title="Auto-align">
               {aligning
                 ? <div className="h-3.5 w-3.5 animate-spin rounded-full border border-white/40 border-t-white" />
                 : <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" /></svg>
@@ -981,11 +981,11 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
             </button>
           )}
           {/* Keyboard shortcuts help */}
-          <button onClick={() => setKeysOpen(k => !k)} className={`h-8 w-8 rounded-lg ${GLASS} ${GLASS_BTN}`} title="Keyboard shortcuts">
+          <button onClick={() => setKeysOpen(k => !k)} className={`h-11 w-11 rounded-lg sm:h-8 sm:w-8 ${GLASS} ${GLASS_BTN}`} title="Keyboard shortcuts">
             <span className="text-xs font-bold">?</span>
           </button>
           {/* Fullscreen */}
-          <button onClick={toggleFullscreen} className={`h-8 w-8 rounded-lg ${GLASS} ${GLASS_BTN}`} title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}>
+          <button onClick={toggleFullscreen} className={`h-11 w-11 rounded-lg sm:h-8 sm:w-8 ${GLASS} ${GLASS_BTN}`} title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}>
             {isFullscreen ? (
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 15v4.5M9 15H4.5M15 9V4.5M15 9h4.5M15 15v4.5m0-4.5h4.5" /></svg>
             ) : (
@@ -1352,22 +1352,22 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 loop, timecode, speed) needs ~445px and a 375px phone has ~336px.
                 Without wrapping the icon buttons flex-shrink into ovals. */}
             <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
-              <button onClick={skipBack} title="−5s" className={`h-8 w-8 ${GLASS_BTN} rounded-lg`}>
+              <button onClick={skipBack} title="−5s" className={`h-11 w-11 sm:h-8 sm:w-8 ${GLASS_BTN} rounded-lg`}>
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 16.811c0 .864-.933 1.406-1.683.977l-7.108-4.061a1.125 1.125 0 0 1 0-1.954l7.108-4.061A1.125 1.125 0 0 1 21 8.689v8.122ZM11.25 16.811c0 .864-.933 1.406-1.683.977l-7.108-4.061a1.125 1.125 0 0 1 0-1.954l7.108-4.061a1.125 1.125 0 0 1 1.683.977v8.122Z" /></svg>
               </button>
 
-              <button onClick={togglePlay} className="flex h-9 w-9 items-center justify-center rounded-full bg-ink/10 text-ink transition-all hover:bg-ink/18">
+              <button onClick={togglePlay} className="flex h-14 w-14 items-center justify-center rounded-full bg-ink/10 text-ink transition-all hover:bg-ink/18 sm:h-9 sm:w-9">
                 {playing
                   ? <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4Zm8 0h4v16h-4V4Z" /></svg>
                   : <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                 }
               </button>
 
-              <button onClick={skipForward} title="+5s" className={`h-8 w-8 ${GLASS_BTN} rounded-lg`}>
+              <button onClick={skipForward} title="+5s" className={`h-11 w-11 sm:h-8 sm:w-8 ${GLASS_BTN} rounded-lg`}>
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061A1.125 1.125 0 0 1 3 16.811V8.69ZM12.75 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061a1.125 1.125 0 0 1-1.683-.977V8.69Z" /></svg>
               </button>
 
-              <button onClick={restart} title="Restart" className={`h-8 w-8 ${GLASS_BTN} rounded-lg border border-white/[0.06]`}>
+              <button onClick={restart} title="Restart" className={`h-11 w-11 sm:h-8 sm:w-8 ${GLASS_BTN} rounded-lg border border-white/[0.06]`}>
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" /></svg>
               </button>
 
