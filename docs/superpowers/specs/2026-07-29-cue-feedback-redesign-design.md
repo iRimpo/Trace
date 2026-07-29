@@ -55,7 +55,12 @@ scan  →  MovementEvent[]              BPM-free, cached        ← the expensiv
 - Suppresses a beat whose winner is the same joint moving in substantially the same direction as the previous beat's winner. A held pose is not a new instruction.
 
 ```ts
-type CueRegion = "head" | "hand" | "arm" | "shoulder" | "hip" | "leg" | "foot" | "body";
+// CueRegion already exists in lib/cuePalette.ts and is reused as-is, with a
+// single new key `body` added for torso rolls. Inventing a parallel taxonomy
+// would desync the overlay from the marketing/onboarding illustrations that
+// deliberately echo the same palette.
+type CueRegion = "hand" | "foot" | "head" | "elbow" | "hip" | "shoulder"
+               | "armBoth" | "body";   // `body` is new
 type CueMotion = "travel" | "roll" | "step" | "hold";
 
 interface BeatCue {
@@ -78,8 +83,12 @@ interface CueScript {
   beatOneOffset: number;
   videoHeight:   number;
   cues:          BeatCue[];       // sorted by time
-  at(videoTime: number): { cue: BeatCue; progress: number } | null;
 }
+
+// Free function, not a method — CueScript must survive a JSON round-trip
+// through the cache, and methods do not.
+function cueAt(script: CueScript, videoTime: number):
+  { cue: BeatCue; progress: number } | null;
 ```
 
 ### One-on-screen is structural, not a cap
@@ -95,7 +104,7 @@ Each visibility window is exactly one beat wide, so adjacent windows **abut and 
 
 ### Precomputed and scrub-exact
 
-`script.at(t)` is a pure function of video time — no cursor, no wall clock, no accumulated state. The same `t` always yields the same feedback frame, regardless of scrub direction, loop, or `playbackRate`.
+`cueAt(script, t)` is a pure function of video time — no cursor, no wall clock, no accumulated state. The same `t` always yields the same feedback frame, regardless of scrub direction, loop, or `playbackRate`.
 
 Three things are removed to make that true:
 
@@ -158,19 +167,19 @@ Applied to: shoulders (11, 12) → chest roll · hips (23, 24) → hip circle ·
 
 ### Region mapping
 
-`CueRegion` is derived from joint index, not carried through from `EventType`:
+`CueRegion` is derived from joint index and motion, not carried through from `EventType`. Joint indices are odd for left, even for right (nose is 0).
 
-| joints | region | example label |
+| joints | region | label |
 |---|---|---|
 | 0 | `head` | `HEAD` |
-| 11, 12 | `shoulder` (single) / `body` (bilateral or roll) | `R SHOULDER`, `CHEST` |
-| 13, 14 | `arm` | `L ARM` |
-| 15, 16, 19, 20 | `hand` | `R HAND`, `BOTH HANDS` |
+| 11, 12 | `body` when rolling, else `shoulder` | `CHEST` / `L SHOULDER` |
+| 13, 14 | `elbow` | `R ARM` |
+| 15, 16, 19, 20 | `armBoth` when bilateral, else `hand` | `BOTH ARMS` / `R HAND` |
 | 23, 24 | `hip` | `HIPS` |
-| 25, 26 | `leg` | `L KNEE` |
-| 27–32 | `foot` | `L FOOT` |
+| 25, 26 | `foot` | `L KNEE` |
+| 27–32 | `foot` | `R FOOT` |
 
-`body` is reserved for torso rolls and bilateral shoulder movement — cases where naming a single side would mislead.
+Two notes: `body` is added to `CUE_PALETTE` and `CUE_LABELS` but **not** to `CUE_ORDER`, because `CUE_COLORS` derives from that order and feeds decorative swatch rows in onboarding and marketing — adding an eighth dot there would be an unrelated visual change. Knees move from the `hand` colour (where the current palette comment lumps them) to `foot`, which is what they are.
 
 ### Frame-rate constraint (accepted limitation)
 
