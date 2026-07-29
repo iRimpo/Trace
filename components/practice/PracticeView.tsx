@@ -9,6 +9,7 @@ import TestTab from "@/components/practice/TestTab";
 import SyncTab from "@/components/practice/SyncTab";
 import CalibrationModal, { type CalibrationData } from "@/components/practice/CalibrationModal";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import InstallGate from "@/components/practice/InstallGate";
 import { track } from "@/lib/posthog";
 import { parseIdentityKey } from "@/lib/videoIdentity";
 import { useWakeLock } from "@/lib/useWakeLock";
@@ -70,6 +71,12 @@ export default function PracticeView({ videoUrl, videoId, videoTitle, videoSourc
 
   return (
     <div className="relative h-[100dvh] w-full overflow-hidden bg-black md:h-screen">
+      {/* iOS has no Fullscreen API, so installing is the only way to practise
+          without Safari's address bar covering the frame. Mounted here rather
+          than in the root layout: a takeover on the landing page or dashboard
+          would fire long before the user has a reason to want the app. */}
+      <InstallGate />
+
       {/* Calibration modal */}
       {!calibrated && videoUrl && (
         <CalibrationModal videoUrl={videoUrl} onCalibrated={handleCalibrated} onSkip={handleCalibrationSkip} />
