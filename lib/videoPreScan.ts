@@ -4,8 +4,6 @@ import { PoseFrameBuffer } from "./motionAnalyzer";
 import { MovementEventDetector } from "./movementEventDetector";
 import type { MovementEvent } from "./movementEventDetector";
 import { DancerTracker } from "./dancerTracker";
-import { buildChoreoTimeline, type ChoreoTimeline } from "./choreoTimeline";
-import type { CountGrid } from "./countGrid";
 
 /**
  * Where a scan actually spent its time. Desktop measurement puts seeking at
@@ -27,10 +25,11 @@ export interface PreScanTimings {
 }
 
 export interface PreScanResult {
+  /** Raw, tempo-free movement events — the cacheable scan product.
+   *  Composition into beat-locked cues happens later, in cueScript.ts, so
+   *  detecting or correcting the BPM never requires another scan. */
   events:      MovementEvent[];
   videoHeight: number;
-  /** Beat-quantized, density-capped timeline — the cacheable scan product. */
-  timeline:    ChoreoTimeline;
   timings:     PreScanTimings;
 }
 
@@ -144,7 +143,6 @@ export async function preScanVideo(
   endTime?:      number,
   personCenter?: { x: number; y: number },
   onPersonChoice?: (persons: PersonCenter[]) => Promise<number>,
-  grid?:         CountGrid | null,
 ): Promise<PreScanResult | null> {
   // Lite model: ~2x faster per frame, plenty for movement-event extraction.
   const ok = await initPoseDetection("lite");
@@ -344,7 +342,6 @@ export async function preScanVideo(
   return {
     events: allEvents,
     videoHeight,
-    timeline: buildChoreoTimeline(allEvents, grid ?? null, videoHeight),
     timings: {
       frames:   framesProcessed,
       totalMs:  Math.round(performance.now() - scanStartedAt),
