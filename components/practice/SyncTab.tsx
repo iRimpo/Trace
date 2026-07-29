@@ -593,7 +593,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
   // ─────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex h-[calc(100vh-3rem)] items-center justify-center bg-black">
+      <div className="flex h-full items-center justify-center bg-black">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-white/40" />
       </div>
     );
@@ -601,7 +601,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
 
   if (loadError || !recordingUrl) {
     return (
-      <div className="flex h-[calc(100vh-3rem)] items-center justify-center bg-black">
+      <div className="flex h-full items-center justify-center bg-black">
         <div className="rounded-2xl border border-white/[0.06] bg-black/50 px-5 py-8 text-center backdrop-blur-xl">
           <p className="text-sm font-medium text-red-400">{loadError ?? "Recording not found."}</p>
         </div>
@@ -613,7 +613,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
   // Main render
   // ─────────────────────────────────────────────────────────────────
   return (
-    <div className="relative h-[calc(100vh-3rem)] w-full overflow-hidden bg-black">
+    <div className="relative h-full w-full overflow-hidden bg-black">
 
       {/* ── Video area (fills entire container) ────────────────── */}
       <div className="absolute inset-0">

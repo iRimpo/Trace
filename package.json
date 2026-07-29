@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "_comment_build:check": "Verification build that writes to .next-check, so it cannot clobber a running dev server's chunks. Use this while `npm run dev` is up; plain `build` is for CI/Vercel.",
+    "build:check": "NEXT_DIST_DIR=.next-check next build",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",

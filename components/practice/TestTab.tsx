@@ -380,7 +380,7 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="relative h-[calc(100vh-3rem)] w-full overflow-hidden bg-black"
+        className="relative h-full w-full overflow-hidden bg-black"
       >
         {blobUrl && (
           <video
@@ -438,7 +438,7 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
   const isGo        = countdownNum === 0;
 
   return (
-    <div className="relative h-[calc(100vh-3rem)] w-full overflow-hidden bg-black">
+    <div className="relative h-full w-full overflow-hidden bg-black">
 
       {/* Webcam base — fills entire container */}
       <div className="absolute inset-0">

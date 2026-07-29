@@ -4,7 +4,12 @@
  * the app shell so practice starts instantly and works offline once loaded.
  * Bump CACHE_VERSION when precached assets change.
  */
-const CACHE_VERSION = "trace-v1";
+// Bumped to v2: the activate handler deletes every cache whose key doesn't
+// match, so raising this is how already-installed clients (including phones
+// with the PWA on their home screen) drop a stale app shell and pick up the
+// current build. Anyone still on v1 could be running app code from an earlier
+// deploy regardless of what has shipped since.
+const CACHE_VERSION = "trace-v2";
 
 const PRECACHE = [
   "/",

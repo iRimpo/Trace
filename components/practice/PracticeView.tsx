@@ -89,8 +89,11 @@ export default function PracticeView({ videoUrl, videoId, videoTitle, videoSourc
             </Link>
           </div>
 
-          {/* Logo badge */}
-          <div className="pointer-events-auto flex items-center gap-2">
+          {/* Logo badge — decorative, and it sits on the same coordinates as
+              TraceTab's top-right controls (auto-align / help / fullscreen).
+              At z-50 vs their z-30 it covered the fullscreen button outright,
+              so it's hidden until there's room for both. */}
+          <div className="pointer-events-auto hidden items-center gap-2 sm:flex">
             <div className="flex h-8 w-8 flex-col items-center justify-center rounded-full bg-black/60 backdrop-blur-xl border border-white/[0.08]">
               <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
                 <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" stroke="white" strokeWidth="1.5" strokeLinejoin="round" opacity="0.7"/>

@@ -753,7 +753,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
     <div
       onMouseMove={showControls}
       onTouchStart={showControls}
-      className="relative h-[calc(100vh-3rem)] w-full overflow-hidden bg-black"
+      className="relative h-full w-full overflow-hidden bg-black"
     >
       {/* ══════════════════ FULL-BLEED VIDEO AREA ══════════════════ */}
 
@@ -1306,8 +1306,10 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               <div className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#080808] opacity-0 shadow-md transition-opacity group-hover:opacity-100" style={{ left: `${progressPct}%` }} />
             </div>
 
-            {/* Controls row */}
-            <div className="mt-2.5 flex items-center gap-2">
+            {/* Controls row — wraps because the full set (skip, play, restart,
+                loop, timecode, speed) needs ~445px and a 375px phone has ~336px.
+                Without wrapping the icon buttons flex-shrink into ovals. */}
+            <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
               <button onClick={skipBack} title="−5s" className={`h-8 w-8 ${GLASS_BTN} rounded-lg`}>
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 16.811c0 .864-.933 1.406-1.683.977l-7.108-4.061a1.125 1.125 0 0 1 0-1.954l7.108-4.061A1.125 1.125 0 0 1 21 8.689v8.122ZM11.25 16.811c0 .864-.933 1.406-1.683.977l-7.108-4.061a1.125 1.125 0 0 1 0-1.954l7.108-4.061a1.125 1.125 0 0 1 1.683.977v8.122Z" /></svg>
               </button>
