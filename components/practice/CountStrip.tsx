@@ -5,6 +5,7 @@ import type { RefObject } from "react";
 import { CUE_PALETTE } from "@/lib/cuePalette";
 import type { CountGrid } from "@/lib/countGrid";
 import type { CueScript } from "@/lib/cueScript";
+import { TOP_STACK } from "@/components/practice/chrome";
 
 interface CountStripProps {
   proVideoRef: RefObject<HTMLVideoElement | null>;
@@ -83,7 +84,7 @@ export default function CountStrip({ proVideoRef, grid, script, visible }: Count
   return (
     <div
       className="pointer-events-none absolute left-0 right-0 z-30 flex justify-center px-3"
-      style={{ top: "calc(env(safe-area-inset-top) + 0.5rem)" }}
+      style={{ top: TOP_STACK }}
     >
       <div className="flex w-full max-w-sm gap-1">
         {[1, 2, 3, 4, 5, 6, 7, 8].map((n, i) => (

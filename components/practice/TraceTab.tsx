@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { initPoseDetection, detectPose } from "@/lib/mediapipe";
 import FeedbackCanvas from "@/components/practice/FeedbackCanvas";
 import CountStrip from "@/components/practice/CountStrip";
+import { TOP_STACK, BOTTOM_SAFE } from "@/components/practice/chrome";
 import TapTempoSheet from "@/components/practice/TapTempoSheet";
 import BpmInput from "@/components/practice/BpmInput";
 import type { CalibrationData } from "@/components/practice/CalibrationModal";
@@ -32,6 +33,7 @@ type ViewMode = "overlay" | "side-by-side";
 const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5] as const;
 const L_SHOULDER = 11, R_SHOULDER = 12, L_HIP = 23, R_HIP = 24;
 const IDLE_TIMEOUT = 3000;
+
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
@@ -330,7 +332,10 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
   const adoptScan = useCallback((events: MovementEvent[], videoHeight: number) => {
     setScanEvents(events);
     setScanVideoHeight(videoHeight);
-    setFeedbackEnabled(true);
+    // Cues stay opt-in while the feature is experimental: telling a dancer
+    // which body part to move on which count is not reliable enough yet to
+    // switch itself on over the reference video.
+    setFeedbackEnabled(false);
     setScanCompleteCount(events.length);
     setScanCompleteFlash(true);
     setTimeout(() => setScanCompleteFlash(false), 2000);
@@ -588,10 +593,18 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
   }, [viewMode]);
 
   // ── Auto-hide controls ──────────────────────────────────────────
+  const playingRef = useRef(playing);
+  playingRef.current = playing;
+
   const showControls = useCallback(() => {
     setControlsVisible(true);
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    hideTimerRef.current = setTimeout(() => setControlsVisible(false), IDLE_TIMEOUT);
+    // Only auto-hide during playback. While paused you are almost certainly
+    // reaching for these controls, and hiding them after 3s of "idle" meant
+    // they disappeared exactly when you were about to use them.
+    if (playingRef.current) {
+      hideTimerRef.current = setTimeout(() => setControlsVisible(false), IDLE_TIMEOUT);
+    }
   }, []);
 
   // ── Video callbacks ─────────────────────────────────────────────
@@ -800,7 +813,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
         <div className="absolute inset-0 grid grid-cols-2">
           <div className="relative overflow-hidden bg-black">
             <video ref={proVideoRef} {...proProps} className="absolute inset-0 h-full w-full object-contain" style={proStyle} />
-            <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur">
+            <div className="absolute left-3 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur" style={{ top: TOP_STACK }}>
               <div className="h-1.5 w-1.5 rounded-full bg-pink-500" />
               <span className="text-[10px] font-semibold tracking-wide text-white/70">REFERENCE</span>
             </div>
@@ -811,7 +824,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
             ) : (
               <video ref={webcamRef} className="absolute inset-0 h-full w-full object-cover" style={{ transform: "scaleX(-1)" }} playsInline muted autoPlay />
             )}
-            <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur">
+            <div className="absolute left-3 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur" style={{ top: TOP_STACK }}>
               <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
               <span className="text-[10px] font-semibold tracking-wide text-white/70">YOU</span>
             </div>
@@ -957,7 +970,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
         </div>
 
         {/* ── Top-right: utility buttons ──────────────────────── */}
-        <div className="pointer-events-auto absolute right-3 top-3 flex items-center gap-2">
+        <div className="pointer-events-auto absolute right-3 flex items-center gap-2" style={{ top: TOP_STACK }}>
           {/* Auto-align */}
           {viewMode === "overlay" && (
             <button onClick={autoAlign} disabled={aligning} className={`h-8 w-8 rounded-lg ${GLASS} ${GLASS_BTN} disabled:opacity-40`} title="Auto-align">
@@ -986,7 +999,8 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
           {keysOpen && (
             <motion.div
               initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-              className={`pointer-events-auto absolute right-3 top-14 rounded-xl ${GLASS} p-3`}
+              className={`pointer-events-auto absolute right-3 rounded-xl ${GLASS} p-3`}
+              style={{ top: `calc(${TOP_STACK} + 2.5rem)` }}
             >
               <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                 {[
@@ -1131,21 +1145,36 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
         </div>
 
         {/* Dynamic island transport */}
-        <div
+        <motion.div
           id="trace-transport"
-          className={`pointer-events-auto absolute bottom-2 left-1/2 z-30 w-[min(720px,96vw)] -translate-x-1/2 transition-transform duration-500 sm:bottom-4 sm:w-[min(720px,90vw)] ${
-            controlsVisible ? "translate-y-0" : "translate-y-full"
-          }`}
-          style={{ bottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
+          className="pointer-events-auto absolute left-1/2 z-30 w-[min(720px,96vw)] sm:w-[min(720px,90vw)]"
+          // x lives here rather than as a -translate-x-1/2 class because framer
+          // writes the whole transform; a Tailwind translate would be clobbered.
+          style={{ bottom: BOTTOM_SAFE, x: "-50%" }}
+          animate={{ y: controlsVisible ? 0 : "100%" }}
+          transition={{ type: "spring", stiffness: 420, damping: 42 }}
+          // Flick or drag the sheet away instead of waiting out a timeout.
+          drag="y"
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={{ top: 0, bottom: 0.45 }}
+          onDragEnd={(_, info) => {
+            if (info.offset.y > 56 || info.velocity.y > 480) {
+              if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+              setControlsVisible(false);
+            }
+          }}
         >
           <div className={`rounded-2xl ${GLASS} px-3 py-2 sm:rounded-3xl sm:px-4 sm:py-3`} style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}>
-            {/* Mobile drag handle — tap to collapse */}
+            {/* Drag handle — swipe the sheet down, or tap to collapse. */}
             <button
-              className="mb-1 flex w-full cursor-pointer items-center justify-center py-0.5 sm:hidden"
-              onClick={() => setControlsVisible(false)}
-              aria-label="Collapse controls"
+              className="mb-1 flex w-full cursor-grab items-center justify-center py-1.5 active:cursor-grabbing sm:hidden"
+              onClick={() => {
+                if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+                setControlsVisible(false);
+              }}
+              aria-label="Hide controls"
             >
-              <div className="h-1 w-8 rounded-full bg-ink/20" />
+              <div className="h-1 w-10 rounded-full bg-ink/25" />
             </button>
             {/* ── Secondary controls row ─────────────────────────────────────── */}
             <div id="trace-controls-row" className="mb-2 flex flex-wrap items-center gap-1.5 sm:mb-3 sm:gap-2">
@@ -1187,8 +1216,11 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 }
                 {!countGrid?.hasBpm
                   ? "Set tempo"
-                  : feedbackEnabled ? "Feedback"
-                  : scanEvents === null ? "Scan & Feedback" : "Feedback"}
+                  : feedbackEnabled ? "Cues on"
+                  : scanEvents === null ? "Try cues" : "Cues"}
+                <span className="ml-1 rounded-full bg-ink/10 px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-ink/45">
+                  Beta
+                </span>
               </button>
 
               {/* Opacity slider (overlay only, hidden on very small screens) */}
@@ -1402,7 +1434,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
             )}
           </div>
 
-        </div>
+        </motion.div>
       </div>
 
       {/* ── Video error toast ──────────────────────────────────── */}
