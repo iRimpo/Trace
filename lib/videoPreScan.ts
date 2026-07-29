@@ -189,6 +189,15 @@ export async function preScanVideo(
   let choiceOffered = personCenter != null;
   let prevKps: Keypoint[] | null = null;
 
+  /**
+   * A scan that keeps losing its dancer would otherwise prompt on every frame.
+   * Two prompts is already the point at which re-tapping is worse than
+   * finishing on a best guess.
+   */
+  const MAX_REACQUIRE_PROMPTS = 2;
+  let reacquirePrompts = 0;
+  let reacquireDeclined = false;
+
   /** Ask the caller (user tap) which person to track; returns false if unanswered. */
   async function askPersonChoice(allPoses: Keypoint[][]): Promise<boolean> {
     if (!onPersonChoice) return false;
@@ -212,21 +221,34 @@ export async function preScanVideo(
     // or the component unmounted) would otherwise park this loop forever, leaking
     // the video element and the pose detector. Race the tap against the signal.
     const choice = onPersonChoice(candidates).catch(() => -1);
+    let onAbort: (() => void) | null = null;
     const idx = signal
       ? await Promise.race([
           choice,
           new Promise<number>(resolve => {
             if (signal.aborted) return resolve(-1);
-            signal.addEventListener("abort", () => resolve(-1), { once: true });
+            onAbort = () => resolve(-1);
+            signal.addEventListener("abort", onAbort, { once: true });
           }),
-        ])
+        ]).finally(() => {
+          // `once` only fires on abort; a normal tap leaves the listener
+          // attached, and this runs per prompt.
+          if (onAbort) signal.removeEventListener("abort", onAbort);
+        })
       : await choice;
 
     if (signal?.aborted) return false;
+
     if (idx >= 0 && idx < candidates.length) {
       tracker.lock(candidates[idx]);
       return true;
     }
+
+    // Declined ("keep best guess"). This is a durable decision, not a
+    // one-frame no-op: stop asking and let the tracker follow its best
+    // candidate for the remainder of the scan.
+    reacquireDeclined = true;
+    tracker.acknowledgeReacquire({ bestGuess: true });
     return false;
   }
 
@@ -261,12 +283,21 @@ export async function preScanVideo(
 
     // Tracking lost past the coast budget (formation crossing / occlusion):
     // pause the scan on this frame and ask the user to re-tap their dancer.
-    if (track.needsReacquire) {
+    //
+    // `needsReacquire` stays true on every subsequent coasting frame, so this
+    // must be gated — without the caps below, one lost dancer re-opened the
+    // picker every frame and the scan never advanced past the first few
+    // percent. acknowledgeReacquire() clears the coast budget either way.
+    if (track.needsReacquire && !reacquireDeclined && reacquirePrompts < MAX_REACQUIRE_PROMPTS) {
+      reacquirePrompts++;
       const relocked = await askPersonChoice(allPoses);
       if (relocked) {
         track = tracker.step(allPoses, video.videoWidth, video.videoHeight);
       }
-      // Unanswered → continue coasting with best-guess tracking (spec).
+    } else if (track.needsReacquire) {
+      // Out of prompts, or the user already chose to keep the best guess.
+      tracker.acknowledgeReacquire({ bestGuess: true });
+      track = tracker.step(allPoses, video.videoWidth, video.videoHeight);
     }
 
     const rawKps = track.kps;

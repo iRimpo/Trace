@@ -104,3 +104,58 @@ describe("DancerTracker", () => {
     expect(after.kps).not.toBeNull();
   });
 });
+
+describe("DancerTracker — reacquire loop", () => {
+  /** Drive the tracker until it asks for a reacquire (lock is far from any pose). */
+  function coastUntilReacquire(tr: DancerTracker, maxSteps = 40) {
+    let step = tr.step([mkPose(0.9, 0.5)], VW, VH);
+    for (let i = 0; i < maxSteps && !step.needsReacquire; i++) {
+      step = tr.step([mkPose(0.9, 0.5)], VW, VH);
+    }
+    return step;
+  }
+
+  it("asks for a reacquire once the coast budget is exhausted", () => {
+    const tr = new DancerTracker();
+    tr.lock({ x: 0.1, y: 0.5 });
+    expect(coastUntilReacquire(tr).needsReacquire).toBe(true);
+  });
+
+  it("stops asking once the prompt is acknowledged", () => {
+    // Regression: needsReacquire is derived from the coast budget, which only
+    // lock() reset. A declined prompt left the budget blown, so every later
+    // frame asked again and the scan never advanced past the first few percent.
+    const tr = new DancerTracker();
+    tr.lock({ x: 0.1, y: 0.5 });
+    expect(coastUntilReacquire(tr).needsReacquire).toBe(true);
+
+    tr.acknowledgeReacquire();
+    expect(tr.step([mkPose(0.9, 0.5)], VW, VH).needsReacquire).toBe(false);
+  });
+
+  it("keeps producing keypoints after the user declines to re-tap", () => {
+    // Coasting returns kps: null, so a tracker that never re-locks records no
+    // frames and the scan finishes with an empty timeline. Best guess > nobody.
+    const tr = new DancerTracker();
+    tr.lock({ x: 0.1, y: 0.5 });
+    coastUntilReacquire(tr);
+
+    tr.acknowledgeReacquire({ bestGuess: true });
+    const after = tr.step([mkPose(0.9, 0.5)], VW, VH);
+    expect(after.kps).not.toBeNull();
+    expect(after.needsReacquire).toBe(false);
+  });
+
+  it("does not re-prompt on every subsequent frame after acknowledging", () => {
+    const tr = new DancerTracker();
+    tr.lock({ x: 0.1, y: 0.5 });
+    coastUntilReacquire(tr);
+    tr.acknowledgeReacquire({ bestGuess: true });
+
+    let prompts = 0;
+    for (let i = 0; i < 30; i++) {
+      if (tr.step([mkPose(0.9, 0.5)], VW, VH).needsReacquire) prompts++;
+    }
+    expect(prompts).toBe(0);
+  });
+});

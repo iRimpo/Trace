@@ -70,12 +70,33 @@ export class DancerTracker {
   private _velocity: Vec = { x: 0, y: 0 };
   private _bounds: Box | null = null;
   private _coasted = 0;
+  /** Set once the caller stops asking the user to re-tap; see acknowledgeReacquire. */
+  private _bestGuessOnly = false;
   private readonly maxCoastFrames: number;
   private readonly reacquireBelow: number;
 
   constructor(opts?: { maxCoastFrames?: number; reacquireBelow?: number }) {
     this.maxCoastFrames = opts?.maxCoastFrames ?? 8;
     this.reacquireBelow = opts?.reacquireBelow ?? 0.35;
+  }
+
+  /**
+   * Tell the tracker a reacquire prompt has been handled, however it ended.
+   *
+   * `needsReacquire` is derived from the coast budget, and nothing but a
+   * successful `lock()` used to reset it — so a declined prompt left the
+   * budget blown and the very next frame asked again, forever. The caller
+   * must call this after every prompt so one refusal doesn't become an
+   * infinite one.
+   *
+   * `bestGuess` also drops the confidence bar for the rest of the scan:
+   * coasting returns `kps: null`, so a tracker that never re-locks records no
+   * frames at all and the scan completes with an empty timeline. Following a
+   * doubtful dancer beats following nobody.
+   */
+  acknowledgeReacquire(opts?: { bestGuess?: boolean }): void {
+    this._coasted = 0;
+    if (opts?.bestGuess) this._bestGuessOnly = true;
   }
 
   get center(): Vec | null {
@@ -125,18 +146,31 @@ export class DancerTracker {
       Math.hypot(cand.c.x - best.c.x, cand.c.y - best.c.y) < CROWD_DIST);
     if (crowded) confidence = Math.max(0, confidence - CROWD_PENALTY);
 
-    if (!best || confidence < this.reacquireBelow) {
+    // Once the user has declined to re-tap, take the best candidate going
+    // rather than coasting on nulls and recording nothing for the rest of the
+    // scan. Confidence is still reported honestly, so downstream marks these
+    // events lowConfidence.
+    const doubtful = !best || confidence < this.reacquireBelow;
+    if (doubtful && !(this._bestGuessOnly && best)) {
       // Coast: keep the prediction moving, don't adopt a doubtful match.
       this._coasted++;
       this._center = predicted;
       return {
         kps: null,
         confidence: 0,
+        // Ask once per blown budget, not once per frame — acknowledgeReacquire
+        // resets the counter so the caller controls when it may ask again.
         needsReacquire: this._coasted > this.maxCoastFrames,
       };
     }
 
-    // Solid match — update motion model.
+    if (!best) {
+      // Unreachable: the guard above returns whenever `best` is null. Kept so
+      // the narrowing is explicit rather than asserted.
+      return { kps: null, confidence: 0, needsReacquire: false };
+    }
+
+    // Solid match (or accepted best guess) — update motion model.
     const dx = best.c.x - this._center.x;
     const dy = best.c.y - this._center.y;
     this._velocity = {

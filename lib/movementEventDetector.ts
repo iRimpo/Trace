@@ -27,6 +27,21 @@ const CATEGORY_THRESHOLDS: Record<JointCategory, CategoryThresholds> = {
   toe:      { dispFrac: 0.07, cooldownMs: 1200 },
 };
 
+/**
+ * Speed at which a movement counts as fully "intentional", as a fraction of
+ * video height per second. Above this the displacement threshold gets its full
+ * discount, so a fast deliberate move fires a cue sooner than slow drift.
+ *
+ * This was a bare `400`, compared against a velocity computed on a simulated
+ * clock that always reported 100ms between frames. That made it two things it
+ * shouldn't have been: dependent on the scan's sample rate (a real 173ms gap
+ * yields 58% of the old figure, so cues needed 10-28% more displacement), and
+ * dependent on resolution (identical motion in a 4K clip reads twice as fast
+ * as in 1080p). Expressing it relative to video height and real seconds fixes
+ * both. 0.15 keeps the previous behaviour at the rates scans actually run at.
+ */
+const FAST_MOVE_FRAC_PER_SEC = 0.15;
+
 function getCategory(idx: number): JointCategory {
   if (idx === 0)                return "head";
   if (idx === 15 || idx === 16) return "wrist";
@@ -245,7 +260,7 @@ export class MovementEventDetector {
       // Foot joints use a smaller discount (20%) to avoid firing on general leg motion.
       const motion         = frames.length >= 2 ? analyzeJointMotion(frames, idx) : null;
       const vel            = motion?.velocity ?? 0;
-      const normalizedVel  = Math.min(vel / 400, 1);
+      const normalizedVel  = Math.min(vel / (FAST_MOVE_FRAC_PER_SEC * videoHeight), 1);
       const isFootJoint    = cat === "ankle" || cat === "heel" || cat === "toe";
       const maxDiscount    = isFootJoint ? 0.2 : 0.4;
       const velocityScale  = 1.0 - maxDiscount * normalizedVel;
