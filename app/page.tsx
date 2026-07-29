@@ -9,7 +9,7 @@ import FloatingCTA from "@/components/landing/FloatingCTA";
 
 export default function Home() {
   return (
-    <main className="bg-white text-[#1a0f00] overflow-x-hidden">
+    <main className="bg-white text-ink overflow-x-hidden">
       <Navbar />
       <Hero />
       <MeetTrace />

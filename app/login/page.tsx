@@ -11,7 +11,7 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center bg-[#f8f4e0]">
-          <div className="h-8 w-8 rounded-full border-2 border-[#1a0f00]/10 border-t-[#1a0f00] animate-spin" />
+          <div className="h-8 w-8 rounded-full border-2 border-ink/10 border-t-ink animate-spin" />
         </div>
       }
     >
@@ -90,11 +90,11 @@ function LoginForm() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-[#1a0f00]/[0.08] bg-white p-5 shadow-sm sm:p-8 md:p-10">
-          <h1 className="font-calistoga text-2xl tracking-tight text-[#1a0f00]">
+        <div className="rounded-2xl border border-ink/[0.08] bg-white p-5 shadow-sm sm:p-8 md:p-10">
+          <h1 className="font-calistoga text-2xl tracking-tight text-ink">
             Welcome back
           </h1>
-          <p className="mt-2 text-sm text-[#5c3d1a]/50">
+          <p className="mt-2 text-sm text-clay/50">
             Log in to continue improving your technique.
           </p>
 
@@ -103,7 +103,7 @@ function LoginForm() {
               type="button"
               onClick={handleGoogleLogin}
               disabled={googleLoading}
-              className="flex w-full items-center justify-center gap-2 rounded-full border border-[#1a0f00]/15 bg-white py-3 text-sm font-semibold text-[#1a0f00] shadow-sm transition-colors hover:bg-[#1a0f00]/[0.05] disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-full border border-ink/15 bg-white py-3 text-sm font-semibold text-ink shadow-sm transition-colors hover:bg-ink/[0.05] disabled:opacity-50"
             >
               {googleLoading ? (
                 <>
@@ -127,10 +127,10 @@ function LoginForm() {
             </button>
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[#1a0f00]/10" />
+                <div className="w-full border-t border-ink/10" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-white px-2 text-[#5c3d1a]/50">or log in with email</span>
+                <span className="bg-white px-2 text-clay/50">or log in with email</span>
               </div>
             </div>
           </div>
@@ -138,7 +138,7 @@ function LoginForm() {
           <form onSubmit={handleSubmit} className="mt-5 space-y-5">
             {/* Email */}
             <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-[#5c3d1a]/70">
+              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-clay/70">
                 Email
               </label>
               <input
@@ -148,19 +148,19 @@ function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@email.com"
-                className="w-full rounded-xl border border-[#1a0f00]/12 bg-white px-4 py-3 text-sm text-[#1a0f00] placeholder-[#1a0f00]/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
+                className="w-full rounded-xl border border-ink/12 bg-white px-4 py-3 text-sm text-ink placeholder-ink/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
               />
             </div>
 
             {/* Password */}
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <label htmlFor="password" className="text-sm font-medium text-[#5c3d1a]/70">
+                <label htmlFor="password" className="text-sm font-medium text-clay/70">
                   Password
                 </label>
                 <Link
                   href="/forgot-password"
-                  className="text-xs text-[#1a0f00] font-semibold hover:text-[#1a0f00]/70 transition-colors"
+                  className="text-xs text-ink font-semibold hover:text-ink/70 transition-colors"
                 >
                   Forgot password?
                 </Link>
@@ -173,7 +173,7 @@ function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full rounded-xl border border-[#1a0f00]/12 bg-white px-4 py-3 pr-12 text-sm text-[#1a0f00] placeholder-[#1a0f00]/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
+                  className="w-full rounded-xl border border-ink/12 bg-white px-4 py-3 pr-12 text-sm text-ink placeholder-ink/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
                 />
                 <button
                   type="button"
@@ -233,9 +233,9 @@ function LoginForm() {
         </div>
 
         {/* Sign up link */}
-        <p className="mt-6 text-center text-sm text-[#5c3d1a]/50">
+        <p className="mt-6 text-center text-sm text-clay/50">
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="font-semibold text-[#1a0f00] hover:text-[#1a0f00]/70 transition-colors">
+          <Link href="/signup" className="font-semibold text-ink hover:text-ink/70 transition-colors">
             Sign up
           </Link>
         </p>

@@ -66,7 +66,7 @@ function VisualGhostMirror() {
           <circle cx="28" cy="65" r="3.5" fill="#A78BFA"/>
           <circle cx="32" cy="65" r="3.5" fill="#A78BFA"/>
         </svg>
-        <p className="text-center text-[9px] font-bold uppercase tracking-widest text-[#1a0f00]/30 mt-1">Reference</p>
+        <p className="text-center text-[9px] font-bold uppercase tracking-widest text-ink/30 mt-1">Reference</p>
       </div>
 
       {/* Blend arrow */}
@@ -94,7 +94,7 @@ function VisualGhostMirror() {
             <circle cx="52" cy="50" r="4" fill="#00D4FF" opacity={0.9}/>
           </motion.g>
         </svg>
-        <p className="text-center text-[9px] font-bold uppercase tracking-widest text-[#1a0f00]/30 mt-1">You</p>
+        <p className="text-center text-[9px] font-bold uppercase tracking-widest text-ink/30 mt-1">You</p>
       </div>
     </div>
   );
@@ -175,10 +175,10 @@ function VisualSpeed() {
   const [sel, setSel] = useState(0.5);
   return (
     <div className="flex flex-col items-center justify-center gap-5 h-full">
-      <div className="flex items-center gap-1 rounded-xl bg-[#1a0f00]/[0.06] p-1">
+      <div className="flex items-center gap-1 rounded-xl bg-ink/[0.06] p-1">
         {speeds.map(s => (
           <button key={s} onClick={() => setSel(s)}
-            className={`rounded-lg px-2.5 py-1.5 text-sm font-bold transition-all ${sel === s ? "bg-white text-[#1a0f00] shadow" : "text-[#1a0f00]/30"}`}
+            className={`rounded-lg px-2.5 py-1.5 text-sm font-bold transition-all ${sel === s ? "bg-white text-ink shadow" : "text-ink/30"}`}
           >{s}x</button>
         ))}
       </div>
@@ -188,8 +188,8 @@ function VisualSpeed() {
         animate={{ opacity: 1, y: 0 }}
         className="text-center"
       >
-        <p className="text-2xl font-bold text-[#1a0f00]">{sel}×</p>
-        <p className="text-xs text-[#1a0f00]/40">
+        <p className="text-2xl font-bold text-ink">{sel}×</p>
+        <p className="text-xs text-ink/40">
           {sel <= 0.5 ? "Great for learning new moves" : sel < 1 ? "Slower — build muscle memory" : sel === 1 ? "Normal speed" : "Challenge mode"}
         </p>
       </motion.div>
@@ -292,12 +292,12 @@ export default function DashboardTutorial({ onDone, dismissKey }: DashboardTutor
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 16 }}
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-[#1a0f00]/[0.08] bg-white shadow-2xl"
+        className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-ink/[0.08] bg-white shadow-2xl"
       >
         {/* Skip */}
         <button
           onClick={finish}
-          className="absolute right-4 top-4 z-10 text-[11px] font-semibold text-[#1a0f00]/30 hover:text-[#1a0f00]/60 transition-colors"
+          className="absolute right-4 top-4 z-10 text-[11px] font-semibold text-ink/30 hover:text-ink/60 transition-colors"
         >
           Skip
         </button>
@@ -344,8 +344,8 @@ export default function DashboardTutorial({ onDone, dismissKey }: DashboardTutor
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
             >
-              <h2 className="font-calistoga text-xl text-[#1a0f00]">{current.title}</h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-[#5c3d1a]/55">{current.body}</p>
+              <h2 className="font-calistoga text-xl text-ink">{current.title}</h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-clay/55">{current.body}</p>
             </motion.div>
           </AnimatePresence>
 
@@ -354,7 +354,7 @@ export default function DashboardTutorial({ onDone, dismissKey }: DashboardTutor
             {step > 0 && (
               <button
                 onClick={() => setStep(s => s - 1)}
-                className="flex-none rounded-xl border border-[#1a0f00]/10 px-4 py-2.5 text-sm font-semibold text-[#1a0f00]/40 transition-all hover:text-[#1a0f00]/70"
+                className="flex-none rounded-xl border border-ink/10 px-4 py-2.5 text-sm font-semibold text-ink/40 transition-all hover:text-ink/70"
               >
                 ←
               </button>
@@ -370,7 +370,7 @@ export default function DashboardTutorial({ onDone, dismissKey }: DashboardTutor
           {dismissKey && (
             <button
               onClick={dismiss}
-              className="mt-3 w-full text-center text-[11px] text-[#1a0f00]/30 hover:text-[#1a0f00]/55 transition-colors"
+              className="mt-3 w-full text-center text-[11px] text-ink/30 hover:text-ink/55 transition-colors"
             >
               Don&apos;t show again
             </button>

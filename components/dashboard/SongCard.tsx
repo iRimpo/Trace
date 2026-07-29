@@ -35,8 +35,8 @@ function scoreColor(s: number): string {
 function ScoreBar({ label, value, color }: { label: string; value: number; color: string }) {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="w-20 shrink-0 text-xs text-[#5c3d1a]/60">{label}</span>
-      <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-[#1a0f00]/[0.08]">
+      <span className="w-20 shrink-0 text-xs text-clay/60">{label}</span>
+      <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-ink/[0.08]">
         <motion.div
           className="absolute left-0 top-0 h-full rounded-full"
           style={{ backgroundColor: color }}
@@ -92,16 +92,16 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
 
   return (
     <div
-      className="rounded-2xl border border-[#1a0f00]/[0.08] bg-white overflow-hidden shadow-sm"
+      className="rounded-2xl border border-ink/[0.08] bg-white overflow-hidden shadow-sm"
       style={{ borderLeftWidth: 4, borderLeftColor: borderColor }}
     >
       {/* ── Header ──────────────────────────────────────── */}
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-[#1a0f00]/[0.02] transition-colors"
+        className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-ink/[0.02] transition-colors"
       >
         {/* Thumbnail or placeholder */}
-        <div className="relative h-11 w-[52px] shrink-0 overflow-hidden rounded-lg bg-[#1a0f00]/[0.06]">
+        <div className="relative h-11 w-[52px] shrink-0 overflow-hidden rounded-lg bg-ink/[0.06]">
           {thumbnailSignedUrl ? (
             <img
               src={thumbnailSignedUrl}
@@ -110,10 +110,10 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
             />
           ) : thumbnailLoading ? (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="h-4 w-4 animate-pulse rounded bg-[#1a0f00]/15" />
+              <div className="h-4 w-4 animate-pulse rounded bg-ink/15" />
             </div>
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-[#1a0f00]/25">
+            <div className="absolute inset-0 flex items-center justify-center text-ink/25">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
               </svg>
@@ -129,8 +129,8 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold text-[#1a0f00]">{group.title}</p>
-          <p className="text-[11px] text-[#5c3d1a]/40">
+          <p className="truncate font-semibold text-ink">{group.title}</p>
+          <p className="text-[11px] text-clay/40">
             {group.attempts.length} attempt{group.attempts.length !== 1 ? "s" : ""} · Avg {group.avg}%
             {totalTraceMinutes > 0 && ` · ${totalTraceMinutes} min in Trace`}
           </p>
@@ -138,11 +138,11 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
 
         <div className="flex shrink-0 items-center gap-4">
           <div className="text-right">
-            <p className="text-[10px] font-medium text-[#5c3d1a]/40">Best</p>
+            <p className="text-[10px] font-medium text-clay/40">Best</p>
             <p className="text-sm font-bold tabular-nums" style={{ color: scoreColor(group.best) }}>{group.best}%</p>
           </div>
           <svg
-            className={`h-4 w-4 shrink-0 text-[#5c3d1a]/30 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            className={`h-4 w-4 shrink-0 text-clay/30 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
             fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
@@ -160,18 +160,18 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
             transition={{ duration: 0.25, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="border-t border-[#1a0f00]/[0.06] px-5 pb-5 pt-4">
+            <div className="border-t border-ink/[0.06] px-5 pb-5 pt-4">
 
               {/* Graph */}
               <div className="mb-5 rounded-xl bg-[#f8f4e0]/60 px-3 py-2">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-[#5c3d1a]/40">Progress</p>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-clay/40">Progress</p>
                 <ProgressGraph attempts={group.attempts} />
               </div>
 
               {/* Body part bars */}
               {regionRows.length > 0 && (
                 <div className="mb-5">
-                  <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-[#5c3d1a]/40">Body Parts (latest)</p>
+                  <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-clay/40">Body Parts (latest)</p>
                   <div className="flex flex-col gap-2.5">
                     {regionRows.map(k => (
                       <ScoreBar
@@ -195,21 +195,21 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
                 if (needWork.length === 0) {
                   return (
                     <div className="mb-5">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[#5c3d1a]/40">Focus areas</p>
-                      <p className="mt-1 text-xs text-[#5c3d1a]/60">All regions 70%+</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-clay/40">Focus areas</p>
+                      <p className="mt-1 text-xs text-clay/60">All regions 70%+</p>
                     </div>
                   );
                 }
                 return (
                   <div className="mb-5">
-                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#5c3d1a]/40">Focus areas</p>
+                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-clay/40">Focus areas</p>
                     <ul className="flex flex-col gap-1.5">
                       {needWork.map(({ key, value }) => (
-                        <li key={key} className="text-xs text-[#5c3d1a]/80">
+                        <li key={key} className="text-xs text-clay/80">
                           <span className="font-medium">{REGION_LABELS[key]}</span>
                           <span className="tabular-nums" style={{ color: scoreColor(value) }}> {value}%</span>
                           {" — "}
-                          <span className="text-[#5c3d1a]/70">{REGION_TIPS[key] ?? "Keep practicing"}</span>
+                          <span className="text-clay/70">{REGION_TIPS[key] ?? "Keep practicing"}</span>
                         </li>
                       ))}
                     </ul>
@@ -220,7 +220,7 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
               {/* Attempt history */}
               {group.attempts.length > 1 && (
                 <div className="mb-5">
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#5c3d1a]/40">History</p>
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-clay/40">History</p>
                   <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                     {group.attempts.map((a, i) => {
                       const color = scoreColor(a.score);
@@ -234,7 +234,7 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
                             style={isLatest ? {} : { color }}>
                             {a.score}%
                           </span>
-                          <span className={`text-[10px] ${isLatest ? "text-white/50" : "text-[#5c3d1a]/40"}`}>
+                          <span className={`text-[10px] ${isLatest ? "text-white/50" : "text-clay/40"}`}>
                             {new Date(a.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                           </span>
                           {isLatest && <span className="text-[9px] font-bold text-white/40">LATEST</span>}
@@ -261,7 +261,7 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
                   className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-all ${
                     confirmDelete
                       ? "bg-red-500 text-white"
-                      : "border border-[#1a0f00]/10 text-[#1a0f00]/40 hover:border-red-300 hover:text-red-500"
+                      : "border border-ink/10 text-ink/40 hover:border-red-300 hover:text-red-500"
                   }`}
                 >
                   {deleting ? (
@@ -278,7 +278,7 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
               {confirmDelete && !deleting && (
                 <button
                   onClick={() => setConfirmDelete(false)}
-                  className="mt-2 text-[11px] text-[#5c3d1a]/40 underline"
+                  className="mt-2 text-[11px] text-clay/40 underline"
                 >
                   Cancel
                 </button>
@@ -304,15 +304,15 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
               exit={{ y: 24, opacity: 0 }}
               transition={{ ease: "backOut", duration: 0.25 }}
               onClick={e => e.stopPropagation()}
-              className="w-full max-w-sm rounded-2xl border border-[#1a0f00]/10 bg-white p-5 shadow-xl"
+              className="w-full max-w-sm rounded-2xl border border-ink/10 bg-white p-5 shadow-xl"
             >
-              <h3 className="font-semibold text-[#1a0f00]">Practice {group.title} again</h3>
-              <p className="mt-2 text-sm text-[#5c3d1a]/70">Upload a new video to practice this routine.</p>
+              <h3 className="font-semibold text-ink">Practice {group.title} again</h3>
+              <p className="mt-2 text-sm text-clay/70">Upload a new video to practice this routine.</p>
               <div className="mt-5 flex gap-3">
                 <button
                   type="button"
                   onClick={() => setShowPracticeModal(false)}
-                  className="flex-1 rounded-full border border-[#1a0f00]/15 px-4 py-2 text-xs font-semibold text-[#5c3d1a]/70 hover:bg-[#1a0f00]/[0.05]"
+                  className="flex-1 rounded-full border border-ink/15 px-4 py-2 text-xs font-semibold text-clay/70 hover:bg-ink/[0.05]"
                 >
                   Cancel
                 </button>

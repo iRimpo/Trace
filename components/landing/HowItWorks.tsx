@@ -110,17 +110,17 @@ export default function HowItWorks() {
             viewport={{ once: true }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           >
-            <h2 className="font-calistoga text-[clamp(2.8rem,6vw,5rem)] leading-[1.1] text-[#1a0f00]">
+            <h2 className="font-calistoga text-[clamp(2.8rem,6vw,5rem)] leading-[1.1] text-ink">
               Where Every Move<br />Tells a Story
             </h2>
-            <p className="mt-6 text-lg leading-relaxed text-[#5c3d1a]/70 max-w-xl mx-auto">
+            <p className="mt-6 text-lg leading-relaxed text-clay/70 max-w-xl mx-auto">
               Trace overlays AI-guided cues directly on your reference video — every joint
               color-coded and beat-synced, so you always know exactly where to move
               and exactly when.
             </p>
             <a
               href="#features"
-              className="mt-8 inline-flex h-12 items-center gap-2 rounded-full border-2 border-[#1a0f00]/20 bg-transparent px-8 text-sm font-semibold text-[#1a0f00] transition-all duration-200 hover:bg-[#1a0f00] hover:text-[#f8f4e0]"
+              className="mt-8 inline-flex h-12 items-center gap-2 rounded-full border-2 border-ink/20 bg-transparent px-8 text-sm font-semibold text-ink transition-all duration-200 hover:bg-ink hover:text-[#f8f4e0]"
             >
               See the features
             </a>
@@ -147,8 +147,8 @@ export default function HowItWorks() {
               >
                 <div className="flex h-14 items-center justify-center">{card.icon}</div>
                 <div>
-                  <p className="font-calistoga text-base text-[#1a0f00] leading-tight">{card.title}</p>
-                  <p className="mt-1 text-[11px] text-[#5c3d1a]/60 leading-snug">{card.desc}</p>
+                  <p className="font-calistoga text-base text-ink leading-tight">{card.title}</p>
+                  <p className="mt-1 text-[11px] text-clay/60 leading-snug">{card.desc}</p>
                 </div>
                 <div className="h-2 w-2 rounded-full" style={{ background: card.accent }} />
               </div>
@@ -181,8 +181,8 @@ export default function HowItWorks() {
               >
                 <div className="flex h-16 items-center justify-center">{card.icon}</div>
                 <div>
-                  <p className="font-calistoga text-lg text-[#1a0f00] leading-tight">{card.title}</p>
-                  <p className="mt-1 text-xs text-[#5c3d1a]/60 leading-snug">{card.desc}</p>
+                  <p className="font-calistoga text-lg text-ink leading-tight">{card.title}</p>
+                  <p className="mt-1 text-xs text-clay/60 leading-snug">{card.desc}</p>
                 </div>
                 <div className="h-2 w-2 rounded-full" style={{ background: card.accent }} />
               </div>

@@ -22,7 +22,7 @@ export default function Footer() {
               <circle cx="7" cy="7" r="2" fill="white"/>
             </svg>
           </div>
-          <span className="font-calistoga text-lg text-[#1a0f00]">
+          <span className="font-calistoga text-lg text-ink">
             Trace<span className="text-[#080808]">.</span>
           </span>
         </a>
@@ -34,13 +34,13 @@ export default function Footer() {
           ))}
         </div>
 
-        <p className="text-xs text-[#5c3d1a]/40">
+        <p className="text-xs text-clay/40">
           &copy; {new Date().getFullYear()} Trace. All rights reserved.
         </p>
 
         <div className="flex items-center gap-6">
           {["Privacy Policy", "Terms of Service"].map(label => (
-            <a key={label} href="#" className="text-xs text-[#5c3d1a]/40 transition-colors duration-200 hover:text-[#1a0f00]">
+            <a key={label} href="#" className="text-xs text-clay/40 transition-colors duration-200 hover:text-ink">
               {label}
             </a>
           ))}

@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-[#1a0f00]/[0.08] bg-white p-5 shadow-sm sm:p-8 md:p-10">
+        <div className="rounded-2xl border border-ink/[0.08] bg-white p-5 shadow-sm sm:p-8 md:p-10">
           <AnimatePresence mode="wait">
             {sent ? (
               <motion.div
@@ -64,17 +64,17 @@ export default function ForgotPasswordPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                   </svg>
                 </div>
-                <h1 className="mt-5 font-calistoga text-2xl tracking-tight text-[#1a0f00]">
+                <h1 className="mt-5 font-calistoga text-2xl tracking-tight text-ink">
                   Check your email
                 </h1>
-                <p className="mt-2 text-sm leading-relaxed text-[#5c3d1a]/50">
+                <p className="mt-2 text-sm leading-relaxed text-clay/50">
                   We sent a password reset link to{" "}
-                  <span className="font-medium text-[#1a0f00]">{email}</span>.
+                  <span className="font-medium text-ink">{email}</span>.
                   Click the link to reset your password.
                 </p>
                 <Link
                   href="/login"
-                  className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-[#1a0f00] hover:text-[#1a0f00]/70 transition-colors"
+                  className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-ink hover:text-ink/70 transition-colors"
                 >
                   <svg className="h-3.5 w-3.5 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
@@ -84,23 +84,23 @@ export default function ForgotPasswordPage() {
               </motion.div>
             ) : (
               <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <h1 className="font-calistoga text-2xl tracking-tight text-[#1a0f00]">
+                <h1 className="font-calistoga text-2xl tracking-tight text-ink">
                   Reset your password
                 </h1>
-                <p className="mt-2 text-sm text-[#5c3d1a]/50">
+                <p className="mt-2 text-sm text-clay/50">
                   Enter your email and we&apos;ll send you a reset link.
                 </p>
 
                 <form onSubmit={handleSubmit} className="mt-8 space-y-5">
                   <div>
-                    <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-[#5c3d1a]/70">
+                    <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-clay/70">
                       Email
                     </label>
                     <input
                       id="email" type="email" required value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@email.com"
-                      className="w-full rounded-xl border border-[#1a0f00]/12 bg-white px-4 py-3 text-sm text-[#1a0f00] placeholder-[#1a0f00]/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
+                      className="w-full rounded-xl border border-ink/12 bg-white px-4 py-3 text-sm text-ink placeholder-ink/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
                     />
                   </div>
 
@@ -143,9 +143,9 @@ export default function ForgotPasswordPage() {
         </div>
 
         {!sent && (
-          <p className="mt-6 text-center text-sm text-[#5c3d1a]/50">
+          <p className="mt-6 text-center text-sm text-clay/50">
             Remember your password?{" "}
-            <Link href="/login" className="font-semibold text-[#1a0f00] hover:text-[#1a0f00]/70 transition-colors">
+            <Link href="/login" className="font-semibold text-ink hover:text-ink/70 transition-colors">
               Log in
             </Link>
           </p>

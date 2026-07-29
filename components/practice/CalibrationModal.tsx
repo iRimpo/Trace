@@ -671,20 +671,20 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             className="relative w-full max-w-2xl overflow-hidden rounded-xl bg-[#f8f4e0] shadow-2xl sm:rounded-2xl"
           >
             {/* Header */}
-            <div className="flex items-start justify-between border-b border-[#1a0f00]/[0.08] bg-white px-3 py-3 sm:px-5 sm:py-4">
+            <div className="flex items-start justify-between border-b border-ink/[0.08] bg-white px-3 py-3 sm:px-5 sm:py-4">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/30">Step 1 of 3</span>
-                  <div className="hidden h-px flex-1 bg-[#1a0f00]/[0.08] w-12 sm:block" />
-                  <span className="hidden text-[10px] text-[#1a0f00]/20 sm:inline">Trim →</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-ink/30">Step 1 of 3</span>
+                  <div className="hidden h-px flex-1 bg-ink/[0.08] w-12 sm:block" />
+                  <span className="hidden text-[10px] text-ink/20 sm:inline">Trim →</span>
                 </div>
-                <h2 className="font-bold text-sm text-[#1a0f00] sm:text-base">Frame Yourself</h2>
-                <p className="mt-0.5 text-[11px] text-[#1a0f00]/40 max-w-xs leading-relaxed sm:text-xs">
+                <h2 className="font-bold text-sm text-ink sm:text-base">Frame Yourself</h2>
+                <p className="mt-0.5 text-[11px] text-ink/40 max-w-xs leading-relaxed sm:text-xs">
                   Position yourself so your skeleton aligns with the reference, then raise your palm to lock in the framing.
                 </p>
               </div>
               <button onClick={() => goToTrim({ zoom: 1, offsetXNorm: 0, offsetYNorm: 0 })}
-                className="ml-4 mt-0.5 shrink-0 rounded-lg bg-[#1a0f00]/[0.06] px-3 py-1.5 text-xs font-medium text-[#1a0f00]/40 hover:bg-[#1a0f00]/10 hover:text-[#1a0f00]/60 transition-all">
+                className="ml-4 mt-0.5 shrink-0 rounded-lg bg-ink/[0.06] px-3 py-1.5 text-xs font-medium text-ink/40 hover:bg-ink/10 hover:text-ink/60 transition-all">
                 Skip
               </button>
             </div>
@@ -766,16 +766,16 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between gap-4 px-5 py-3.5 bg-white border-t border-[#1a0f00]/[0.08]">
+            <div className="flex items-center justify-between gap-4 px-5 py-3.5 bg-white border-t border-ink/[0.08]">
               <div className="flex items-center gap-2 min-w-0">
-                {frameState === "loading" && <p className="text-xs text-[#1a0f00]/40">Initialising…</p>}
+                {frameState === "loading" && <p className="text-xs text-ink/40">Initialising…</p>}
                 {(frameState === "ready" || frameState === "palm") && !bodyDetected && (
-                  <p className="text-xs text-[#1a0f00]/50">Position yourself so your shoulders are visible</p>
+                  <p className="text-xs text-ink/50">Position yourself so your shoulders are visible</p>
                 )}
                 {(frameState === "ready" || frameState === "palm") && bodyDetected && palmProgress === 0 && (
                   <div className="flex items-center gap-2">
                     <span className="text-lg">👋</span>
-                    <p className="text-xs text-[#1a0f00]/60">Raise your palm above your face to calibrate</p>
+                    <p className="text-xs text-ink/60">Raise your palm above your face to calibrate</p>
                   </div>
                 )}
                 {palmProgress > 0 && <p className="text-xs font-medium text-emerald-600">Hold still… {Math.round(palmProgress * 100)}%</p>}
@@ -783,10 +783,10 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
               <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                 {(frameState === "ready" || frameState === "palm") && (
                   <div className="hidden items-center gap-2 sm:flex">
-                    <span className="text-[10px] text-[#1a0f00]/30">Overlay</span>
+                    <span className="text-[10px] text-ink/30">Overlay</span>
                     <input type="range" min={0} max={80} value={overlayOpacity}
                       onChange={e => setOverlayOpacity(parseInt(e.target.value))}
-                      className="h-1 w-16 cursor-pointer appearance-none rounded-full bg-[#1a0f00]/[0.08] accent-emerald-500" />
+                      className="h-1 w-16 cursor-pointer appearance-none rounded-full bg-ink/[0.08] accent-emerald-500" />
                   </div>
                 )}
                 {(frameState === "ready" || frameState === "palm") && (
@@ -814,24 +814,24 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-[#f8f4e0] shadow-2xl"
           >
             {/* Header */}
-            <div className="flex items-start justify-between border-b border-[#1a0f00]/[0.08] bg-white px-5 py-4">
+            <div className="flex items-start justify-between border-b border-ink/[0.08] bg-white px-5 py-4">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <button onClick={() => setCalibStep("frame")} className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/30 hover:text-[#1a0f00]/60 transition-colors">
+                  <button onClick={() => setCalibStep("frame")} className="text-[10px] font-bold uppercase tracking-widest text-ink/30 hover:text-ink/60 transition-colors">
                     ← Frame
                   </button>
-                  <div className="h-px w-8 bg-[#1a0f00]/[0.08]" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/60">Step 2 of 3</span>
-                  <div className="h-px w-8 bg-[#1a0f00]/[0.08]" />
-                  <span className="text-[10px] text-[#1a0f00]/20">Mode →</span>
+                  <div className="h-px w-8 bg-ink/[0.08]" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-ink/60">Step 2 of 3</span>
+                  <div className="h-px w-8 bg-ink/[0.08]" />
+                  <span className="text-[10px] text-ink/20">Mode →</span>
                 </div>
-                <h2 className="font-bold text-base text-[#1a0f00]">Trim Video</h2>
-                <p className="mt-0.5 text-xs text-[#1a0f00]/40 leading-relaxed">
+                <h2 className="font-bold text-base text-ink">Trim Video</h2>
+                <p className="mt-0.5 text-xs text-ink/40 leading-relaxed">
                   Drag the green and orange handles to set the section you want to practice.
                 </p>
               </div>
               <button onClick={onSkip}
-                className="ml-4 mt-0.5 shrink-0 rounded-lg bg-[#1a0f00]/[0.06] px-3 py-1.5 text-xs font-medium text-[#1a0f00]/40 hover:bg-[#1a0f00]/10 hover:text-[#1a0f00]/60 transition-all">
+                className="ml-4 mt-0.5 shrink-0 rounded-lg bg-ink/[0.06] px-3 py-1.5 text-xs font-medium text-ink/40 hover:bg-ink/10 hover:text-ink/60 transition-all">
                 Skip All
               </button>
             </div>
@@ -890,7 +890,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
 
               {/* Drag timeline */}
               <div
-                className="relative h-4 rounded-full bg-[#1a0f00]/[0.08] touch-none select-none cursor-ew-resize"
+                className="relative h-4 rounded-full bg-ink/[0.08] touch-none select-none cursor-ew-resize"
                 onPointerDown={handleTimelinePointerDown}
                 onPointerMove={handleTimelinePointerMove}
                 onPointerUp={handleTimelinePointerUp}
@@ -916,22 +916,22 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
               {/* Playback controls */}
               <div className="mt-3 flex items-center gap-3">
                 <button onClick={toggleTrimPlay}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1a0f00]/[0.08] text-[#1a0f00]/60 transition-all hover:bg-[#1a0f00]/14 hover:text-[#1a0f00]">
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-ink/[0.08] text-ink/60 transition-all hover:bg-ink/14 hover:text-ink">
                   {trimPlaying
                     ? <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4Zm8 0h4v16h-4V4Z" /></svg>
                     : <svg className="h-3.5 w-3.5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                   }
                 </button>
-                <span className="text-xs font-mono text-[#1a0f00]/40">
+                <span className="text-xs font-mono text-ink/40">
                   {fmt(trimLengthSec)} selected
                 </span>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between gap-4 px-5 py-4 bg-white border-t border-[#1a0f00]/[0.08]">
-              <p className="text-xs text-[#1a0f00]/40">
-                Scan <span className="font-semibold text-[#1a0f00]/60">{fmt(trimStart)}</span> → <span className="font-semibold text-[#1a0f00]/60">{fmt(trimEnd)}</span>
+            <div className="flex items-center justify-between gap-4 px-5 py-4 bg-white border-t border-ink/[0.08]">
+              <p className="text-xs text-ink/40">
+                Scan <span className="font-semibold text-ink/60">{fmt(trimStart)}</span> → <span className="font-semibold text-ink/60">{fmt(trimEnd)}</span>
               </p>
               <button onClick={goToMode}
                 className="flex items-center gap-2 rounded-full bg-[#080808] px-5 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#1a1a1a] active:scale-95">
@@ -955,17 +955,17 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-[#f8f4e0] shadow-2xl"
           >
             {/* Header */}
-            <div className="flex items-start justify-between border-b border-[#1a0f00]/[0.08] bg-white px-5 py-4">
+            <div className="flex items-start justify-between border-b border-ink/[0.08] bg-white px-5 py-4">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <button onClick={() => setCalibStep("trim")} className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/30 hover:text-[#1a0f00]/60 transition-colors">
+                  <button onClick={() => setCalibStep("trim")} className="text-[10px] font-bold uppercase tracking-widest text-ink/30 hover:text-ink/60 transition-colors">
                     ← Trim
                   </button>
-                  <div className="h-px w-8 bg-[#1a0f00]/[0.08]" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/60">Step 3 of 3</span>
+                  <div className="h-px w-8 bg-ink/[0.08]" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-ink/60">Step 3 of 3</span>
                 </div>
-                <h2 className="font-bold text-base text-[#1a0f00]">How many dancers are in the video?</h2>
-                <p className="mt-0.5 text-xs text-[#1a0f00]/40 leading-relaxed">
+                <h2 className="font-bold text-base text-ink">How many dancers are in the video?</h2>
+                <p className="mt-0.5 text-xs text-ink/40 leading-relaxed">
                   Choose based on the video you uploaded.
                 </p>
               </div>
@@ -978,20 +978,20 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                 onClick={() => {
                   onCalibrated({ ...pendingFrame, trimStart, trimEnd, personCenter: undefined, solo: true });
                 }}
-                className="flex flex-col gap-0.5 rounded-2xl border-2 border-[#1a0f00]/[0.08] bg-white px-5 py-4 text-left transition-all hover:border-[#1a0f00]/20 hover:shadow-sm active:scale-[0.99]"
+                className="flex flex-col gap-0.5 rounded-2xl border-2 border-ink/[0.08] bg-white px-5 py-4 text-left transition-all hover:border-ink/20 hover:shadow-sm active:scale-[0.99]"
               >
-                <span className="font-bold text-sm text-[#1a0f00]">Solo</span>
-                <span className="text-xs text-[#1a0f00]/50">One dancer — tracking is automatic</span>
+                <span className="font-bold text-sm text-ink">Solo</span>
+                <span className="text-xs text-ink/50">One dancer — tracking is automatic</span>
               </button>
 
               {/* Group option */}
               <button
                 onClick={goToDancer}
-                className="flex items-center gap-3 rounded-2xl border-2 border-[#1a0f00]/[0.08] bg-white px-5 py-4 text-left transition-all hover:border-[#1a0f00]/20 hover:shadow-sm active:scale-[0.99]"
+                className="flex items-center gap-3 rounded-2xl border-2 border-ink/[0.08] bg-white px-5 py-4 text-left transition-all hover:border-ink/20 hover:shadow-sm active:scale-[0.99]"
               >
                 <div className="flex flex-col gap-0.5 flex-1">
-                  <span className="font-bold text-sm text-[#1a0f00]">Group</span>
-                  <span className="text-xs text-[#1a0f00]/50">Multiple dancers — you&apos;ll select who to follow</span>
+                  <span className="font-bold text-sm text-ink">Group</span>
+                  <span className="text-xs text-ink/50">Multiple dancers — you&apos;ll select who to follow</span>
                 </div>
                 <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700">
                   EXPERIMENTAL
@@ -1000,9 +1000,9 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-start gap-4 px-5 py-3.5 bg-white border-t border-[#1a0f00]/[0.08]">
+            <div className="flex items-center justify-start gap-4 px-5 py-3.5 bg-white border-t border-ink/[0.08]">
               <button onClick={() => setCalibStep("trim")}
-                className="flex items-center gap-1.5 rounded-full bg-[#1a0f00]/[0.06] px-4 py-1.5 text-xs font-medium text-[#1a0f00]/50 hover:bg-[#1a0f00]/10 hover:text-[#1a0f00]/70 transition-all">
+                className="flex items-center gap-1.5 rounded-full bg-ink/[0.06] px-4 py-1.5 text-xs font-medium text-ink/50 hover:bg-ink/10 hover:text-ink/70 transition-all">
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                 </svg>
@@ -1023,18 +1023,18 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-[#f8f4e0] shadow-2xl"
           >
             {/* Header */}
-            <div className="flex items-start justify-between border-b border-[#1a0f00]/[0.08] bg-white px-5 py-4">
+            <div className="flex items-start justify-between border-b border-ink/[0.08] bg-white px-5 py-4">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <button onClick={() => setCalibStep("mode")} className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/30 hover:text-[#1a0f00]/60 transition-colors">
+                  <button onClick={() => setCalibStep("mode")} className="text-[10px] font-bold uppercase tracking-widest text-ink/30 hover:text-ink/60 transition-colors">
                     ← Mode
                   </button>
-                  <div className="h-px w-8 bg-[#1a0f00]/[0.08]" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#1a0f00]/60">Step 3 of 3</span>
+                  <div className="h-px w-8 bg-ink/[0.08]" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-ink/60">Step 3 of 3</span>
                   <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700">EXPERIMENTAL</span>
                 </div>
-                <h2 className="font-bold text-base text-[#1a0f00]">Select Dancer</h2>
-                <p className="mt-0.5 text-xs text-[#1a0f00]/40 leading-relaxed">
+                <h2 className="font-bold text-base text-ink">Select Dancer</h2>
+                <p className="mt-0.5 text-xs text-ink/40 leading-relaxed">
                   {persons.length > 1
                     ? "Tap the dancer you want Trace to track and give feedback on."
                     : "Trace will automatically track the dancer in frame."}
@@ -1125,7 +1125,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             {/* Dancer face-thumbnail cards (shown when 2+ dancers detected) */}
             {!personsLoading && persons.length > 1 && (
               <div className="px-5 py-4">
-                <p className="text-xs font-semibold text-[#1a0f00]/60 mb-3">Who should Trace focus on?</p>
+                <p className="text-xs font-semibold text-ink/60 mb-3">Who should Trace focus on?</p>
                 <div className="flex flex-wrap gap-3">
                   {persons.map((p, i) => {
                     const posLabel     = p.x < 0.33 ? "Left" : p.x > 0.66 ? "Right" : "Center";
@@ -1138,11 +1138,11 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                         className={`flex flex-col items-center gap-1.5 rounded-2xl border-2 p-2 transition-all ${
                           isSelected
                             ? `${BORDER_COLORS[i % BORDER_COLORS.length]} bg-white shadow-md scale-[1.04]`
-                            : "border-[#1a0f00]/[0.08] bg-white hover:border-[#1a0f00]/20 hover:shadow-sm"
+                            : "border-ink/[0.08] bg-white hover:border-ink/20 hover:shadow-sm"
                         }`}
                       >
                         {/* Thumbnail or stick-figure fallback */}
-                        <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-[#1a0f00]/[0.05]">
+                        <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-ink/[0.05]">
                           {faceThumbnails[i] ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -1152,7 +1152,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                             />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center">
-                              <svg className="h-10 w-10 text-[#1a0f00]/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
+                              <svg className="h-10 w-10 text-ink/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
                                 <circle cx="12" cy="5" r="2.5" />
                                 <line x1="12" y1="7.5" x2="12" y2="15" />
                                 <line x1="8"  y1="11" x2="16" y2="11" />
@@ -1171,12 +1171,12 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                             </div>
                           )}
                         </div>
-                        <span className="text-[11px] font-semibold text-[#1a0f00]/60">{posLabel}</span>
+                        <span className="text-[11px] font-semibold text-ink/60">{posLabel}</span>
                       </button>
                     );
                   })}
                 </div>
-                <p className="mt-2.5 text-[11px] text-[#1a0f00]/40">
+                <p className="mt-2.5 text-[11px] text-ink/40">
                   Trace will analyze this dancer&apos;s movements to give you feedback
                 </p>
               </div>
@@ -1185,16 +1185,16 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             {/* Spacer when 0 or 1 dancer (keeps footer height stable) */}
             {!personsLoading && persons.length <= 1 && (
               <div className="px-5 py-3">
-                <p className="text-[11px] text-[#1a0f00]/40">
+                <p className="text-[11px] text-ink/40">
                   You can re‑calibrate later from the Trace screen if needed.
                 </p>
               </div>
             )}
 
             {/* Footer */}
-            <div className="flex items-center justify-between gap-4 px-5 py-3.5 bg-white border-t border-[#1a0f00]/[0.08]">
+            <div className="flex items-center justify-between gap-4 px-5 py-3.5 bg-white border-t border-ink/[0.08]">
               <button onClick={() => setCalibStep("mode")}
-                className="flex items-center gap-1.5 rounded-full bg-[#1a0f00]/[0.06] px-4 py-1.5 text-xs font-medium text-[#1a0f00]/50 hover:bg-[#1a0f00]/10 hover:text-[#1a0f00]/70 transition-all">
+                className="flex items-center gap-1.5 rounded-full bg-ink/[0.06] px-4 py-1.5 text-xs font-medium text-ink/50 hover:bg-ink/10 hover:text-ink/70 transition-all">
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                 </svg>

@@ -123,7 +123,7 @@ export default function TraceTutorial({ onClose }: { onClose: () => void }) {
             {/* Skip */}
             <button
               onClick={finish}
-              className="absolute right-3 top-3 text-[10px] font-semibold text-[#1a0f00]/30 hover:text-[#1a0f00]/60"
+              className="absolute right-3 top-3 text-[10px] font-semibold text-ink/30 hover:text-ink/60"
             >
               Skip
             </button>
@@ -132,8 +132,8 @@ export default function TraceTutorial({ onClose }: { onClose: () => void }) {
             <div className="mb-3 flex items-start gap-3">
               <span className="text-2xl">{current.emoji}</span>
               <div>
-                <h3 className="text-sm font-bold text-[#1a0f00]">{current.title}</h3>
-                <p className="mt-0.5 text-[12px] leading-relaxed text-[#1a0f00]/60">{current.body}</p>
+                <h3 className="text-sm font-bold text-ink">{current.title}</h3>
+                <p className="mt-0.5 text-[12px] leading-relaxed text-ink/60">{current.body}</p>
               </div>
             </div>
 
@@ -143,7 +143,7 @@ export default function TraceTutorial({ onClose }: { onClose: () => void }) {
                 <div
                   key={i}
                   className={`h-1.5 rounded-full transition-all ${
-                    i === step ? "w-4 bg-[#1a0f00]" : "w-1.5 bg-[#1a0f00]/20"
+                    i === step ? "w-4 bg-ink" : "w-1.5 bg-ink/20"
                   }`}
                 />
               ))}
@@ -154,7 +154,7 @@ export default function TraceTutorial({ onClose }: { onClose: () => void }) {
               <button
                 onClick={back}
                 disabled={step === 0}
-                className="flex-1 rounded-lg border border-[#1a0f00]/12 py-1.5 text-[11px] font-semibold text-[#1a0f00]/40 transition-all hover:text-[#1a0f00]/70 disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex-1 rounded-lg border border-ink/12 py-1.5 text-[11px] font-semibold text-ink/40 transition-all hover:text-ink/70 disabled:cursor-not-allowed disabled:opacity-30"
               >
                 ← Back
               </button>

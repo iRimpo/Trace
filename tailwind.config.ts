@@ -9,6 +9,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        /**
+         * Primary foreground — the warm near-black the whole app is drawn in.
+         * Previously written as the arbitrary value `[#1a0f00]` in 363 places
+         * and defined nowhere, so it could not be changed in one edit and
+         * typos failed silently. Opacity modifiers work as usual: `text-ink/60`.
+         */
+        ink:  "#1a0f00",
+        /** Secondary brown, used for supporting copy and borders on cream. */
+        clay: "#5c3d1a",
         brand: {
           primary: "#080808",
           accent:  "#1a1a1a",

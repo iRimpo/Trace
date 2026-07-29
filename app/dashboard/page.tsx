@@ -116,7 +116,7 @@ function DashboardContent() {
         <div
           className={`flex items-center justify-between bg-white px-5 py-4 rounded-t-2xl ${!stats && !(streak >= 3) ? "rounded-b-2xl" : ""}`}
         >
-          <p className="text-2xl font-bold tracking-tight text-[#1a0f00]">
+          <p className="text-2xl font-bold tracking-tight text-ink">
             Hi, {displayName}
           </p>
           {streak > 0 && (
@@ -127,7 +127,7 @@ function DashboardContent() {
           )}
         </div>
         {streak >= 3 && (
-          <p className={`bg-white px-5 pb-2 text-xs text-[#5c3d1a]/60 ${!stats ? "rounded-b-2xl" : ""}`}>
+          <p className={`bg-white px-5 pb-2 text-xs text-clay/60 ${!stats ? "rounded-b-2xl" : ""}`}>
             Keep it up!
           </p>
         )}
@@ -171,7 +171,7 @@ function DashboardContent() {
 
       {/* ── Section header ──────────────────────────────────────── */}
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-bold text-lg tracking-tight text-[#1a0f00]">Your Practice</h2>
+        <h2 className="font-bold text-lg tracking-tight text-ink">Your Practice</h2>
         {hasData && (
           <Link
             href="/practice"
@@ -217,7 +217,7 @@ function DashboardContent() {
           initial={{ opacity: 0, scale: 0.97 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
-          className="mt-4 rounded-3xl border border-dashed border-[#1a0f00]/12 bg-white/60 p-12 text-center"
+          className="mt-4 rounded-3xl border border-dashed border-ink/12 bg-white/60 p-12 text-center"
         >
           <div className="mx-auto flex justify-center">
             <img
@@ -226,8 +226,8 @@ function DashboardContent() {
               className="rounded-2xl"
             />
           </div>
-          <h2 className="mt-5 font-bold text-xl text-[#1a0f00]">Start your first session</h2>
-          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-[#5c3d1a]/50">
+          <h2 className="mt-5 font-bold text-xl text-ink">Start your first session</h2>
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-clay/50">
             Upload a reference dance video and start your first Trace session.
           </p>
           <motion.div animate={{ scale: [1, 1.03, 1] }} transition={{ duration: 2, repeat: Infinity }}>

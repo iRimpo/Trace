@@ -88,8 +88,8 @@ function drawProVideo(
 
 // ── Glass style constants ──────────────────────────────────────────────
 
-const GLASS = "bg-white/90 backdrop-blur-xl border border-[#1a0f00]/10 shadow-sm";
-const GLASS_BTN = "flex items-center justify-center rounded-lg transition-all text-[#1a0f00]/40 hover:text-[#1a0f00] hover:bg-[#1a0f00]/[0.06]";
+const GLASS = "bg-white/90 backdrop-blur-xl border border-ink/10 shadow-sm";
+const GLASS_BTN = "flex items-center justify-center rounded-lg transition-all text-ink/40 hover:text-ink hover:bg-ink/[0.06]";
 const GLASS_PILL = "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all";
 
 /**
@@ -110,7 +110,7 @@ type ToggleColor = keyof typeof TOGGLE_ACTIVE;
 function glassToggle(active: boolean, color: ToggleColor) {
   return active
     ? `${GLASS_PILL} ${TOGGLE_ACTIVE[color]}`
-    : `${GLASS_PILL} text-[#1a0f00]/35 hover:text-[#1a0f00]/60 hover:bg-[#1a0f00]/[0.05]`;
+    : `${GLASS_PILL} text-ink/35 hover:text-ink/60 hover:bg-ink/[0.05]`;
 }
 
 // ── Props ──────────────────────────────────────────────────────────────
@@ -831,8 +831,8 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               exit={{ scale: 0.96, y: 8 }}
               className={`w-[min(420px,92vw)] rounded-2xl ${GLASS} px-5 py-5`}
             >
-              <p className="text-sm font-semibold text-[#1a0f00]/85">Lost track of your dancer</p>
-              <p className="mt-1 text-xs leading-relaxed text-[#1a0f00]/50">
+              <p className="text-sm font-semibold text-ink/85">Lost track of your dancer</p>
+              <p className="mt-1 text-xs leading-relaxed text-ink/50">
                 Tap the dancer you&apos;re following to keep the scan on track.
               </p>
               <div className="mt-4 grid grid-cols-3 gap-2.5">
@@ -840,14 +840,14 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   <button
                     key={i}
                     onClick={() => reacquireResolveRef.current?.(i)}
-                    className="group overflow-hidden rounded-xl border-2 border-transparent bg-[#1a0f00]/5 transition-all hover:border-emerald-500"
+                    className="group overflow-hidden rounded-xl border-2 border-transparent bg-ink/5 transition-all hover:border-emerald-500"
                   >
                     {p.thumbnail ? (
                       <img src={p.thumbnail} alt={`Dancer ${i + 1}`} className="aspect-[3/4] w-full object-cover" />
                     ) : (
-                      <div className="flex aspect-[3/4] w-full items-center justify-center text-xs text-[#1a0f00]/30">?</div>
+                      <div className="flex aspect-[3/4] w-full items-center justify-center text-xs text-ink/30">?</div>
                     )}
-                    <span className="block bg-[#1a0f00]/5 py-1 text-center text-[10px] font-semibold text-[#1a0f00]/50 group-hover:text-emerald-700">
+                    <span className="block bg-ink/5 py-1 text-center text-[10px] font-semibold text-ink/50 group-hover:text-emerald-700">
                       Dancer {i + 1}
                     </span>
                   </button>
@@ -855,7 +855,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               </div>
               <button
                 onClick={() => reacquireResolveRef.current?.(-1)}
-                className="mt-4 w-full rounded-full py-2 text-xs font-medium text-[#1a0f00]/35 hover:text-[#1a0f00]/60 transition-colors"
+                className="mt-4 w-full rounded-full py-2 text-xs font-medium text-ink/35 hover:text-ink/60 transition-colors"
               >
                 Not sure — keep best guess
               </button>
@@ -924,7 +924,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" stroke="#1a0f00" strokeWidth="1.5" strokeLinejoin="round" opacity="0.6"/>
               <circle cx="7" cy="7" r="2" fill="#1a0f00" opacity="0.6"/>
             </svg>
-            <span className="text-[10px] font-bold tracking-widest text-[#1a0f00]/60">TRACE</span>
+            <span className="text-[10px] font-bold tracking-widest text-ink/60">TRACE</span>
           </div>
           {loopSectionActive && (
             <div className="flex items-center gap-1.5 rounded-full bg-amber-500/80 px-3 py-1.5 backdrop-blur">
@@ -972,8 +972,8 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   ["L", "Loop"], ["[/]", "Set A/B"], ["T", "Tap BPM"], ["B", "Set beat-1"],
                 ].map(([key, label]) => (
                   <div key={key} className="flex items-center gap-2">
-                    <kbd className="rounded bg-[#1a0f00]/[0.08] px-1.5 py-0.5 font-mono text-[9px] text-[#1a0f00]/50">{key}</kbd>
-                    <span className="text-[9px] text-[#1a0f00]/40">{label}</span>
+                    <kbd className="rounded bg-ink/[0.08] px-1.5 py-0.5 font-mono text-[9px] text-ink/50">{key}</kbd>
+                    <span className="text-[9px] text-ink/40">{label}</span>
                   </div>
                 ))}
               </div>
@@ -992,7 +992,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 {/* Timing offset (advanced) */}
                 {feedbackEnabled && (
                   <div className="flex items-center gap-2">
-                    <span className="w-14 text-[10px] text-[#1a0f00]/40">Timing</span>
+                    <span className="w-14 text-[10px] text-ink/40">Timing</span>
                     <input
                       type="range"
                       min="-0.5"
@@ -1000,7 +1000,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                       step="0.05"
                       value={feedbackOffset}
                       onChange={e => setFeedbackOffset(parseFloat(e.target.value))}
-                      className="h-0.5 flex-1 cursor-pointer appearance-none rounded-full bg-[#1a0f00]/10 accent-[#080808]"
+                      className="h-0.5 flex-1 cursor-pointer appearance-none rounded-full bg-ink/10 accent-[#080808]"
                     />
                     <button
                       onClick={() => setFeedbackOffset(0)}
@@ -1009,7 +1009,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                           ? "text-sky-500"
                           : feedbackOffset > 0
                             ? "text-amber-600"
-                            : "text-[#1a0f00]/25"
+                            : "text-ink/25"
                       }`}
                     >
                       {feedbackOffset === 0
@@ -1022,7 +1022,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 {/* Cue lead time — how far ahead cues appear */}
                 {feedbackEnabled && (
                   <div className="flex items-center gap-2">
-                    <span className="w-14 text-[10px] text-[#1a0f00]/40">Lead</span>
+                    <span className="w-14 text-[10px] text-ink/40">Lead</span>
                     <input
                       type="range"
                       min="0"
@@ -1030,9 +1030,9 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                       step="100"
                       value={cueLeadMs}
                       onChange={e => setCueLeadMs(parseInt(e.target.value, 10))}
-                      className="h-0.5 flex-1 cursor-pointer appearance-none rounded-full bg-[#1a0f00]/10 accent-[#080808]"
+                      className="h-0.5 flex-1 cursor-pointer appearance-none rounded-full bg-ink/10 accent-[#080808]"
                     />
-                    <span className="min-w-[3.5rem] text-right text-[10px] tabular-nums text-[#1a0f00]/40">
+                    <span className="min-w-[3.5rem] text-right text-[10px] tabular-nums text-ink/40">
                       {cueLeadMs}ms
                     </span>
                   </div>
@@ -1055,7 +1055,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
           <button
             onClick={() => setToolsOpen(o => !o)}
             className={`flex h-11 w-11 items-center justify-center rounded-full ${GLASS} transition-all ${
-              toolsOpen ? "text-[#080808]" : "text-[#1a0f00]/40 hover:text-[#1a0f00]"
+              toolsOpen ? "text-[#080808]" : "text-ink/40 hover:text-ink"
             }`}
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -1080,10 +1080,10 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 transition={{ duration: 0.15 }}
                 className={`mb-1 rounded-2xl ${GLASS} p-3`}
               >
-                <p className="mb-0.5 text-[10px] font-semibold text-[#1a0f00]/50">
+                <p className="mb-0.5 text-[10px] font-semibold text-ink/50">
                   What count is playing right now?
                 </p>
-                <p className="mb-2 text-[9px] text-[#1a0f00]/35">
+                <p className="mb-2 text-[9px] text-ink/35">
                   Pause the video on a moment you recognize, then tap the count number.
                 </p>
                 <div className="grid grid-cols-4 gap-1">
@@ -1091,7 +1091,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                     <button
                       key={n}
                       onClick={() => handleAlignCount(n)}
-                      className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#1a0f00]/[0.06] text-xs font-bold text-[#1a0f00]/60 transition-all hover:bg-[#1a0f00]/12 hover:text-[#1a0f00] active:scale-95"
+                      className="flex h-8 w-8 items-center justify-center rounded-xl bg-ink/[0.06] text-xs font-bold text-ink/60 transition-all hover:bg-ink/12 hover:text-ink active:scale-95"
                     >
                       {n}
                     </button>
@@ -1099,7 +1099,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 </div>
                 <button
                   onClick={() => setShowBeatAlign(false)}
-                  className="mt-2 w-full text-center text-[9px] text-[#1a0f00]/30 hover:text-[#1a0f00]/50"
+                  className="mt-2 w-full text-center text-[9px] text-ink/30 hover:text-ink/50"
                 >
                   Cancel
                 </button>
@@ -1142,15 +1142,15 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               onClick={() => setControlsVisible(false)}
               aria-label="Collapse controls"
             >
-              <div className="h-1 w-8 rounded-full bg-[#1a0f00]/20" />
+              <div className="h-1 w-8 rounded-full bg-ink/20" />
             </button>
             {/* ── Secondary controls row ─────────────────────────────────────── */}
             <div id="trace-controls-row" className="mb-2 flex flex-wrap items-center gap-1.5 sm:mb-3 sm:gap-2">
               {/* View mode segmented control */}
-              <div className="flex items-center gap-0.5 rounded-lg bg-[#1a0f00]/[0.06] p-0.5">
+              <div className="flex items-center gap-0.5 rounded-lg bg-ink/[0.06] p-0.5">
                 {(["overlay", "side-by-side"] as ViewMode[]).map(m => (
                   <button key={m} onClick={() => switchMode(m)}
-                    className={`rounded-md px-2 py-1 text-[10px] font-bold transition-all ${viewMode === m ? "bg-white text-[#1a0f00] shadow-sm" : "text-[#1a0f00]/30 hover:text-[#1a0f00]/60"}`}>
+                    className={`rounded-md px-2 py-1 text-[10px] font-bold transition-all ${viewMode === m ? "bg-white text-ink shadow-sm" : "text-ink/30 hover:text-ink/60"}`}>
                     {m === "overlay" ? "Overlay" : "Side by Side"}
                   </button>
                 ))}
@@ -1163,7 +1163,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               </button>
 
               {/* Divider */}
-              <div className="h-4 w-px bg-[#1a0f00]/10" />
+              <div className="h-4 w-px bg-ink/10" />
 
               {/* Feedback pill */}
               <button
@@ -1184,16 +1184,16 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               {/* Opacity slider (overlay only, hidden on very small screens) */}
               {viewMode === "overlay" && (
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-[#1a0f00]/40">Opacity</span>
+                  <span className="text-[10px] text-ink/40">Opacity</span>
                   <input type="range" min="10" max="90" value={overlayOpacity}
                     onChange={e => setOverlayOpacity(parseInt(e.target.value))}
-                    className="h-0.5 w-16 cursor-pointer appearance-none rounded-full bg-[#1a0f00]/10 accent-[#080808] sm:w-20" />
-                  <span className="w-7 text-right text-[10px] tabular-nums text-[#1a0f00]/30">{overlayOpacity}%</span>
+                    className="h-0.5 w-16 cursor-pointer appearance-none rounded-full bg-ink/10 accent-[#080808] sm:w-20" />
+                  <span className="w-7 text-right text-[10px] tabular-nums text-ink/30">{overlayOpacity}%</span>
                 </div>
               )}
 
               {/* Divider */}
-              <div className="h-4 w-px bg-[#1a0f00]/10" />
+              <div className="h-4 w-px bg-ink/10" />
 
               {/* BPM + Count section */}
               <div id="trace-bpm-count">
@@ -1212,12 +1212,12 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               {/* Live count + Adjust (desktop only — mobile has the floating badge above) */}
               {bpm !== null && countsEnabled && countGrid && (
                 <div className="hidden items-center gap-1 sm:flex">
-                  <span className="text-[10px] font-semibold text-[#1a0f00]/50">
+                  <span className="text-[10px] font-semibold text-ink/50">
                     Count: {countGrid.count(currentTime)?.count ?? "–"}
                   </span>
                   <button
                     onClick={() => setShowBeatAlign(a => !a)}
-                    className={`text-[9px] font-semibold ${showBeatAlign ? "text-violet-600" : "text-[#1a0f00]/30 hover:text-[#1a0f00]/60"}`}
+                    className={`text-[9px] font-semibold ${showBeatAlign ? "text-violet-600" : "text-ink/30 hover:text-ink/60"}`}
                   >
                     Adjust…
                   </button>
@@ -1235,8 +1235,8 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   transition={{ duration: 0.18 }}
                   className="overflow-hidden sm:hidden"
                 >
-                  <div className="mb-2 rounded-xl bg-[#1a0f00]/[0.06] p-3">
-                    <p className="mb-2 text-[10px] font-semibold text-[#1a0f00]/50">
+                  <div className="mb-2 rounded-xl bg-ink/[0.06] p-3">
+                    <p className="mb-2 text-[10px] font-semibold text-ink/50">
                       Pause on a beat you recognize — what count is playing?
                     </p>
                     <div className="grid grid-cols-8 gap-1">
@@ -1244,7 +1244,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                         <button
                           key={n}
                           onClick={() => handleAlignCount(n)}
-                          className="flex h-9 items-center justify-center rounded-lg bg-white text-sm font-bold text-[#1a0f00]/70 shadow-sm active:scale-95"
+                          className="flex h-9 items-center justify-center rounded-lg bg-white text-sm font-bold text-ink/70 shadow-sm active:scale-95"
                         >
                           {n}
                         </button>
@@ -1260,7 +1260,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               <div className="flex items-center gap-1 sm:hidden">
                 <button
                   onClick={() => setShowBeatAlign(a => !a)}
-                  className={`rounded-full px-3 py-1 text-[10px] font-semibold transition-colors ${showBeatAlign ? "bg-violet-100 text-violet-700" : "bg-[#1a0f00]/[0.06] text-[#1a0f00]/50 hover:text-[#1a0f00]"}`}
+                  className={`rounded-full px-3 py-1 text-[10px] font-semibold transition-colors ${showBeatAlign ? "bg-violet-100 text-violet-700" : "bg-ink/[0.06] text-ink/50 hover:text-ink"}`}
                 >
                   {showBeatAlign ? "Done" : "Adjust counts"}
                 </button>
@@ -1270,7 +1270,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
             {/* Timeline */}
             <div
               id="trace-timeline"
-              className="group relative h-1.5 cursor-pointer rounded-full bg-[#1a0f00]/10"
+              className="group relative h-1.5 cursor-pointer rounded-full bg-ink/10"
               onClick={handleTimelineClick}
               onPointerMove={handleLoopHandlePointerMove}
               onPointerUp={handleLoopHandlePointerUp}
@@ -1312,7 +1312,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 16.811c0 .864-.933 1.406-1.683.977l-7.108-4.061a1.125 1.125 0 0 1 0-1.954l7.108-4.061A1.125 1.125 0 0 1 21 8.689v8.122ZM11.25 16.811c0 .864-.933 1.406-1.683.977l-7.108-4.061a1.125 1.125 0 0 1 0-1.954l7.108-4.061a1.125 1.125 0 0 1 1.683.977v8.122Z" /></svg>
               </button>
 
-              <button onClick={togglePlay} className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1a0f00]/10 text-[#1a0f00] transition-all hover:bg-[#1a0f00]/18">
+              <button onClick={togglePlay} className="flex h-9 w-9 items-center justify-center rounded-full bg-ink/10 text-ink transition-all hover:bg-ink/18">
                 {playing
                   ? <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4Zm8 0h4v16h-4V4Z" /></svg>
                   : <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
@@ -1335,7 +1335,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 }}
                 className={`${GLASS_PILL} ${(canSection ? loopSectionActive : loopAll)
                   ? "bg-amber-100 text-amber-700"
-                  : "text-[#1a0f00]/35 hover:text-[#1a0f00]/60 hover:bg-[#1a0f00]/[0.05]"}`}
+                  : "text-ink/35 hover:text-ink/60 hover:bg-ink/[0.05]"}`}
                 title="Toggle loop (L)"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" /></svg>
@@ -1344,23 +1344,23 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   : `Loop${loopAll ? " On" : ""}`}
               </button>
 
-              <span className="min-w-[5rem] font-mono text-[11px] tabular-nums text-[#1a0f00]/50">
+              <span className="min-w-[5rem] font-mono text-[11px] tabular-nums text-ink/50">
                 {fmt(currentTime)} / {fmt(duration)}
               </span>
 
               {/* Speed — segmented control on all screen sizes */}
-              <div className="flex items-center gap-0.5 rounded-lg bg-[#1a0f00]/[0.06] p-0.5">
+              <div className="flex items-center gap-0.5 rounded-lg bg-ink/[0.06] p-0.5">
                 {SPEEDS.map(s => (
                   <button key={s}
                     onClick={() => { setSpeed(s); if (proVideoRef.current) proVideoRef.current.playbackRate = s; }}
-                    className={`rounded-md px-1.5 py-1 text-[10px] font-bold transition-all ${speed === s ? "bg-white text-[#1a0f00] shadow-sm" : "text-[#1a0f00]/30 hover:text-[#1a0f00]/60"}`}
+                    className={`rounded-md px-1.5 py-1 text-[10px] font-bold transition-all ${speed === s ? "bg-white text-ink shadow-sm" : "text-ink/30 hover:text-ink/60"}`}
                   >{s}x</button>
                 ))}
               </div>
 
               {/* Volume — hidden on mobile */}
               <div className="ml-auto hidden items-center gap-2 sm:flex">
-                <button onClick={() => { const next = !muted; setMuted(next); if (proVideoRef.current) proVideoRef.current.muted = next; }} className="text-[#1a0f00]/30 hover:text-[#1a0f00]/60">
+                <button onClick={() => { const next = !muted; setMuted(next); if (proVideoRef.current) proVideoRef.current.muted = next; }} className="text-ink/30 hover:text-ink/60">
                   {muted
                     ? <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75 19.5 12m0 0 2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6 4.72-4.72a.75.75 0 0 1 1.28.53v16.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" /></svg>
                     : <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v16.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" /></svg>
@@ -1368,7 +1368,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 </button>
                 <input type="range" min="0" max="1" step="0.05" value={muted ? 0 : volume}
                   onChange={e => { const v = parseFloat(e.target.value); setVolume(v); setMuted(v === 0); if (proVideoRef.current) { proVideoRef.current.volume = v; proVideoRef.current.muted = v === 0; } }}
-                  className="h-0.5 w-16 cursor-pointer appearance-none rounded-full bg-[#1a0f00]/10 accent-[#080808]"
+                  className="h-0.5 w-16 cursor-pointer appearance-none rounded-full bg-ink/10 accent-[#080808]"
                 />
               </div>
             </div>

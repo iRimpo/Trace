@@ -32,7 +32,7 @@ export default function Navbar() {
         <button
           onClick={() => setMobileOpen(o => !o)}
           className={`flex h-9 w-9 items-center justify-center rounded-lg md:hidden ${
-            scrolled || mobileOpen ? "text-[#1a0f00]/60" : "text-white/70"
+            scrolled || mobileOpen ? "text-ink/60" : "text-white/70"
           }`}
           aria-label="Menu"
         >
@@ -78,7 +78,7 @@ export default function Navbar() {
               </a>
             ) : (
               <>
-                <a href="/login" className={`inline-flex h-8 items-center rounded-full px-3 text-xs font-medium ${scrolled || mobileOpen ? "text-[#1a0f00]/60" : "text-white/70"}`}>
+                <a href="/login" className={`inline-flex h-8 items-center rounded-full px-3 text-xs font-medium ${scrolled || mobileOpen ? "text-ink/60" : "text-white/70"}`}>
                   Log in
                 </a>
                 <a href="#waitlist" className="inline-flex h-8 items-center rounded-full bg-[#080808] px-4 text-xs font-semibold text-white">
@@ -98,7 +98,7 @@ export default function Navbar() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
-            className="overflow-hidden border-t border-[#1a0f00]/[0.08] bg-white/95 backdrop-blur-md md:hidden"
+            className="overflow-hidden border-t border-ink/[0.08] bg-white/95 backdrop-blur-md md:hidden"
           >
             <div className="flex flex-col gap-1 px-4 pb-4 pt-2">
               {[
@@ -113,7 +113,7 @@ export default function Navbar() {
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.18, delay: i * 0.05 }}
-                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-[#1a0f00]/70 transition-colors hover:bg-[#1a0f00]/[0.05] active:bg-[#1a0f00]/[0.08]"
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-ink/70 transition-colors hover:bg-ink/[0.05] active:bg-ink/[0.08]"
                 >
                   {item.label}
                 </motion.a>
@@ -153,7 +153,7 @@ function NavPill({
       href={href}
       className={`inline-flex h-10 items-center rounded-full border px-5 text-sm font-medium transition-all duration-200 ${
         scrolled
-          ? "border-[#1a0f00]/15 bg-white text-[#1a0f00] hover:bg-[#1a0f00] hover:text-white hover:border-[#1a0f00]"
+          ? "border-ink/15 bg-white text-ink hover:bg-ink hover:text-white hover:border-ink"
           : "border-white/15 bg-white/8 text-white/70 hover:bg-white/15 hover:text-white backdrop-blur-sm"
       }`}
     >

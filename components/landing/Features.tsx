@@ -91,10 +91,10 @@ export default function Features() {
             transition={{ duration: 0.7 }}
             className="mb-14 text-center"
           >
-            <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-[#1a0f00]/30">
+            <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-ink/30">
               Features
             </p>
-            <h2 className="font-calistoga text-[clamp(2.4rem,5vw,4rem)] leading-tight text-[#1a0f00]">
+            <h2 className="font-calistoga text-[clamp(2.4rem,5vw,4rem)] leading-tight text-ink">
               Delicious Top Features<br />From Our AI
             </h2>
           </motion.div>
@@ -108,17 +108,17 @@ export default function Features() {
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ duration: 0.55, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
                 whileHover={{ y: -6, transition: { duration: 0.2 } }}
-                className="group rounded-2xl border border-[#1a0f00]/[0.08] bg-[#faf8f3] p-6 flex flex-col gap-4"
+                className="group rounded-2xl border border-ink/[0.08] bg-[#faf8f3] p-6 flex flex-col gap-4"
               >
                 <div className="flex h-20 items-center justify-start">
                   {f.icon}
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-calistoga text-xl text-[#1a0f00]">{f.title}</h3>
+                  <h3 className="font-calistoga text-xl text-ink">{f.title}</h3>
                   <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider" style={{ color: f.accent }}>
                     {f.sub}
                   </p>
-                  <p className="mt-2 text-sm leading-relaxed text-[#5c3d1a]/60">{f.desc}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-clay/60">{f.desc}</p>
                 </div>
                 <div className="h-0.5 w-8 rounded-full transition-all duration-300 group-hover:w-16" style={{ background: f.accent }} />
               </motion.div>
@@ -131,7 +131,7 @@ export default function Features() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="mt-16 grid grid-cols-2 gap-6 border-t border-[#1a0f00]/[0.06] pt-10 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-10"
+            className="mt-16 grid grid-cols-2 gap-6 border-t border-ink/[0.06] pt-10 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-10"
           >
             {[
               { value: "33", label: "Body keypoints" },
@@ -140,8 +140,8 @@ export default function Features() {
               { value: "8-ct", label: "Beat-synced counts" },
             ].map(s => (
               <div key={s.label} className="flex flex-col items-center gap-0.5">
-                <span className="font-calistoga text-3xl text-[#1a0f00]">{s.value}</span>
-                <span className="text-xs text-[#5c3d1a]/50">{s.label}</span>
+                <span className="font-calistoga text-3xl text-ink">{s.value}</span>
+                <span className="text-xs text-clay/50">{s.label}</span>
               </div>
             ))}
           </motion.div>

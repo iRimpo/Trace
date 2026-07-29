@@ -49,7 +49,7 @@ export default function MeetTrace() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mb-8 text-center text-base font-semibold text-[#1a0f00]/40 tracking-wide"
+          className="mb-8 text-center text-base font-semibold text-ink/40 tracking-wide"
         >
           Meet Trace
         </motion.p>
@@ -66,7 +66,7 @@ export default function MeetTrace() {
             variants={lineVariants}
             className="flex flex-wrap items-center justify-center"
           >
-            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
+            <span className="font-sans font-black text-ink" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
               Skeleton
             </span>
             <Bubble
@@ -84,7 +84,7 @@ export default function MeetTrace() {
                 <line x1="35" y1="32" x2="55" y2="38" stroke="white" strokeWidth="1.5" opacity="0.4"/>
               </svg>
             </Bubble>
-            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
+            <span className="font-sans font-black text-ink" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
               Tracking
             </span>
           </motion.div>
@@ -98,7 +98,7 @@ export default function MeetTrace() {
             variants={lineVariants}
             className="flex flex-wrap items-center justify-center"
           >
-            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
+            <span className="font-sans font-black text-ink" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
               Beat
             </span>
             <Bubble
@@ -121,7 +121,7 @@ export default function MeetTrace() {
                 ))}
               </svg>
             </Bubble>
-            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
+            <span className="font-sans font-black text-ink" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
               Sync
             </span>
           </motion.div>
@@ -135,7 +135,7 @@ export default function MeetTrace() {
             variants={lineVariants}
             className="flex flex-wrap items-center justify-center"
           >
-            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
+            <span className="font-sans font-black text-ink" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
               Joint
             </span>
             <Bubble
@@ -149,7 +149,7 @@ export default function MeetTrace() {
                 ))}
               </div>
             </Bubble>
-            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
+            <span className="font-sans font-black text-ink" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
               Guidance
             </span>
           </motion.div>
@@ -163,7 +163,7 @@ export default function MeetTrace() {
             variants={lineVariants}
             className="flex flex-wrap items-center justify-center"
           >
-            <span className="font-sans font-black text-[#1a0f00]" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
+            <span className="font-sans font-black text-ink" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
               Progress
             </span>
             <Bubble
@@ -196,7 +196,7 @@ export default function MeetTrace() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.5 }}
-          className="mt-12 text-center text-lg text-[#1a0f00]/40 max-w-lg mx-auto leading-relaxed"
+          className="mt-12 text-center text-lg text-ink/40 max-w-lg mx-auto leading-relaxed"
         >
           33 keypoints tracked in real-time. Every joint color-coded.
           Beat-synced so you know exactly when and where to move.

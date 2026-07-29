@@ -103,7 +103,7 @@ export default function Waitlist() {
                 className="space-y-5"
               >
                 <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-[#1a0f00]">
+                  <label className="mb-1.5 block text-sm font-semibold text-ink">
                     Invite code<span className="text-[#F97316]">*</span>
                   </label>
                   <input
@@ -112,7 +112,7 @@ export default function Waitlist() {
                     value={code}
                     onChange={e => setCode(e.target.value)}
                     placeholder="Enter your invite code"
-                    className="w-full rounded-xl border border-[#1a0f00]/15 bg-white px-4 py-3 text-sm text-[#1a0f00] placeholder-[#1a0f00]/30 outline-none transition-all focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
+                    className="w-full rounded-xl border border-ink/15 bg-white px-4 py-3 text-sm text-ink placeholder-ink/30 outline-none transition-all focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
                   />
                 </div>
 
@@ -126,7 +126,7 @@ export default function Waitlist() {
                   {loading ? "Checking..." : "Continue to Sign up →"}
                 </button>
 
-                <p className="text-center text-xs text-[#5c3d1a]/40">
+                <p className="text-center text-xs text-clay/40">
                   Private beta. Enter your invite code to create an account.
                 </p>
               </motion.form>

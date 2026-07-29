@@ -40,7 +40,7 @@ function getTabState(
 
 export default function TabNavigation({ currentTab, onTabChange, completedTabs }: TabNavigationProps) {
   return (
-    <div className="flex items-center gap-1 rounded-full bg-white/90 p-1 backdrop-blur-xl border border-[#1a0f00]/10 shadow-sm">
+    <div className="flex items-center gap-1 rounded-full bg-white/90 p-1 backdrop-blur-xl border border-ink/10 shadow-sm">
       {TABS.map((tab) => {
         const state = getTabState(tab.id, currentTab, completedTabs);
         const isClickable = state !== "locked";
@@ -56,8 +56,8 @@ export default function TabNavigation({ currentTab, onTabChange, completedTabs }
                 : state === "completed"
                   ? "cursor-pointer text-emerald-600 hover:text-emerald-500"
                   : state === "available"
-                    ? "cursor-pointer text-[#1a0f00]/45 hover:text-[#1a0f00]/80"
-                    : "cursor-not-allowed text-[#1a0f00]/20"
+                    ? "cursor-pointer text-ink/45 hover:text-ink/80"
+                    : "cursor-not-allowed text-ink/20"
             }`}
           >
             {state === "active" && (

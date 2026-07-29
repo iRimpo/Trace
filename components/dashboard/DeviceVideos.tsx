@@ -52,14 +52,14 @@ export default function DeviceVideos() {
 
   return (
     <div className="mb-6">
-      <h2 className="mb-3 font-bold text-lg tracking-tight text-[#1a0f00]">On this device</h2>
+      <h2 className="mb-3 font-bold text-lg tracking-tight text-ink">On this device</h2>
       <div className="flex gap-3 overflow-x-auto pb-1">
         {videos.map(meta => (
           <motion.div
             key={meta.key}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="group relative w-44 flex-shrink-0 overflow-hidden rounded-2xl border border-[#1a0f00]/[0.08] bg-white shadow-sm"
+            className="group relative w-44 flex-shrink-0 overflow-hidden rounded-2xl border border-ink/[0.08] bg-white shadow-sm"
           >
             <button
               onClick={() => openVideo(meta)}
@@ -78,8 +78,8 @@ export default function DeviceVideos() {
                 </span>
               </div>
               <div className="p-3">
-                <p className="truncate text-xs font-semibold text-[#1a0f00]">{meta.songName || meta.fileName}</p>
-                <p className="mt-0.5 text-[10px] text-[#1a0f00]/30">{fmtBytes(meta.bytes)} · ready instantly</p>
+                <p className="truncate text-xs font-semibold text-ink">{meta.songName || meta.fileName}</p>
+                <p className="mt-0.5 text-[10px] text-ink/30">{fmtBytes(meta.bytes)} · ready instantly</p>
               </div>
             </button>
             <button

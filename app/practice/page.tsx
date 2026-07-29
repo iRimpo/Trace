@@ -157,8 +157,8 @@ export default function PracticePage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f8f4e0]">
         <div className="relative h-10 w-10">
-          <div className="absolute inset-0 rounded-full border-2 border-[#1a0f00]/10" />
-          <motion.div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#1a0f00]"
+          <div className="absolute inset-0 rounded-full border-2 border-ink/10" />
+          <motion.div className="absolute inset-0 rounded-full border-2 border-transparent border-t-ink"
             animate={{ rotate: 360 }} transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }} />
         </div>
       </div>
@@ -172,10 +172,10 @@ export default function PracticePage() {
   return (
     <div className="min-h-screen bg-[#f8f4e0]">
       {/* Header */}
-      <header className="border-b border-[#1a0f00]/[0.08] bg-[#f8f4e0]">
+      <header className="border-b border-ink/[0.08] bg-[#f8f4e0]">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-6">
           <Link href="/dashboard"
-            className="flex items-center gap-2 text-sm text-[#1a0f00]/40 hover:text-[#1a0f00] transition-colors">
+            className="flex items-center gap-2 text-sm text-ink/40 hover:text-ink transition-colors">
             <FaArrowLeft className="h-3.5 w-3.5" />
             Dashboard
           </Link>
@@ -189,30 +189,30 @@ export default function PracticePage() {
         {/* Title */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
           className="text-center">
-          <span className="font-mono text-xs font-bold tracking-widest text-[#1a0f00]/30 uppercase">New Session</span>
-          <h1 className="mt-2 font-bold text-3xl tracking-tight text-[#1a0f00] sm:text-4xl">
+          <span className="font-mono text-xs font-bold tracking-widest text-ink/30 uppercase">New Session</span>
+          <h1 className="mt-2 font-bold text-3xl tracking-tight text-ink sm:text-4xl">
             Upload your dance video
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-[#5c3d1a]/50">
+          <p className="mt-2 text-sm leading-relaxed text-clay/50">
             Upload a reference video and we&apos;ll help you master every move.
           </p>
         </motion.div>
 
         {/* Card */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
-          className="mt-8 rounded-3xl border border-[#1a0f00]/[0.08] bg-white p-6 shadow-sm sm:p-8">
+          className="mt-8 rounded-3xl border border-ink/[0.08] bg-white p-6 shadow-sm sm:p-8">
 
           {/* Song or trend name (required) */}
           <div className="mb-6">
-            <label className="mb-1.5 block text-xs font-semibold text-[#1a0f00]/40 uppercase tracking-widest">
+            <label className="mb-1.5 block text-xs font-semibold text-ink/40 uppercase tracking-widest">
               Song or Trend Name
             </label>
             <input type="text" value={songName} onChange={(e) => setSongName(e.target.value)}
               placeholder="e.g., APT - Rose & Bruno Mars"
               maxLength={100}
-              className="w-full rounded-xl border border-[#1a0f00]/10 bg-[#f8f4e0]/60 px-4 py-3 text-sm text-[#1a0f00] placeholder:text-[#1a0f00]/25 outline-none transition-all focus:border-[#080808]/30 focus:ring-2 focus:ring-[#080808]/[0.08]" />
+              className="w-full rounded-xl border border-ink/10 bg-[#f8f4e0]/60 px-4 py-3 text-sm text-ink placeholder:text-ink/25 outline-none transition-all focus:border-[#080808]/30 focus:ring-2 focus:ring-[#080808]/[0.08]" />
             <div className="mt-1 flex items-center justify-between">
-              <p className="text-[11px] text-[#1a0f00]/25">Required · Min. 3 characters</p>
+              <p className="text-[11px] text-ink/25">Required · Min. 3 characters</p>
               <AnimatePresence>
                 {songName.length > 0 && (
                   <motion.span
@@ -245,7 +245,7 @@ export default function PracticePage() {
                     className={`group cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-all duration-200 sm:p-12 ${
                       dragActive
                         ? "border-[#080808] bg-[#080808]/5"
-                        : "border-[#1a0f00]/10 hover:border-[#080808]/30 hover:bg-[#080808]/3"
+                        : "border-ink/10 hover:border-[#080808]/30 hover:bg-[#080808]/3"
                     }`}
                   >
                     <input ref={fileInputRef} type="file" accept="video/mp4,video/quicktime,video/webm"
@@ -253,21 +253,21 @@ export default function PracticePage() {
                     <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-2xl transition-colors ${
                       dragActive ? "bg-[#080808]/15" : "bg-[#080808]/[0.06] group-hover:bg-[#080808]/12"
                     }`}>
-                      <FaUpload className={`text-xl transition-colors ${dragActive ? "text-[#080808]" : "text-[#1a0f00]/30 group-hover:text-[#080808]"}`} />
+                      <FaUpload className={`text-xl transition-colors ${dragActive ? "text-[#080808]" : "text-ink/30 group-hover:text-[#080808]"}`} />
                     </div>
-                    <p className="mt-4 text-sm font-semibold text-[#1a0f00]">
+                    <p className="mt-4 text-sm font-semibold text-ink">
                       <span className="hidden sm:inline">Drag &amp; drop your video here</span>
                       <span className="sm:hidden">Tap to select a video</span>
                     </p>
-                    <p className="mt-1 text-xs text-[#1a0f00]/30">
+                    <p className="mt-1 text-xs text-ink/30">
                       <span className="hidden sm:inline">or click to browse</span>
                       <span className="sm:hidden">MP4, MOV, or WebM</span>
                     </p>
                     <div className="mt-4 flex items-center justify-center gap-2">
                       {["MP4", "MOV", "WebM"].map((f) => (
-                        <span key={f} className="rounded-full bg-[#080808]/[0.06] px-3 py-1 text-[10px] font-bold text-[#1a0f00]/50">{f}</span>
+                        <span key={f} className="rounded-full bg-[#080808]/[0.06] px-3 py-1 text-[10px] font-bold text-ink/50">{f}</span>
                       ))}
-                      <span className="text-[10px] text-[#1a0f00]/20">Max 200MB</span>
+                      <span className="text-[10px] text-ink/20">Max 200MB</span>
                     </div>
                   </div>
                 ) : (
@@ -275,14 +275,14 @@ export default function PracticePage() {
                     className="rounded-2xl border border-[#080808]/12 bg-[#080808]/5 p-5">
                     <div className="flex items-center gap-4">
                       <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-[#080808]/10">
-                        <FaFilm className="text-[#1a0f00] text-lg" />
+                        <FaFilm className="text-ink text-lg" />
                       </div>
                       <div className="flex-1 overflow-hidden">
-                        <p className="truncate text-sm font-semibold text-[#1a0f00]">{selectedFile.name}</p>
-                        <p className="mt-0.5 text-xs text-[#1a0f00]/30">{formatFileSize(selectedFile.size)}</p>
+                        <p className="truncate text-sm font-semibold text-ink">{selectedFile.name}</p>
+                        <p className="mt-0.5 text-xs text-ink/30">{formatFileSize(selectedFile.size)}</p>
                       </div>
                       <button onClick={() => { setSelectedFile(null); setVideoDuration(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
-                        className="rounded-lg p-1.5 text-[#1a0f00]/20 hover:bg-[#1a0f00]/5 hover:text-[#1a0f00]/50 transition-colors">
+                        className="rounded-lg p-1.5 text-ink/20 hover:bg-ink/5 hover:text-ink/50 transition-colors">
                         <FaTimes className="h-4 w-4" />
                       </button>
                     </div>
@@ -305,18 +305,18 @@ export default function PracticePage() {
             {uploadState === "uploading" && (
               <motion.div key="uploading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-8 text-center">
                 <div className="relative mx-auto h-16 w-16">
-                  <div className="absolute inset-0 rounded-full border-2 border-[#1a0f00]/10" />
+                  <div className="absolute inset-0 rounded-full border-2 border-ink/10" />
                   <motion.div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#080808]"
                     animate={{ rotate: 360 }} transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }} />
                   <motion.div className="absolute inset-2 rounded-full border-2 border-transparent border-t-[#00D4FF]"
                     animate={{ rotate: -360 }} transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }} />
                 </div>
-                <p className="mt-5 text-sm font-semibold text-[#1a0f00]">Preparing your session...</p>
-                <div className="mx-auto mt-4 h-1.5 max-w-xs overflow-hidden rounded-full bg-[#1a0f00]/[0.08]">
+                <p className="mt-5 text-sm font-semibold text-ink">Preparing your session...</p>
+                <div className="mx-auto mt-4 h-1.5 max-w-xs overflow-hidden rounded-full bg-ink/[0.08]">
                   <motion.div className="h-full rounded-full bg-[#080808]"
                     style={{ width: `${Math.min(progress, 100)}%` }} transition={{ duration: 0.3 }} />
                 </div>
-                <p className="mt-2 text-xs text-[#1a0f00]/30">{Math.round(progress)}%</p>
+                <p className="mt-2 text-xs text-ink/30">{Math.round(progress)}%</p>
               </motion.div>
             )}
 
@@ -327,8 +327,8 @@ export default function PracticePage() {
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#34D399]/15">
                   <FaCheckCircle className="text-[#34D399] text-3xl" />
                 </div>
-                <p className="mt-4 text-sm font-semibold text-[#1a0f00]">Video ready!</p>
-                <p className="mt-1 text-xs text-[#1a0f00]/30">Redirecting to your session...</p>
+                <p className="mt-4 text-sm font-semibold text-ink">Video ready!</p>
+                <p className="mt-1 text-xs text-ink/30">Redirecting to your session...</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -347,7 +347,7 @@ export default function PracticePage() {
             <div className="mt-6 flex items-center gap-3">
               {uploadState === "error" && (
                 <button onClick={resetUpload}
-                  className="rounded-full border border-[#1a0f00]/10 px-5 py-3 text-sm font-medium text-[#1a0f00]/50 hover:border-[#1a0f00]/20 hover:text-[#1a0f00] transition-all">
+                  className="rounded-full border border-ink/10 px-5 py-3 text-sm font-medium text-ink/50 hover:border-ink/20 hover:text-ink transition-all">
                   Reset
                 </button>
               )}
@@ -355,7 +355,7 @@ export default function PracticePage() {
                 className={`flex flex-1 items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold transition-all duration-200 ${
                   canUpload
                     ? "bg-[#080808] text-white shadow-lg hover:bg-[#1a1a1a] active:scale-[0.98]"
-                    : "cursor-not-allowed bg-[#1a0f00]/[0.08] text-[#1a0f00]/25"
+                    : "cursor-not-allowed bg-ink/[0.08] text-ink/25"
                 }`}>
                 {uploadState === "error" ? "Retry" : "Start Session"}
                 {canUpload && <FaArrowRight className="text-xs" />}
@@ -364,7 +364,7 @@ export default function PracticePage() {
           )}
         </motion.div>
 
-        <p className="mt-6 text-center text-xs leading-relaxed text-[#1a0f00]/20">
+        <p className="mt-6 text-center text-xs leading-relaxed text-ink/20">
           Supported: MP4, MOV, WebM · Max 200MB · Session-only (not stored permanently)
         </p>
       </main>

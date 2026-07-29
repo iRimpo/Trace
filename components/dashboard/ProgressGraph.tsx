@@ -27,9 +27,9 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
   if (!active || !payload?.length) return null;
   const { score, date } = payload[0].payload;
   return (
-    <div className="rounded-xl border border-[#1a0f00]/10 bg-white px-3 py-2 shadow-lg">
+    <div className="rounded-xl border border-ink/10 bg-white px-3 py-2 shadow-lg">
       <p className="text-base font-black tabular-nums" style={{ color: scoreColor(score) }}>{score}%</p>
-      <p className="text-[11px] text-[#5c3d1a]/50">{fmtDate(date)}</p>
+      <p className="text-[11px] text-clay/50">{fmtDate(date)}</p>
     </div>
   );
 }
@@ -57,7 +57,7 @@ export default function ProgressGraph({ attempts }: { attempts: SongAttempt[] })
           <text x="50" y="54" textAnchor="middle" dominantBaseline="middle"
             fontSize="20" fontWeight="900" fill={color}>{s}%</text>
         </svg>
-        <p className="text-[11px] text-[#5c3d1a]/40">{fmtDate(attempts[0].date)} · Practice again to see progress</p>
+        <p className="text-[11px] text-clay/40">{fmtDate(attempts[0].date)} · Practice again to see progress</p>
       </div>
     );
   }

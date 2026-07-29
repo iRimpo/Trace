@@ -19,9 +19,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f8f4e0]">
         <div className="relative h-10 w-10">
-          <div className="absolute inset-0 rounded-full border-2 border-[#1a0f00]/10" />
+          <div className="absolute inset-0 rounded-full border-2 border-ink/10" />
           <motion.div
-            className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#1a0f00]"
+            className="absolute inset-0 rounded-full border-2 border-transparent border-t-ink"
             animate={{ rotate: 360 }}
             transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }}
           />
@@ -41,7 +41,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen flex-col bg-[#f8f4e0]">
       {/* Top bar */}
-      <header className="flex h-14 items-center justify-between border-b border-[#1a0f00]/[0.08] bg-[#f8f4e0] px-5 sm:px-8">
+      <header className="flex h-14 items-center justify-between border-b border-ink/[0.08] bg-[#f8f4e0] px-5 sm:px-8">
         <Link href="/" className="flex items-center">
           <img src="/trace_logo.svg" width="36" height="36" alt="Trace" className="rounded-full" />
         </Link>
@@ -53,7 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <button
             onClick={handleSignOut}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[#1a0f00]/40 transition-colors hover:bg-[#1a0f00]/[0.08] hover:text-[#1a0f00]"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-ink/40 transition-colors hover:bg-ink/[0.08] hover:text-ink"
             title="Log out"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

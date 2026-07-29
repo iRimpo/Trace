@@ -160,7 +160,7 @@ function SignupForm() {
       >
         {/* Back link */}
         <div className="mb-6">
-          <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-[#5c3d1a]/50 hover:text-[#1a0f00] transition-colors">
+          <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-clay/50 hover:text-ink transition-colors">
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
             </svg>
@@ -175,7 +175,7 @@ function SignupForm() {
         )}
 
         {/* Card */}
-        <div className="rounded-2xl border border-[#1a0f00]/[0.08] bg-white p-5 shadow-sm sm:p-8 md:p-10">
+        <div className="rounded-2xl border border-ink/[0.08] bg-white p-5 shadow-sm sm:p-8 md:p-10">
           <AnimatePresence mode="wait">
             {confirmEmail ? (
               <motion.div
@@ -189,14 +189,14 @@ function SignupForm() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h1 className="mt-5 font-calistoga text-2xl tracking-tight text-[#1a0f00]">
+                <h1 className="mt-5 font-calistoga text-2xl tracking-tight text-ink">
                   Check your email
                 </h1>
-                <p className="mt-2 text-sm leading-relaxed text-[#5c3d1a]/50">
+                <p className="mt-2 text-sm leading-relaxed text-clay/50">
                   We sent a confirmation link to{" "}
-                  <span className="font-medium text-[#1a0f00]">{email}</span>.
+                  <span className="font-medium text-ink">{email}</span>.
                   Click it to activate your account, then{" "}
-                  <Link href="/login" className="font-semibold text-[#1a0f00] hover:text-[#1a0f00]/70">
+                  <Link href="/login" className="font-semibold text-ink hover:text-ink/70">
                     log in
                   </Link>
                   .
@@ -204,10 +204,10 @@ function SignupForm() {
               </motion.div>
             ) : (
               <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <h1 className="font-calistoga text-2xl tracking-tight text-[#1a0f00]">
+                <h1 className="font-calistoga text-2xl tracking-tight text-ink">
                   Create your account
                 </h1>
-                <p className="mt-2 text-sm text-[#5c3d1a]/50">
+                <p className="mt-2 text-sm text-clay/50">
                   Start analyzing your dance technique today.
                 </p>
 
@@ -216,7 +216,7 @@ function SignupForm() {
                     type="button"
                     onClick={handleGoogleSignup}
                     disabled={googleLoading}
-                    className="flex w-full items-center justify-center gap-2 rounded-full border border-[#1a0f00]/15 bg-white py-3 text-sm font-semibold text-[#1a0f00] shadow-sm transition-colors hover:bg-[#1a0f00]/[0.05] disabled:opacity-50"
+                    className="flex w-full items-center justify-center gap-2 rounded-full border border-ink/15 bg-white py-3 text-sm font-semibold text-ink shadow-sm transition-colors hover:bg-ink/[0.05] disabled:opacity-50"
                   >
                     {googleLoading ? (
                       <>
@@ -240,10 +240,10 @@ function SignupForm() {
                   </button>
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-[#1a0f00]/10" />
+                      <div className="w-full border-t border-ink/10" />
                     </div>
                     <div className="relative flex justify-center text-xs">
-                      <span className="bg-white px-2 text-[#5c3d1a]/50">or sign up with email</span>
+                      <span className="bg-white px-2 text-clay/50">or sign up with email</span>
                     </div>
                   </div>
                 </div>
@@ -251,7 +251,7 @@ function SignupForm() {
                 <form onSubmit={handleSubmit} className="mt-5 space-y-5">
                   {/* Activation Code */}
                   <div>
-                    <label htmlFor="activationCode" className="mb-1.5 block text-sm font-medium text-[#5c3d1a]/70">
+                    <label htmlFor="activationCode" className="mb-1.5 block text-sm font-medium text-clay/70">
                       Invite code
                     </label>
                     <input
@@ -261,13 +261,13 @@ function SignupForm() {
                       value={activationCode}
                       onChange={(e) => setActivationCode(e.target.value)}
                       placeholder="Invite code"
-                      className="w-full rounded-xl border border-[#1a0f00]/12 bg-white px-4 py-3 text-sm text-[#1a0f00] placeholder-[#1a0f00]/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
+                      className="w-full rounded-xl border border-ink/12 bg-white px-4 py-3 text-sm text-ink placeholder-ink/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
                     />
                   </div>
 
                   {/* Name */}
                   <div>
-                    <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-[#5c3d1a]/70">
+                    <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-clay/70">
                       Name
                     </label>
                     <input
@@ -277,26 +277,26 @@ function SignupForm() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Your name"
-                      className="w-full rounded-xl border border-[#1a0f00]/12 bg-white px-4 py-3 text-sm text-[#1a0f00] placeholder-[#1a0f00]/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
+                      className="w-full rounded-xl border border-ink/12 bg-white px-4 py-3 text-sm text-ink placeholder-ink/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
                     />
                   </div>
 
                   {/* Email */}
                   <div>
-                    <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-[#5c3d1a]/70">
+                    <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-clay/70">
                       Email
                     </label>
                     <input
                       id="email" type="email" required value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@email.com"
-                      className="w-full rounded-xl border border-[#1a0f00]/12 bg-white px-4 py-3 text-sm text-[#1a0f00] placeholder-[#1a0f00]/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
+                      className="w-full rounded-xl border border-ink/12 bg-white px-4 py-3 text-sm text-ink placeholder-ink/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
                     />
                   </div>
 
                   {/* Password */}
                   <div>
-                    <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-[#5c3d1a]/70">
+                    <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-clay/70">
                       Password
                     </label>
                     <div className="relative">
@@ -304,7 +304,7 @@ function SignupForm() {
                         id="password" type={showPassword ? "text" : "password"} required value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Create a strong password"
-                        className="w-full rounded-xl border border-[#1a0f00]/12 bg-white px-4 py-3 pr-12 text-sm text-[#1a0f00] placeholder-[#1a0f00]/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
+                        className="w-full rounded-xl border border-ink/12 bg-white px-4 py-3 pr-12 text-sm text-ink placeholder-ink/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
                       />
                       <button type="button" onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors">
@@ -328,9 +328,9 @@ function SignupForm() {
                           <div key={check.label} className="flex items-center gap-2 text-xs">
                             <motion.div
                               animate={{ scale: check.met ? [1.5, 1] : 1 }}
-                              className={`h-1.5 w-1.5 rounded-full transition-colors ${check.met ? "bg-[#34D399]" : "bg-[#1a0f00]/15"}`}
+                              className={`h-1.5 w-1.5 rounded-full transition-colors ${check.met ? "bg-[#34D399]" : "bg-ink/15"}`}
                             />
-                            <span className={check.met ? "text-[#1a0f00]" : "text-[#5c3d1a]/40"}>
+                            <span className={check.met ? "text-ink" : "text-clay/40"}>
                               {check.label}
                             </span>
                           </div>
@@ -341,14 +341,14 @@ function SignupForm() {
 
                   {/* Confirm Password */}
                   <div>
-                    <label htmlFor="confirmPassword" className="mb-1.5 block text-sm font-medium text-[#5c3d1a]/70">
+                    <label htmlFor="confirmPassword" className="mb-1.5 block text-sm font-medium text-clay/70">
                       Confirm password
                     </label>
                     <input
                       id="confirmPassword" type={showPassword ? "text" : "password"} required value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Repeat your password"
-                      className="w-full rounded-xl border border-[#1a0f00]/12 bg-white px-4 py-3 text-sm text-[#1a0f00] placeholder-[#1a0f00]/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
+                      className="w-full rounded-xl border border-ink/12 bg-white px-4 py-3 text-sm text-ink placeholder-ink/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
                     />
                     {confirmPassword.length > 0 && password !== confirmPassword && (
                       <p className="mt-1.5 text-xs text-red-500">Passwords do not match</p>
@@ -394,9 +394,9 @@ function SignupForm() {
         </div>
 
         {!confirmEmail && (
-          <p className="mt-6 text-center text-sm text-[#5c3d1a]/50">
+          <p className="mt-6 text-center text-sm text-clay/50">
             Already have an account?{" "}
-            <Link href="/login" className="font-semibold text-[#1a0f00] hover:text-[#1a0f00]/70 transition-colors">
+            <Link href="/login" className="font-semibold text-ink hover:text-ink/70 transition-colors">
               Log in
             </Link>
           </p>
@@ -411,7 +411,7 @@ export default function SignupPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center bg-[#f8f4e0]">
-          <div className="h-8 w-8 rounded-full border-2 border-[#1a0f00]/10 border-t-[#1a0f00] animate-spin" />
+          <div className="h-8 w-8 rounded-full border-2 border-ink/10 border-t-ink animate-spin" />
         </div>
       }
     >

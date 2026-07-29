@@ -125,13 +125,13 @@ export default function Hero() {
               animate={{ scale: [1, 1.4, 1] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
             />
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#5c3d1a]/45">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-clay/45">
               AI-Powered Dance Analysis
             </span>
           </motion.div>
 
           {/* Headline — staggered words */}
-          <h1 className="font-calistoga text-[clamp(2.2rem,5.5vw,5rem)] leading-[1.06] tracking-tight text-[#1a0f00]">
+          <h1 className="font-calistoga text-[clamp(2.2rem,5.5vw,5rem)] leading-[1.06] tracking-tight text-ink">
             {["Dance", "smarter.", "Move", "without", "limits."].map((word, i) => (
               <motion.span
                 key={i}
@@ -150,7 +150,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.65, delay: 0.65 }}
-            className="mt-5 max-w-sm text-base leading-relaxed text-[#5c3d1a]/55"
+            className="mt-5 max-w-sm text-base leading-relaxed text-clay/55"
           >
             Trace maps every joint, syncs every beat, and shows you exactly when and where to move — in real time.
           </motion.p>
@@ -173,13 +173,13 @@ export default function Hero() {
             </a>
             <a
               href="/login"
-              className="inline-flex h-11 items-center rounded-full border border-[#1a0f00]/14 px-7 text-sm font-medium text-[#1a0f00]/55 transition-all duration-200 hover:bg-[#1a0f00]/[0.06]"
+              className="inline-flex h-11 items-center rounded-full border border-ink/14 px-7 text-sm font-medium text-ink/55 transition-all duration-200 hover:bg-ink/[0.06]"
             >
               Log in
             </a>
             <a
               href="#how-it-works"
-              className="inline-flex h-11 items-center rounded-full border border-[#1a0f00]/14 px-5 sm:px-7 text-sm font-medium text-[#1a0f00]/55 transition-all duration-200 hover:bg-[#1a0f00]/[0.06] active:scale-95"
+              className="inline-flex h-11 items-center rounded-full border border-ink/14 px-5 sm:px-7 text-sm font-medium text-ink/55 transition-all duration-200 hover:bg-ink/[0.06] active:scale-95"
             >
               See how it works
             </a>
@@ -223,12 +223,12 @@ export default function Hero() {
             {/* Reference dancer — hidden on mobile to avoid overflow */}
             <div className="relative hidden sm:block">
               <DancerSvg dimmed />
-              <p className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.2em] text-[#1a0f00]/25">Reference</p>
+              <p className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.2em] text-ink/25">Reference</p>
             </div>
 
             {/* Seam divider with animated cue dots — hidden on mobile */}
             <div className="relative hidden sm:block h-60 w-px sm:h-80">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#1a0f00]/12 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-ink/12 to-transparent" />
               {CUE.map(({ color }, i) => (
                 <motion.div
                   key={i}
@@ -243,7 +243,7 @@ export default function Hero() {
             {/* Analyzed dancer */}
             <div className="relative">
               <DancerSvg />
-              <p className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.2em] text-[#1a0f00]/25">You</p>
+              <p className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.2em] text-ink/25">You</p>
             </div>
           </div>
 
@@ -252,14 +252,14 @@ export default function Hero() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 1.4 }}
-            className="absolute -top-4 right-0 flex items-center gap-1.5 rounded-full border border-[#1a0f00]/[0.08] bg-white/80 px-3 py-1.5 backdrop-blur-sm"
+            className="absolute -top-4 right-0 flex items-center gap-1.5 rounded-full border border-ink/[0.08] bg-white/80 px-3 py-1.5 backdrop-blur-sm"
           >
             <motion.div
               className="h-1.5 w-1.5 rounded-full bg-[#34D399]"
               animate={{ scale: [1, 1.6, 1] }}
               transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
             />
-            <span className="font-mono text-[11px] font-semibold text-[#1a0f00]/60">120 BPM</span>
+            <span className="font-mono text-[11px] font-semibold text-ink/60">120 BPM</span>
           </motion.div>
 
           {/* Count badge */}
@@ -267,9 +267,9 @@ export default function Hero() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 1.6 }}
-            className="absolute -bottom-2 right-4 flex h-10 w-10 items-center justify-center rounded-full border border-[#1a0f00]/[0.08] bg-white/80 backdrop-blur-sm"
+            className="absolute -bottom-2 right-4 flex h-10 w-10 items-center justify-center rounded-full border border-ink/[0.08] bg-white/80 backdrop-blur-sm"
           >
-            <span className="font-calistoga text-lg font-bold text-[#1a0f00]">3</span>
+            <span className="font-calistoga text-lg font-bold text-ink">3</span>
           </motion.div>
         </motion.div>
       </div>
