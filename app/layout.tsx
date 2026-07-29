@@ -6,6 +6,7 @@ import PostHogProvider from "@/components/PostHogProvider";
 import ActivationGuard from "@/components/ActivationGuard";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 import InstallPrompt from "@/components/InstallPrompt";
+import MotionProvider from "@/components/MotionProvider";
 import "./globals.css";
 
 const inter = Inter({
@@ -89,15 +90,17 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${spaceMono.variable} ${outfit.variable} ${dmSans.variable} ${plusJakarta.variable} ${raleway.variable} ${calistoga.variable} font-sans antialiased`}
       >
-        <AuthProvider>
-          <ActivationGuard>
-            <Suspense fallback={null}>
-              <PostHogProvider>{children}</PostHogProvider>
-            </Suspense>
-          </ActivationGuard>
-        </AuthProvider>
-        <ServiceWorkerRegistrar />
-        <InstallPrompt />
+        <MotionProvider>
+          <AuthProvider>
+            <ActivationGuard>
+              <Suspense fallback={null}>
+                <PostHogProvider>{children}</PostHogProvider>
+              </Suspense>
+            </ActivationGuard>
+          </AuthProvider>
+          <ServiceWorkerRegistrar />
+          <InstallPrompt />
+        </MotionProvider>
       </body>
     </html>
   );

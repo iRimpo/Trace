@@ -107,13 +107,34 @@ html {
   to   { opacity: 1; }
 }
 
+/*
+ * Reduced motion: calm the decorative animation, keep the functional kind.
+ *
+ * The previous rule was a blanket `*` selector, which also froze loading
+ * spinners and the recording indicator — the animations that tell the user
+ * something is happening. Reduced motion means less movement, not less
+ * feedback, and a user who can't tell whether they're being recorded is worse
+ * off than one who saw a spinner.
+ *
+ * Framer-motion is handled separately by <MotionConfig reducedMotion="user">
+ * in components/MotionProvider.tsx; this covers CSS-only animation.
+ */
 @media (prefers-reduced-motion: reduce) {
+  /* Ambient/decorative only — drifting orbs, shimmer, marquee, parallax. */
+  .animate-float-slow,
+  .animate-float-reverse,
+  .animate-marquee,
+  .text-shimmer,
+  .blob {
+    animation: none !important;
+  }
+
+  /* Keep spinners and state feedback running, just shorten transitions. */
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

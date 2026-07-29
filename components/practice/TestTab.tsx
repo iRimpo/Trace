@@ -473,13 +473,25 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
         <>
           <div className="absolute inset-0 z-10 bg-black/50" />
           <div className="absolute inset-0 z-20 flex items-center justify-center">
-            <AnimatePresence mode="wait">
+            {/*
+              A countdown has to land on its own beat. `mode="wait"` serialised
+              a 300ms exit before a 300ms enter, so each digit finished
+              appearing ~600ms after the setTimeout that set it — and since the
+              "GO!" timer and the start-recording timer both fire at 3000ms,
+              recording began while GO was still animating in.
+
+              Overlapping enter/exit and a short fade keep the digit on the
+              beat. Scale is nearly neutral on entry too: the user is several
+              feet away, and a digit that grows into place reads as "not yet"
+              at exactly the moment it means "now".
+            */}
+            <AnimatePresence>
               <motion.div
                 key={countdownNum}
-                initial={{ opacity: 0, scale: 0.4 }}
+                initial={{ opacity: 0, scale: 0.94 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.8 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
+                exit={{ opacity: 0, scale: 1.25 }}
+                transition={{ duration: 0.12, ease: "easeOut" }}
                 className={`select-none font-bold ${
                   isGo ? "text-6xl text-green-400 drop-shadow-lg"
                        : "text-[120px] leading-none text-white drop-shadow-2xl"

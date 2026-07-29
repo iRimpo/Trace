@@ -1,4 +1,5 @@
 import type { MovementEvent } from "./movementEventDetector";
+import { CUE_PALETTE } from "./cuePalette";
 import type { Accent } from "./countGrid";
 
 // ── Coordinate transform ─────────────────────────────────────────────────
@@ -48,15 +49,7 @@ function cueAlpha(progress: number): number {
 
 // ── Body-region color palette ─────────────────────────────────────────────
 
-const COLORS = {
-  hand:     "#00D4FF",  // Cyan     — wrists, fingers, knees
-  foot:     "#34D399",  // Teal     — ankles, heels, toes
-  head:     "#FBBF24",  // Amber    — nose/head
-  elbow:    "#F97316",  // Orange   — elbows
-  hip:      "#A78BFA",  // Purple   — hips
-  shoulder: "#60A5FA",  // Sky blue — shoulders
-  armBoth:  "#F472B6",  // Pink     — both-arms compound
-} as const;
+const COLORS = CUE_PALETTE;
 
 // ── Cap arrow length ──────────────────────────────────────────────────────
 

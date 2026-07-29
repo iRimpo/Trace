@@ -1,17 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { CUE_PALETTE, CUE_ORDER, CUE_LABELS } from "@/lib/cuePalette";
 
 // ── Cue colors ────────────────────────────────────────────────────────
-const CUE = [
-  { label: "Hands",     color: "#00D4FF" },
-  { label: "Feet",      color: "#34D399" },
-  { label: "Head",      color: "#FBBF24" },
-  { label: "Elbows",    color: "#F97316" },
-  { label: "Hips",      color: "#A78BFA" },
-  { label: "Shoulders", color: "#60A5FA" },
-  { label: "Arms",      color: "#F472B6" },
-];
+// Derived from lib/cuePalette.ts so the landing page can't drift from the
+// colours the practice overlay actually draws.
+const CUE = CUE_ORDER.map(region => ({
+  label: CUE_LABELS[region],
+  color: CUE_PALETTE[region],
+}));
 
 // ── Skeleton data ─────────────────────────────────────────────────────
 const JOINTS = [

@@ -4,7 +4,9 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ── Cue palette ────────────────────────────────────────────────────────────
-const CUE_COLORS = ["#00D4FF", "#34D399", "#FBBF24", "#F97316", "#A78BFA", "#60A5FA", "#F472B6"];
+// Canonical definition lives in lib/cuePalette.ts — onboarding must show the
+// same colours the practice overlay actually draws.
+import { CUE_COLORS } from "@/lib/cuePalette";
 
 // ── Step visuals ───────────────────────────────────────────────────────────
 

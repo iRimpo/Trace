@@ -1048,7 +1048,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
 
         {/* Left satellites: tools + feedback + dancer pills */}
         <div
-          className={`pointer-events-auto absolute bottom-4 left-4 flex flex-col gap-2 transition-opacity duration-500 ${controlsVisible ? "opacity-100" : "opacity-0"}`}
+          className={`absolute bottom-4 left-4 flex flex-col gap-2 transition-opacity duration-500 ${controlsVisible ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`}
           style={{ bottom: "max(1rem, env(safe-area-inset-bottom))" }}
         >
           {/* Tools circle */}
@@ -1067,7 +1067,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
 
         {/* Right satellites: beat align + ready */}
         <div
-          className={`pointer-events-auto absolute bottom-4 right-4 flex flex-col items-end gap-3 transition-opacity duration-500 ${controlsVisible ? "opacity-100" : "opacity-0"}`}
+          className={`absolute bottom-4 right-4 flex flex-col items-end gap-3 transition-opacity duration-500 ${controlsVisible ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`}
           style={{ bottom: "max(1rem, env(safe-area-inset-bottom))" }}
         >
           {/* Beat alignment popover */}
