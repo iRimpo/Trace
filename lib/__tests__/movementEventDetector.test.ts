@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MovementEventDetector, movementOrigin } from "../movementEventDetector";
+import { MovementEventDetector, movementOrigin, detectRoll } from "../movementEventDetector";
 import { PoseFrameBuffer } from "../motionAnalyzer";
 import type { PoseFrame } from "../motionAnalyzer";
 import type { Keypoint } from "../mediapipe";
@@ -120,5 +120,58 @@ describe("movementOrigin", () => {
     // rest position at x=50 is out of reach.
     const o = movementOrigin(stillThenMove(), 15, 250)!;
     expect(o.x).toBeGreaterThan(50);
+  });
+});
+
+// ── Roll / wave detection ─────────────────────────────────────────────────
+
+/** `n` frames tracing a circle of radius `r` — high path, ~zero net travel. */
+function circleFrames(n: number, r: number): PoseFrame[] {
+  return Array.from({ length: n }, (_, i) => {
+    const a = (i / n) * Math.PI * 2;
+    const x = 200 + r * Math.cos(a), y = 200 + r * Math.sin(a);
+    return {
+      kps: Array.from({ length: 33 }, () => ({ x, y, score: 0.9 })),
+      videoTime: i * 0.05,
+      wallTime:  i * 50,
+    };
+  }) as PoseFrame[];
+}
+
+/** `n` frames travelling in a straight line — path equals net travel. */
+function lineFrames(n: number, span: number): PoseFrame[] {
+  return Array.from({ length: n }, (_, i) => {
+    const x = 200 + (span * i) / (n - 1);
+    return {
+      kps: Array.from({ length: 33 }, () => ({ x, y: 200, score: 0.9 })),
+      videoTime: i * 0.05,
+      wallTime:  i * 50,
+    };
+  }) as PoseFrame[];
+}
+
+describe("detectRoll", () => {
+  it("fires on a circular path", () => {
+    expect(detectRoll(circleFrames(10, 60), 11, 720)).not.toBeNull();
+  });
+
+  it("does not fire on a straight line of the same length", () => {
+    expect(detectRoll(lineFrames(10, 240), 11, 720)).toBeNull();
+  });
+
+  it("does not fire on a circle too small to be a real gesture", () => {
+    expect(detectRoll(circleFrames(10, 2), 11, 720)).toBeNull();
+  });
+
+  it("emits nothing below 3 samples in the window", () => {
+    // 2 frames cannot describe a loop; the scan floors at 2fps on long videos,
+    // where a beat is a single frame and circuity is unmeasurable.
+    expect(detectRoll(circleFrames(2, 60), 11, 720)).toBeNull();
+  });
+
+  it("reports path length as the magnitude, not net displacement", () => {
+    const roll = detectRoll(circleFrames(12, 60), 11, 720)!;
+    // circumference ~ 2*pi*60 = 377; net displacement ~ 0
+    expect(roll.magnitude).toBeGreaterThan(300);
   });
 });
