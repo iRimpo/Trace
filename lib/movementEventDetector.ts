@@ -124,7 +124,8 @@ export type EventType =
   | "hip"        // hip                   — diamond sway indicator
   | "elbow"      // elbow                 — arc bracket
   | "shoulder"   // shoulder              — T-bar shift indicator
-  | "arm-both";  // both wrists together  — mirrored wing arcs
+  | "arm-both"   // both wrists together  — mirrored wing arcs
+  | "roll";      // oscillatory / rotational motion — looping arrow
 
 export interface MovementEvent {
   type:       EventType;

@@ -13,18 +13,25 @@
  * styles, which cannot use Tailwind classes.
  */
 export const CUE_PALETTE = {
-  hand:     "#00D4FF", // Cyan     — wrists, fingers, knees
-  foot:     "#34D399", // Teal     — ankles, heels, toes
+  hand:     "#00D4FF", // Cyan     — wrists, fingers
+  foot:     "#34D399", // Teal     — knees, ankles, heels, toes
   head:     "#FBBF24", // Amber    — nose/head
   elbow:    "#F97316", // Orange   — elbows
   hip:      "#A78BFA", // Purple   — hips
   shoulder: "#60A5FA", // Sky blue — shoulders
   armBoth:  "#F472B6", // Pink     — both-arms compound
+  body:     "#E879F9", // Fuchsia  — torso rolls and waves
 } as const;
 
 export type CueRegion = keyof typeof CUE_PALETTE;
 
-/** Display order for legends and swatch rows. */
+/**
+ * Display order for legends and swatch rows.
+ *
+ * Deliberately excludes `body`: `CUE_COLORS` derives from this order and feeds
+ * decorative swatch sequences in onboarding and marketing, where an eighth dot
+ * would be an unrelated visual change.
+ */
 export const CUE_ORDER: readonly CueRegion[] = [
   "hand", "foot", "head", "elbow", "hip", "shoulder", "armBoth",
 ] as const;
@@ -38,6 +45,7 @@ export const CUE_LABELS: Record<CueRegion, string> = {
   hip:      "Hips",
   shoulder: "Shoulders",
   armBoth:  "Arms",
+  body:     "Body",
 };
 
 /** Flat list in display order — for decorative swatch/dot sequences. */

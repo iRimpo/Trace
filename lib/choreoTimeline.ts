@@ -39,6 +39,7 @@ export interface ChoreoTimeline {
 
 /** Cue priority — extremities and full-body motion outrank subtle joints. */
 const PRIORITY: Record<EventType, number> = {
+  roll:       3,   // stopgap — this whole module is replaced by cueScript.ts
   step:       5,
   "arm-both": 4,
   move:       3,
