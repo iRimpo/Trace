@@ -1,4 +1,54 @@
-# Trace — session handoff (2026-07-28)
+# Trace — session handoff (2026-07-29)
+
+## THE CURRENT WORK — cue feedback redesign, branch `feedback-redesign`
+
+All nine code tasks are implemented and committed. **Nothing has been seen on a phone.**
+
+- Spec: `docs/superpowers/specs/2026-07-29-cue-feedback-redesign-design.md`
+- Plan: `docs/superpowers/plans/2026-07-29-cue-feedback-redesign.md`
+
+### What the audit found (don't re-derive)
+
+**One root cause explained three of the five reported problems: BPM was `null` on the phone.**
+Both count displays were gated on `bpm !== null`, and `quantize()` fell back to a 0.1s grid
+with no musical meaning. `detectBeatsFromVideo` fetches and decodes the entire video, which
+fails on iOS for large files.
+
+The other two:
+- `MAX_PER_BUCKET = 3` capped cues **per time bucket, not per screen**. With a 1.3s cue
+  lifetime and 0.1s buckets that allowed up to 39 concurrent cues.
+- `CueRuntime.cuesAt(t)` was already pure and seek-safe. What made feedback feel *live* was
+  (a) `beatPhase` falling back to a **wall-clock** `sin(performance.now())` oscillator,
+  (b) hit/miss badges being **live webcam judgments**, sticky per cue id and cleared only on
+  backward seeks, and (c) the timeline being composed once at scan time and never rebuilt.
+
+Also found: `anchorX/anchorY` was a *cooldown-reset artifact*, not the movement start, so
+arrow length never represented how far a limb travels.
+
+### What changed
+
+Scan output is now tempo-free (`MovementEvent[]`); composition into beat-locked cues is a
+separate pure function. Cue windows are exactly one beat wide (`LEAD_BEATS 0.75 + HOLD_BEATS
+0.25`) so they abut and **one-cue-on-screen is structural, not a limiter**. Rolls are detected
+by circuity (path length ÷ net displacement). Feedback now requires a count grid; without one
+the Feedback button opens tap-tempo. `judgeCue` left the practice loop entirely.
+
+### Still to do — REQUIRES RICHARD
+
+1. **Migration `008_scan_cache_v3.sql` has NOT been applied.** It contains
+   `delete from scan_cache where scan_version < 3` — a destructive statement against
+   production (`rnmnusnhkomiypjzmcbw`), so it was deliberately left for a human to run.
+2. **The 10-point device walkthrough in Task 10 of the plan has not been done.** The critical
+   checks: never more than one cue on screen; scrubbing to the same moment always shows the
+   identical cue; changing BPM after a scan re-lands cues without a rescan.
+3. `SCORE_FLOOR = 0.08` and the roll thresholds need tuning against the real TXT clip.
+
+Local verification only: `tsc` clean, 64 tests across 6 files, `build:check` green, app boots
+with no console errors.
+
+---
+
+# Previous handoff (2026-07-28)
 
 ## Project context
 
