@@ -16,5 +16,9 @@ export default defineConfig({
     root,
     environment: "jsdom",
     include: ["loop/properties/**/*.props.test.ts"],
+    // A high LOOP_RUNS is the point of the ratchet; vitest's 5s default
+    // cap turned 20000 runs into nine timeouts that looked like findings.
+    testTimeout: 600_000,
+    hookTimeout: 600_000,
   },
 });

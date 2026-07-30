@@ -48,6 +48,22 @@ const runs = (base: number) => ({
   ...(process.env.LOOP_SEED ? { seed: Number(process.env.LOOP_SEED) } : {}),
 });
 
+/**
+ * Float tolerance for window-boundary comparisons, in seconds.
+ *
+ * LEAD_BEATS + HOLD_BEATS is exactly 1 in binary, so cue windows abut exactly
+ * in real arithmetic. But `t_n + 0.25*beatS` and `t_(n+1) - 0.75*beatS` are two
+ * different float expressions for the same real number and can land under 1 ULP
+ * apart — measured at 5.55e-17s, or 0.78 ULP, for bpm 46.91730989308537. That
+ * sliver is not a defect: it is unrepresentable, not wrong.
+ *
+ * 1e-9s sits 7 orders of magnitude above that noise and 7 below a single 60fps
+ * frame (1.67e-2s), so it absorbs the asymmetry while still catching every real
+ * defect — an actual density bug overlaps windows by a fraction of a beat,
+ * ~0.5s, which is 8 orders of magnitude larger.
+ */
+const EPS = 1e-9;
+
 // ── Generators ──────────────────────────────────────────────────────────
 
 const EVENT_TYPES: EventType[] = [
@@ -117,8 +133,16 @@ describe("one cue on screen", () => {
 
       for (const t of probes) {
         const containing = script.cues.filter(
-          c => c.time - lead <= t && t < c.time + hold);
+          c => c.time - lead + EPS <= t && t < c.time + hold - EPS);
         expect(containing.length).toBeLessThanOrEqual(1);
+      }
+
+      // The reason non-overlap holds: at most one cue per integer beat index,
+      // so consecutive cues are always at least one beat apart, and a window is
+      // exactly one beat wide. Assert the cause, not just the symptom.
+      for (let i = 1; i < script.cues.length; i++) {
+        const gap = script.cues[i].time - script.cues[i - 1].time;
+        expect(gap).toBeGreaterThanOrEqual(beatS - EPS);
       }
     }), runs(300));
   });
@@ -135,15 +159,17 @@ describe("one cue on screen", () => {
       ]);
 
       for (const t of probes) {
-        const expected = script.cues.find(
-          c => c.time - lead <= t && t < c.time + hold) ?? null;
         const actual = cueAt(script, t);
 
-        if (expected === null) {
-          expect(actual).toBeNull();
+        if (actual !== null) {
+          // Whatever it picked must genuinely be the cue whose window holds t.
+          expect(actual.cue.time - lead - EPS).toBeLessThanOrEqual(t);
+          expect(t).toBeLessThan(actual.cue.time + hold + EPS);
         } else {
-          expect(actual).not.toBeNull();
-          expect(actual!.cue.beatIndex).toBe(expected.beatIndex);
+          // Returning nothing is only allowed when nothing strictly contains t.
+          const strict = script.cues.filter(
+            c => c.time - lead + EPS <= t && t < c.time + hold - EPS);
+          expect(strict).toEqual([]);
         }
       }
     }), runs(300));
