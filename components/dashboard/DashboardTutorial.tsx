@@ -180,7 +180,7 @@ function VisualSpeed() {
       <div className="flex items-center gap-1 rounded-xl bg-ink/[0.06] p-1">
         {speeds.map(s => (
           <button key={s} onClick={() => setSel(s)}
-            className={`rounded-lg px-2.5 py-1.5 text-sm font-bold transition-all ${sel === s ? "bg-white text-ink shadow" : "text-ink/30"}`}
+            className={`rounded-lg px-2.5 py-1.5 text-sm font-bold transition-ui ${sel === s ? "bg-white text-ink shadow" : "text-ink/30"}`}
           >{s}x</button>
         ))}
       </div>
@@ -356,14 +356,14 @@ export default function DashboardTutorial({ onDone, dismissKey }: DashboardTutor
             {step > 0 && (
               <button
                 onClick={() => setStep(s => s - 1)}
-                className="flex-none rounded-xl border border-ink/10 px-4 py-2.5 text-sm font-semibold text-ink/40 transition-all hover:text-ink/70"
+                className="flex-none rounded-xl border border-ink/10 px-4 py-2.5 text-sm font-semibold text-ink/40 transition-ui hover:text-ink/70"
               >
                 ←
               </button>
             )}
             <button
               onClick={isLast ? finish : () => setStep(s => s + 1)}
-              className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
+              className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition-ui active:scale-[0.98]"
               style={{ background: current.accent }}
             >
               {isLast ? "Let's go →" : "Next →"}

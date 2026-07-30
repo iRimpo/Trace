@@ -120,7 +120,7 @@ export default function Features() {
                   </p>
                   <p className="mt-2 text-sm leading-relaxed text-clay/60">{f.desc}</p>
                 </div>
-                <div className="h-0.5 w-8 rounded-full transition-all duration-300 group-hover:w-16" style={{ background: f.accent }} />
+                <div className="h-0.5 w-8 rounded-full transition-ui duration-300 group-hover:w-16" style={{ background: f.accent }} />
               </motion.div>
             ))}
           </div>

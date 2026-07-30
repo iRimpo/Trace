@@ -88,13 +88,13 @@ export default function Hero() {
     <section className="relative min-h-screen overflow-hidden bg-[#f8f4e0] flex items-center">
 
       {/* Background orbs — CSS-only animation, hidden on mobile */}
-      <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-slow"
+      <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-slow motion-reduce:animate-none"
         style={{ width: 340, height: 340, left: "65%", top: "10%", backgroundColor: "#A78BFA", filter: "blur(60px)", opacity: 0.12 }} />
-      <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-reverse"
+      <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-reverse motion-reduce:animate-none"
         style={{ width: 260, height: 260, left: "72%", top: "50%", backgroundColor: "#00D4FF", filter: "blur(60px)", opacity: 0.12 }} />
-      <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-slow"
+      <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-slow motion-reduce:animate-none"
         style={{ width: 200, height: 200, left: "55%", top: "70%", backgroundColor: "#34D399", filter: "blur(60px)", opacity: 0.12 }} />
-      <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-reverse"
+      <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-reverse motion-reduce:animate-none"
         style={{ width: 180, height: 180, left: "5%", top: "60%", backgroundColor: "#FBBF24", filter: "blur(60px)", opacity: 0.12 }} />
 
       {/* Subtle dot grid */}
@@ -162,7 +162,7 @@ export default function Hero() {
           >
             <a
               href="#waitlist"
-              className="inline-flex h-11 items-center gap-2 rounded-full bg-[#080808] px-7 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[#1a1a1a] active:scale-95"
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-[#080808] px-7 text-sm font-semibold text-white shadow-sm transition-ui duration-200 hover:bg-[#1a1a1a] active:scale-95"
             >
               Sign up
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -171,13 +171,13 @@ export default function Hero() {
             </a>
             <a
               href="/login"
-              className="inline-flex h-11 items-center rounded-full border border-ink/14 px-7 text-sm font-medium text-ink/55 transition-all duration-200 hover:bg-ink/[0.06]"
+              className="inline-flex h-11 items-center rounded-full border border-ink/14 px-7 text-sm font-medium text-ink/55 transition-ui duration-200 hover:bg-ink/[0.06]"
             >
               Log in
             </a>
             <a
               href="#how-it-works"
-              className="inline-flex h-11 items-center rounded-full border border-ink/14 px-5 sm:px-7 text-sm font-medium text-ink/55 transition-all duration-200 hover:bg-ink/[0.06] active:scale-95"
+              className="inline-flex h-11 items-center rounded-full border border-ink/14 px-5 sm:px-7 text-sm font-medium text-ink/55 transition-ui duration-200 hover:bg-ink/[0.06] active:scale-95"
             >
               See how it works
             </a>

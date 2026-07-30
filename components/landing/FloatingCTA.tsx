@@ -18,16 +18,16 @@ export default function FloatingCTA() {
     >
       <Link
         href="/login"
-        className="rounded-full border-2 border-ink bg-white px-3 py-2 text-xs font-bold text-ink shadow-xl transition-all duration-200 hover:bg-ink hover:text-white sm:px-4 sm:py-2.5 sm:text-sm"
+        className="rounded-full border-2 border-ink bg-white px-3 py-2 text-xs font-bold text-ink shadow-xl transition-ui duration-200 hover:bg-ink hover:text-white sm:px-4 sm:py-2.5 sm:text-sm"
       >
         Log in
       </Link>
       <Link
         href="#waitlist"
-        className="group flex items-center gap-2 rounded-full border-2 border-ink bg-[#080808] px-4 py-2 text-white shadow-xl transition-all duration-200 hover:bg-[#1a1a1a] sm:gap-2.5 sm:px-5 sm:py-3"
+        className="group flex items-center gap-2 rounded-full border-2 border-ink bg-[#080808] px-4 py-2 text-white shadow-xl transition-ui duration-200 hover:bg-[#1a1a1a] sm:gap-2.5 sm:px-5 sm:py-3"
       >
         <span className="text-xs font-bold sm:text-sm">Sign up</span>
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-sm font-bold transition-transform duration-200 group-hover:scale-110">
+        <div className="touch-target flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-sm font-bold transition-transform duration-200 group-hover:scale-110">
           +
         </div>
       </Link>

@@ -72,7 +72,7 @@ export default function SessionPage() {
           </div>
           <h2 className="mt-4 text-lg font-bold text-white">Video not found</h2>
           <p className="mt-1 text-sm text-white/40">This video doesn&apos;t exist or you don&apos;t have access.</p>
-          <Link href="/dashboard" className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2 text-sm font-semibold text-white/70 backdrop-blur transition-all hover:bg-white/15 hover:text-white">
+          <Link href="/dashboard" className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2 text-sm font-semibold text-white/70 backdrop-blur transition-ui hover:bg-white/15 hover:text-white">
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
             Back to Dashboard
           </Link>

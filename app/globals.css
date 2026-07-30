@@ -154,3 +154,24 @@ html {
 .pt-safe {
   padding-top: max(1rem, env(safe-area-inset-top));
 }
+
+/**
+ * Expands a control's hit area to the 44px touch minimum without changing what
+ * it looks like. Small icon buttons should stay small — enlarging the visual to
+ * hit the minimum makes a dense control row look clumsy — so the target grows
+ * as an invisible pseudo-element centred on the control instead.
+ *
+ * Where two of these sit closer than 44px apart the areas meet in the gutter and
+ * the later element in the DOM wins there. That is still better than a dead
+ * gutter that swallows the tap entirely.
+ */
+.touch-target { position: relative; }
+.touch-target::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}

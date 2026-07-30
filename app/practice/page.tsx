@@ -210,7 +210,7 @@ export default function PracticePage() {
             <input type="text" value={songName} onChange={(e) => setSongName(e.target.value)}
               placeholder="e.g., APT - Rose & Bruno Mars"
               maxLength={100}
-              className="w-full rounded-xl border border-ink/10 bg-[#f8f4e0]/60 px-4 py-3 text-sm text-ink placeholder:text-ink/25 outline-none transition-all focus:border-[#080808]/30 focus:ring-2 focus:ring-[#080808]/[0.08]" />
+              className="w-full rounded-xl border border-ink/10 bg-[#f8f4e0]/60 px-4 py-3 text-sm text-ink placeholder:text-ink/25 outline-none transition-ui focus:border-[#080808]/30 focus:ring-2 focus:ring-[#080808]/[0.08]" />
             <div className="mt-1 flex items-center justify-between">
               <p className="text-[11px] text-ink/25">Required · Min. 3 characters</p>
               <AnimatePresence>
@@ -242,7 +242,7 @@ export default function PracticePage() {
                     onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                     onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
                     onClick={() => fileInputRef.current?.click()}
-                    className={`group cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-all duration-200 sm:p-12 ${
+                    className={`group cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-ui duration-200 sm:p-12 ${
                       dragActive
                         ? "border-[#080808] bg-[#080808]/5"
                         : "border-ink/10 hover:border-[#080808]/30 hover:bg-[#080808]/3"
@@ -347,12 +347,12 @@ export default function PracticePage() {
             <div className="mt-6 flex items-center gap-3">
               {uploadState === "error" && (
                 <button onClick={resetUpload}
-                  className="rounded-full border border-ink/10 px-5 py-3 text-sm font-medium text-ink/50 hover:border-ink/20 hover:text-ink transition-all">
+                  className="rounded-full border border-ink/10 px-5 py-3 text-sm font-medium text-ink/50 hover:border-ink/20 hover:text-ink transition-ui">
                   Reset
                 </button>
               )}
               <button onClick={handleUpload} disabled={!canUpload}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold transition-all duration-200 ${
+                className={`flex flex-1 items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold transition-ui duration-200 ${
                   canUpload
                     ? "bg-[#080808] text-white shadow-lg hover:bg-[#1a1a1a] active:scale-[0.98]"
                     : "cursor-not-allowed bg-ink/[0.08] text-ink/25"

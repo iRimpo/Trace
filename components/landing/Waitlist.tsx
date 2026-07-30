@@ -112,7 +112,7 @@ export default function Waitlist() {
                     value={code}
                     onChange={e => setCode(e.target.value)}
                     placeholder="Enter your invite code"
-                    className="w-full rounded-xl border border-ink/15 bg-white px-4 py-3 text-sm text-ink placeholder-ink/30 outline-none transition-all focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
+                    className="w-full rounded-xl border border-ink/15 bg-white px-4 py-3 text-sm text-ink placeholder-ink/30 outline-none transition-ui focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
                   />
                 </div>
 
@@ -121,7 +121,7 @@ export default function Waitlist() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-xl bg-[#080808] py-3.5 text-sm font-bold text-white shadow-lg transition-all duration-200 hover:bg-[#1a1a1a] active:scale-[0.98] disabled:opacity-50"
+                  className="w-full rounded-xl bg-[#080808] py-3.5 text-sm font-bold text-white shadow-lg transition-ui duration-200 hover:bg-[#1a1a1a] active:scale-[0.98] disabled:opacity-50"
                 >
                   {loading ? "Checking..." : "Continue to Sign up →"}
                 </button>

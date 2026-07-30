@@ -50,7 +50,7 @@ export default function TabNavigation({ currentTab, onTabChange, completedTabs }
             key={tab.id}
             onClick={() => isClickable && onTabChange(tab.id)}
             disabled={!isClickable}
-            className={`relative flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[11px] font-bold tracking-wider transition-all ${
+            className={`relative flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[11px] font-bold tracking-wider transition-ui ${
               state === "active"
                 ? "text-white"
                 : state === "completed"

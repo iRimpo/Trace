@@ -96,7 +96,27 @@ describe("design system conformance", () => {
 
   test("pressables meet the 44px touch minimum", () => {
     // h-8/h-9/h-10 (32-40px) on something clickable. Tailwind h-11 is 44px.
-    budgeted("small_touch_target", /\bh-(?:6|7|8|9|10)\b(?=[^"'`]*(?:cursor-pointer|hover:))/g);
+    //
+    // `touch-target` (app/globals.css) is exempt: it expands the hit area to
+    // 44px via a centred pseudo-element while leaving the visual size alone,
+    // which is what this rule is actually asking for. The h-* class is only a
+    // proxy for hit area, and enlarging the visual instead would make dense
+    // control rows clumsy. Exempting a real fix is not the same as weakening
+    // the rule — an element without either still fails.
+    const where: string[] = [];
+    let count = 0;
+    for (const { path, src } of FILES) {
+      src.split("\n").forEach((line, i) => {
+        if (/\btouch-target\b/.test(line)) return;
+        const m = line.match(/\bh-(?:6|7|8|9|10)\b(?=[^"'`]*(?:cursor-pointer|hover:))/g);
+        if (m) { count += m.length; where.push(`${path}:${i + 1}`); }
+      });
+    }
+    const budget = BUDGETS["small_touch_target"];
+    const hint = count > budget ? `\nfirst offenders:\n  ${where.slice(0, 12).join("\n  ")}` : "";
+    expect(count, `small_touch_target: ${count} violations, budget ${budget}${hint}`)
+      .toBeLessThanOrEqual(budget);
+    console.log(`DESIGN_COUNT small_touch_target ${count}`);
   });
 
   test("colour comes from tokens, not raw hex", () => {

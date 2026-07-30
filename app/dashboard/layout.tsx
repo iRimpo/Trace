@@ -53,7 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <button
             onClick={handleSignOut}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-ink/40 transition-colors hover:bg-ink/[0.08] hover:text-ink"
+            className="touch-target flex h-8 w-8 items-center justify-center rounded-lg text-ink/40 transition-colors hover:bg-ink/[0.08] hover:text-ink"
             title="Log out"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

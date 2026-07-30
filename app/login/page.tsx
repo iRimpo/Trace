@@ -11,7 +11,7 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center bg-[#f8f4e0]">
-          <div className="h-8 w-8 rounded-full border-2 border-ink/10 border-t-ink animate-spin" />
+          <div className="h-8 w-8 rounded-full border-2 border-ink/10 border-t-ink animate-spin motion-reduce:animate-pulse" />
         </div>
       }
     >
@@ -107,7 +107,7 @@ function LoginForm() {
             >
               {googleLoading ? (
                 <>
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <svg className="h-4 w-4 animate-spin motion-reduce:animate-pulse" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
@@ -148,7 +148,7 @@ function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@email.com"
-                className="w-full rounded-xl border border-ink/12 bg-white px-4 py-3 text-sm text-ink placeholder-ink/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
+                className="w-full rounded-xl border border-ink/12 bg-white px-4 py-3 text-sm text-ink placeholder-ink/30 outline-none transition-ui duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
               />
             </div>
 
@@ -173,7 +173,7 @@ function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full rounded-xl border border-ink/12 bg-white px-4 py-3 pr-12 text-sm text-ink placeholder-ink/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
+                  className="w-full rounded-xl border border-ink/12 bg-white px-4 py-3 pr-12 text-sm text-ink placeholder-ink/30 outline-none transition-ui duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
                 />
                 <button
                   type="button"
@@ -214,7 +214,7 @@ function LoginForm() {
             >
               {loading ? (
                 <>
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <svg className="h-4 w-4 animate-spin motion-reduce:animate-pulse" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>

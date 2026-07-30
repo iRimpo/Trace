@@ -22,7 +22,7 @@ export function ErrorState({ message, onRetry }: Props) {
       {onRetry && (
         <button
           onClick={onRetry}
-          className="mt-4 rounded-xl bg-brand-dark px-6 py-2.5 text-sm font-semibold text-white transition-all hover:shadow-lg hover:shadow-brand-dark/10"
+          className="mt-4 rounded-xl bg-brand-dark px-6 py-2.5 text-sm font-semibold text-white transition-ui hover:shadow-lg hover:shadow-brand-dark/10"
         >
           Try Again
         </button>

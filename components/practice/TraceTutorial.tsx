@@ -142,7 +142,7 @@ export default function TraceTutorial({ onClose }: { onClose: () => void }) {
               {STEPS.map((_, i) => (
                 <div
                   key={i}
-                  className={`h-1.5 rounded-full transition-all ${
+                  className={`h-1.5 rounded-full transition-ui ${
                     i === step ? "w-4 bg-ink" : "w-1.5 bg-ink/20"
                   }`}
                 />
@@ -154,13 +154,13 @@ export default function TraceTutorial({ onClose }: { onClose: () => void }) {
               <button
                 onClick={back}
                 disabled={step === 0}
-                className="flex-1 rounded-lg border border-ink/12 py-1.5 text-[11px] font-semibold text-ink/40 transition-all hover:text-ink/70 disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex-1 rounded-lg border border-ink/12 py-1.5 text-[11px] font-semibold text-ink/40 transition-ui hover:text-ink/70 disabled:cursor-not-allowed disabled:opacity-30"
               >
                 ← Back
               </button>
               <button
                 onClick={next}
-                className="flex-1 rounded-lg bg-[#080808] py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-[#1a1a1a]"
+                className="flex-1 rounded-lg bg-[#080808] py-1.5 text-[11px] font-semibold text-white transition-ui hover:bg-[#1a1a1a]"
               >
                 {step === STEPS.length - 1 ? "Finish 🎉" : "Next →"}
               </button>

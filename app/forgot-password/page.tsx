@@ -100,7 +100,7 @@ export default function ForgotPasswordPage() {
                       id="email" type="email" required value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@email.com"
-                      className="w-full rounded-xl border border-ink/12 bg-white px-4 py-3 text-sm text-ink placeholder-ink/30 outline-none transition-all duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
+                      className="w-full rounded-xl border border-ink/12 bg-white px-4 py-3 text-sm text-ink placeholder-ink/30 outline-none transition-ui duration-200 focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
                     />
                   </div>
 
@@ -121,7 +121,7 @@ export default function ForgotPasswordPage() {
                   >
                     {loading ? (
                       <>
-                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <svg className="h-4 w-4 animate-spin motion-reduce:animate-pulse" viewBox="0 0 24 24" fill="none">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                         </svg>

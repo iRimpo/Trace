@@ -412,16 +412,16 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
         {/* Floating action bar */}
         <div className="absolute inset-x-0 bottom-0 z-10 flex items-center gap-2 p-4 bg-gradient-to-t from-black/80 to-transparent">
           <button onClick={handleReRecord} disabled={saving}
-            className="flex items-center gap-1.5 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white/70 backdrop-blur-xl border border-white/[0.06] transition-all hover:bg-white/20 disabled:opacity-40">
+            className="flex items-center gap-1.5 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white/70 backdrop-blur-xl border border-white/[0.06] transition-ui hover:bg-white/20 disabled:opacity-40">
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" />
             </svg>
             Re-record
           </button>
           <button onClick={handleAnalyze} disabled={saving}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-500/90 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-xl border border-white/[0.06] transition-all hover:bg-indigo-500 disabled:opacity-60">
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-500/90 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-xl border border-white/[0.06] transition-ui hover:bg-indigo-500 disabled:opacity-60">
             {saving ? (
-              <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />Saving…</>
+              <><div className="h-4 w-4 animate-spin motion-reduce:animate-pulse rounded-full border-2 border-white/20 border-t-white" />Saving…</>
             ) : (
               <>Analyze<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
@@ -536,7 +536,7 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
           <div className="absolute inset-x-0 z-10 flex justify-center" style={{ bottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}>
             <button
               onClick={() => stopTriggerRef.current?.()}
-              className="flex items-center gap-2 rounded-xl bg-black/50 px-6 py-3 text-sm font-semibold text-white backdrop-blur-xl border border-white/[0.06] transition-all hover:bg-white/20"
+              className="flex items-center gap-2 rounded-xl bg-black/50 px-6 py-3 text-sm font-semibold text-white backdrop-blur-xl border border-white/[0.06] transition-ui hover:bg-white/20"
             >
               <div className="h-3 w-3 rounded-sm bg-white" />
               Stop Recording
@@ -568,7 +568,7 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
       {/* Webcam loading */}
       {!webcamReady && !webcamError && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/10 border-t-white/50" />
+          <div className="h-6 w-6 animate-spin motion-reduce:animate-pulse rounded-full border-2 border-white/10 border-t-white/50" />
         </div>
       )}
 
@@ -602,7 +602,7 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
                 <span className="w-7 text-[10px] tabular-nums text-white/20">{overlayOpacity}%</span>
               </div>
               <button onClick={() => setMirrored(m => !m)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-ui ${
                   mirrored ? "bg-indigo-500/20 text-indigo-400" : "bg-white/[0.04] text-white/30 hover:bg-white/[0.08]"
                 }`}>
                 Mirror {mirrored ? "On" : "Off"}
@@ -658,7 +658,7 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
                 proVideoRef.current?.play().then(() => proVideoRef.current?.pause()).catch(() => {});
                 setTestState("countdown");
               }} disabled={!webcamReady}
-                className="flex items-center gap-2 rounded-xl bg-indigo-500/90 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40">
+                className="flex items-center gap-2 rounded-xl bg-indigo-500/90 px-5 py-2.5 text-sm font-semibold text-white transition-ui hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40">
                 I&apos;m Ready
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />

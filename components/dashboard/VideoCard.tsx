@@ -80,8 +80,8 @@ export default function VideoCard({ id, title, createdAt, videoUrl, syncScore, v
 
         {/* Play overlay — only for non-upload cards */}
         {!isUpload && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-all duration-300 group-hover:bg-black/25">
-            <div className="flex h-12 w-12 scale-75 items-center justify-center rounded-full bg-white/95 opacity-0 shadow-xl backdrop-blur transition-all duration-300 group-hover:scale-100 group-hover:opacity-100">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-ui duration-300 group-hover:bg-black/25">
+            <div className="flex h-12 w-12 scale-75 items-center justify-center rounded-full bg-white/95 opacity-0 shadow-xl backdrop-blur transition-ui duration-300 group-hover:scale-100 group-hover:opacity-100">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="#6366f1" className="ml-0.5">
                 <polygon points="5,3 19,12 5,21" />
               </svg>
@@ -139,14 +139,14 @@ export default function VideoCard({ id, title, createdAt, videoUrl, syncScore, v
       <button
         onClick={handleDelete}
         disabled={deleting}
-        className={`absolute right-2 top-2 z-10 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-bold backdrop-blur-sm transition-all ${
+        className={`absolute right-2 top-2 z-10 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-bold backdrop-blur-sm transition-ui ${
           showConfirm
             ? "bg-red-500 text-white opacity-100"
             : "bg-black/40 text-white/70 opacity-0 hover:bg-red-500 hover:text-white group-hover:opacity-100"
         }`}
       >
         {deleting ? (
-          <div className="h-3 w-3 animate-spin rounded-full border border-white/30 border-t-white" />
+          <div className="h-3 w-3 animate-spin motion-reduce:animate-pulse rounded-full border border-white/30 border-t-white" />
         ) : (
           <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14Z" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />

@@ -684,7 +684,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                 </p>
               </div>
               <button onClick={() => goToTrim({ zoom: 1, offsetXNorm: 0, offsetYNorm: 0 })}
-                className="ml-4 mt-0.5 shrink-0 rounded-lg bg-ink/[0.06] px-3 py-1.5 text-xs font-medium text-ink/40 hover:bg-ink/10 hover:text-ink/60 transition-all">
+                className="ml-4 mt-0.5 shrink-0 rounded-lg bg-ink/[0.06] px-3 py-1.5 text-xs font-medium text-ink/40 hover:bg-ink/10 hover:text-ink/60 transition-ui">
                 Skip
               </button>
             </div>
@@ -706,7 +706,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                         <div className={`h-4 w-4 rounded-full flex items-center justify-center ${item.done ? "bg-emerald-500" : "border border-white/20"}`}>
                           {item.done
                             ? <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                            : <div className="h-2 w-2 animate-spin rounded-full border border-white/20 border-t-white/60" />
+                            : <div className="h-2 w-2 animate-spin motion-reduce:animate-pulse rounded-full border border-white/20 border-t-white/60" />
                           }
                         </div>
                         <span className={`text-xs ${item.done ? "text-white/70" : "text-white/40"}`}>{item.label}</span>
@@ -757,7 +757,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
 
               {(frameState === "ready" || frameState === "palm") && (
                 <div className="absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-lg bg-black/50 px-2.5 py-1 backdrop-blur">
-                  <div className={`h-1.5 w-1.5 rounded-full ${bodyDetected ? "bg-emerald-400 animate-pulse" : "bg-amber-400 animate-pulse"}`} />
+                  <div className={`h-1.5 w-1.5 rounded-full ${bodyDetected ? "bg-emerald-400 animate-pulse motion-reduce:animate-none" : "bg-amber-400 animate-pulse"}`} />
                   <span className="text-[10px] font-semibold tracking-wide text-white/70">
                     {bodyDetected ? "Body detected" : "Looking for body…"}
                   </span>
@@ -791,7 +791,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                 )}
                 {(frameState === "ready" || frameState === "palm") && (
                   <button onClick={() => goToTrim({ zoom: 1, offsetXNorm: 0, offsetYNorm: 0 })}
-                    className="flex items-center gap-1.5 rounded-full bg-[#080808] px-4 py-1.5 text-xs font-semibold text-white transition-all hover:bg-[#1a1a1a]">
+                    className="flex items-center gap-1.5 rounded-full bg-[#080808] px-4 py-1.5 text-xs font-semibold text-white transition-ui hover:bg-[#1a1a1a]">
                     Next
                     <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
@@ -831,7 +831,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                 </p>
               </div>
               <button onClick={onSkip}
-                className="ml-4 mt-0.5 shrink-0 rounded-lg bg-ink/[0.06] px-3 py-1.5 text-xs font-medium text-ink/40 hover:bg-ink/10 hover:text-ink/60 transition-all">
+                className="ml-4 mt-0.5 shrink-0 rounded-lg bg-ink/[0.06] px-3 py-1.5 text-xs font-medium text-ink/40 hover:bg-ink/10 hover:text-ink/60 transition-ui">
                 Skip All
               </button>
             </div>
@@ -853,7 +853,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
               <button onClick={toggleTrimPlay}
                 className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/10 transition-colors group">
                 {!trimPlaying && (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm group-hover:bg-white/30 transition-all">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm group-hover:bg-white/30 transition-ui">
                     <svg className="h-5 w-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
                     </svg>
@@ -916,7 +916,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
               {/* Playback controls */}
               <div className="mt-3 flex items-center gap-3">
                 <button onClick={toggleTrimPlay}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-ink/[0.08] text-ink/60 transition-all hover:bg-ink/14 hover:text-ink">
+                  className="touch-target flex h-8 w-8 items-center justify-center rounded-full bg-ink/[0.08] text-ink/60 transition-ui hover:bg-ink/14 hover:text-ink">
                   {trimPlaying
                     ? <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4Zm8 0h4v16h-4V4Z" /></svg>
                     : <svg className="h-3.5 w-3.5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
@@ -934,7 +934,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                 Scan <span className="font-semibold text-ink/60">{fmt(trimStart)}</span> → <span className="font-semibold text-ink/60">{fmt(trimEnd)}</span>
               </p>
               <button onClick={goToMode}
-                className="flex items-center gap-2 rounded-full bg-[#080808] px-5 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#1a1a1a] active:scale-95">
+                className="flex items-center gap-2 rounded-full bg-[#080808] px-5 py-2 text-sm font-semibold text-white shadow-sm transition-ui hover:bg-[#1a1a1a] active:scale-95">
                 Next
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
@@ -978,7 +978,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                 onClick={() => {
                   onCalibrated({ ...pendingFrame, trimStart, trimEnd, personCenter: undefined, solo: true });
                 }}
-                className="flex flex-col gap-0.5 rounded-2xl border-2 border-ink/[0.08] bg-white px-5 py-4 text-left transition-all hover:border-ink/20 hover:shadow-sm active:scale-[0.99]"
+                className="flex flex-col gap-0.5 rounded-2xl border-2 border-ink/[0.08] bg-white px-5 py-4 text-left transition-ui hover:border-ink/20 hover:shadow-sm active:scale-[0.99]"
               >
                 <span className="font-bold text-sm text-ink">Solo</span>
                 <span className="text-xs text-ink/50">One dancer — tracking is automatic</span>
@@ -987,7 +987,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
               {/* Group option */}
               <button
                 onClick={goToDancer}
-                className="flex items-center gap-3 rounded-2xl border-2 border-ink/[0.08] bg-white px-5 py-4 text-left transition-all hover:border-ink/20 hover:shadow-sm active:scale-[0.99]"
+                className="flex items-center gap-3 rounded-2xl border-2 border-ink/[0.08] bg-white px-5 py-4 text-left transition-ui hover:border-ink/20 hover:shadow-sm active:scale-[0.99]"
               >
                 <div className="flex flex-col gap-0.5 flex-1">
                   <span className="font-bold text-sm text-ink">Group</span>
@@ -1002,7 +1002,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             {/* Footer */}
             <div className="flex items-center justify-start gap-4 px-5 py-3.5 bg-white border-t border-ink/[0.08]">
               <button onClick={() => setCalibStep("trim")}
-                className="flex items-center gap-1.5 rounded-full bg-ink/[0.06] px-4 py-1.5 text-xs font-medium text-ink/50 hover:bg-ink/10 hover:text-ink/70 transition-all">
+                className="flex items-center gap-1.5 rounded-full bg-ink/[0.06] px-4 py-1.5 text-xs font-medium text-ink/50 hover:bg-ink/10 hover:text-ink/70 transition-ui">
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                 </svg>
@@ -1064,12 +1064,12 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
               {personsLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/60">
                   <div className="flex flex-col items-center gap-3 w-48">
-                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                    <div className="h-6 w-6 animate-spin motion-reduce:animate-pulse rounded-full border-2 border-white/20 border-t-white" />
                     <span className="text-xs font-medium text-white/70">Scanning video for dancers…</span>
                     {/* Progress bar */}
                     <div className="w-full h-1.5 rounded-full bg-white/20 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-white transition-all duration-150"
+                        className="h-full rounded-full bg-white transition-ui duration-150"
                         style={{ width: `${Math.round(scanProgress * 100)}%` }}
                       />
                     </div>
@@ -1113,7 +1113,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
               {/* Small play button (bottom-left) — doesn't block canvas clicks */}
               {!personsLoading && (
                 <button onClick={toggleTrimPlay}
-                  className="absolute bottom-3 left-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors">
+                  className="touch-target absolute bottom-3 left-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors">
                   {trimPlaying
                     ? <svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4Zm8 0h4v16h-4V4Z" /></svg>
                     : <svg className="h-3.5 w-3.5 ml-0.5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
@@ -1135,7 +1135,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                       <button
                         key={i}
                         onClick={() => setSelectedPerson(i)}
-                        className={`flex flex-col items-center gap-1.5 rounded-2xl border-2 p-2 transition-all ${
+                        className={`flex flex-col items-center gap-1.5 rounded-2xl border-2 p-2 transition-ui ${
                           isSelected
                             ? `${BORDER_COLORS[i % BORDER_COLORS.length]} bg-white shadow-md scale-[1.04]`
                             : "border-ink/[0.08] bg-white hover:border-ink/20 hover:shadow-sm"
@@ -1194,14 +1194,14 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             {/* Footer */}
             <div className="flex items-center justify-between gap-4 px-5 py-3.5 bg-white border-t border-ink/[0.08]">
               <button onClick={() => setCalibStep("mode")}
-                className="flex items-center gap-1.5 rounded-full bg-ink/[0.06] px-4 py-1.5 text-xs font-medium text-ink/50 hover:bg-ink/10 hover:text-ink/70 transition-all">
+                className="flex items-center gap-1.5 rounded-full bg-ink/[0.06] px-4 py-1.5 text-xs font-medium text-ink/50 hover:bg-ink/10 hover:text-ink/70 transition-ui">
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                 </svg>
                 Back
               </button>
               <button onClick={handleStartFromDancer} disabled={personsLoading}
-                className="flex items-center gap-2 rounded-full bg-[#080808] px-5 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#1a1a1a] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                className="flex items-center gap-2 rounded-full bg-[#080808] px-5 py-2 text-sm font-semibold text-white shadow-sm transition-ui hover:bg-[#1a1a1a] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
                 Start Trace & Pre‑scan
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />

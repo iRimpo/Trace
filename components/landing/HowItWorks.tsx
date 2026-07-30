@@ -97,10 +97,10 @@ export default function HowItWorks() {
       <section id="how-it-works" className="bg-[#f8f4e0] py-16 px-4 sm:py-28 sm:px-6 lg:px-10 relative overflow-hidden">
         {/* Floating decorative joint dots — CSS-only animation */}
         <div className="pointer-events-none absolute inset-0">
-          <div className="animate-float-slow absolute top-20 left-12 h-10 w-10 rounded-full bg-[#60A5FA]/20 border-2 border-[#60A5FA]/30" />
-          <div className="animate-float-reverse absolute top-40 right-16 h-7 w-7 rounded-full bg-[#F472B6]/20 border-2 border-[#F472B6]/30" />
-          <div className="animate-float-slow absolute bottom-32 left-24 h-5 w-5 rounded-full bg-[#00D4FF]/20 border-2 border-[#00D4FF]/30" />
-          <div className="animate-float-reverse absolute bottom-24 right-20 h-8 w-8 rounded-full bg-[#34D399]/20 border-2 border-[#34D399]/30" />
+          <div className="animate-float-slow motion-reduce:animate-none absolute top-20 left-12 h-10 w-10 rounded-full bg-[#60A5FA]/20 border-2 border-[#60A5FA]/30" />
+          <div className="animate-float-reverse motion-reduce:animate-none absolute top-40 right-16 h-7 w-7 rounded-full bg-[#F472B6]/20 border-2 border-[#F472B6]/30" />
+          <div className="animate-float-slow motion-reduce:animate-none absolute bottom-32 left-24 h-5 w-5 rounded-full bg-[#00D4FF]/20 border-2 border-[#00D4FF]/30" />
+          <div className="animate-float-reverse motion-reduce:animate-none absolute bottom-24 right-20 h-8 w-8 rounded-full bg-[#34D399]/20 border-2 border-[#34D399]/30" />
         </div>
 
         <div className="relative mx-auto max-w-3xl text-center">
@@ -120,7 +120,7 @@ export default function HowItWorks() {
             </p>
             <a
               href="#features"
-              className="mt-8 inline-flex h-12 items-center gap-2 rounded-full border-2 border-ink/20 bg-transparent px-8 text-sm font-semibold text-ink transition-all duration-200 hover:bg-ink hover:text-[#f8f4e0]"
+              className="mt-8 inline-flex h-12 items-center gap-2 rounded-full border-2 border-ink/20 bg-transparent px-8 text-sm font-semibold text-ink transition-ui duration-200 hover:bg-ink hover:text-[#f8f4e0]"
             >
               See the features
             </a>

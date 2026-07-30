@@ -100,6 +100,14 @@ const config: Config = {
         /** Resting card lift on cream. */
         card:          "0 2px 0 0 #E0DCC8",
       },
+      transitionProperty: {
+        /**
+         * Everything `transition-all` actually wanted, minus the layout
+         * properties. `all` also animates width/height/padding/margin/top, each
+         * of which forces layout and paint on every frame; these all composite.
+         */
+        ui: "background-color, border-color, color, fill, stroke, opacity, box-shadow, transform, filter",
+      },
       transitionTimingFunction: {
         /** Stronger than CSS ease-out, which is too weak to feel intentional. */
         "out-strong": "cubic-bezier(0.23, 1, 0.32, 1)",
