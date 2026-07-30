@@ -7,6 +7,7 @@ import { initPoseDetection, detectPose, detectAllPosesFromFrame, smoothKeypoints
 import type { Keypoint } from "@/lib/mediapipe";
 import { extractFaceThumbnail } from "@/lib/faceExtraction";
 import { CUE_PALETTE } from "@/lib/cuePalette";
+import { MIN_TRIM, clampTrim, trimKeyTarget } from "@/lib/trimControls";
 import { TOP_STACK, BOTTOM_SAFE } from "@/components/practice/chrome";
 import Panel from "@/components/ui/Panel";
 import Pressable from "@/components/ui/Pressable";
@@ -139,6 +140,23 @@ function fmt(s: number): string {
   const m = Math.floor(s / 60), sec = Math.floor(s % 60);
   return `${m}:${sec.toString().padStart(2, "0")}`;
 }
+
+/**
+ * Tenths, for the two trim readouts only.
+ *
+ * The keyboard's fine step is 0.1s, and `fmt` floors to whole seconds — so a
+ * keyboard user pressing → would watch the number sit still for ten presses,
+ * which is indistinguishable from a dead control. The readout has to resolve
+ * whatever the control's smallest step is. The playhead and duration stay on
+ * `fmt`: nothing steps those by a tenth.
+ */
+function fmtPrecise(s: number): string {
+  if (!isFinite(s) || s < 0) return "0:00.0";
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toFixed(1).padStart(4, "0")}`;
+}
+
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -631,6 +649,40 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calibStep, personsLoading, persons]);
 
+  // ── Trim handle movement ──────────────────────────────────────────────────
+  /**
+   * The one place a trim handle moves.
+   *
+   * Pointer-down, pointer-drag and every key below funnel through here, so the
+   * `MIN_TRIM` floor and the "seek the reference to the handle you just moved"
+   * behaviour cannot drift apart between input methods. The clamp had been
+   * written out three times, which is precisely how that drift starts.
+   */
+  function applyTrim(which: "start" | "end", seconds: number) {
+    const range = liveTrimRange();
+    if (range.duration <= 0) return;
+
+    const next = clampTrim(which, seconds, range);
+    if (which === "start") {
+      setTrimStart(next);
+      trimStartRef.current = next;
+    } else {
+      setTrimEnd(next);
+      trimEndRef.current = next;
+    }
+    const v = refVideoRef.current;
+    if (v) v.currentTime = next;
+  }
+
+  /** Refs, not state — a drag moves faster than React re-renders. */
+  function liveTrimRange() {
+    return {
+      start:    trimStartRef.current,
+      end:      trimEndRef.current,
+      duration: trimDurationRef.current,
+    };
+  }
+
   // ── Timeline drag handlers ────────────────────────────────────────────────
   function handleTimelinePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (trimDurationRef.current <= 0) return;
@@ -642,44 +694,46 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
     trimDragRef.current = which;
     e.currentTarget.setPointerCapture(e.pointerId);
 
-    const t = pct * trimDurationRef.current;
-    const v = refVideoRef.current;
-    if (which === "start") {
-      const newStart = Math.max(0, Math.min(t, trimEndRef.current - 0.5));
-      setTrimStart(newStart);
-      trimStartRef.current = newStart;
-      if (v) { v.pause(); v.currentTime = newStart; }
-    } else {
-      const newEnd = Math.min(trimDurationRef.current, Math.max(t, trimStartRef.current + 0.5));
-      setTrimEnd(newEnd);
-      trimEndRef.current = newEnd;
-      if (v) { v.pause(); v.currentTime = newEnd; }
-    }
+    refVideoRef.current?.pause();
     setTrimPlaying(false);
+    applyTrim(which, pct * trimDurationRef.current);
   }
 
   function handleTimelinePointerMove(e: React.PointerEvent<HTMLDivElement>) {
     if (!trimDragRef.current || trimDurationRef.current <= 0) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const t   = pct * trimDurationRef.current;
-    const v   = refVideoRef.current;
-
-    if (trimDragRef.current === "start") {
-      const newStart = Math.max(0, Math.min(t, trimEndRef.current - 0.5));
-      setTrimStart(newStart);
-      trimStartRef.current = newStart;
-      if (v) v.currentTime = newStart;
-    } else {
-      const newEnd = Math.min(trimDurationRef.current, Math.max(t, trimStartRef.current + 0.5));
-      setTrimEnd(newEnd);
-      trimEndRef.current = newEnd;
-      if (v) v.currentTime = newEnd;
-    }
+    applyTrim(trimDragRef.current, pct * trimDurationRef.current);
   }
 
   function handleTimelinePointerUp() {
     trimDragRef.current = null;
+  }
+
+  /**
+   * Keyboard access for the trim handles — §5.1 of the design handoff.
+   *
+   * The handles had been pointer-only, so the trim step could not be completed
+   * from a keyboard at all. Two `role="slider"` thumbs is the WAI-ARIA
+   * dual-thumb pattern, and it fits what is already here: the `role="group"`
+   * wrapper becomes their labelled container.
+   *
+   * Semantics follow the platform slider convention rather than inventing one:
+   * arrows nudge, Shift and Page jump, Home/End run to the limit. "The limit"
+   * is deliberately each handle's *live* constraint, not 0 and duration — End
+   * on the in-point means "as late as this handle may legally go", which keeps
+   * `MIN_TRIM` an invariant the user cannot fight rather than a wall they hit.
+   */
+  function handleTrimKeyDown(which: "start" | "end", e: React.KeyboardEvent<HTMLDivElement>) {
+    const target = trimKeyTarget(e, which, liveTrimRange());
+    // `null` means the key is not ours — let Tab and Escape through untouched.
+    if (target === null) return;
+
+    // Arrows scroll and Page/Home/End jump the modal otherwise.
+    e.preventDefault();
+    refVideoRef.current?.pause();
+    setTrimPlaying(false);
+    applyTrim(which, target);
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -927,11 +981,11 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
               */}
               <div className="mb-2 flex items-baseline justify-between gap-2">
                 <span className="text-hud font-extrabold uppercase tracking-widest text-stage-text/55">
-                  In <span className="font-mono tabular-nums text-stage-text">{fmt(trimStart)}</span>
+                  In <span className="font-mono tabular-nums text-stage-text">{fmtPrecise(trimStart)}</span>
                 </span>
                 <span className="text-hud font-extrabold tabular-nums text-duo-gold">{fmt(trimLengthSec)} selected</span>
                 <span className="text-hud font-extrabold uppercase tracking-widest text-stage-text/55">
-                  Out <span className="font-mono tabular-nums text-stage-text">{fmt(trimEnd)}</span>
+                  Out <span className="font-mono tabular-nums text-stage-text">{fmtPrecise(trimEnd)}</span>
                 </span>
               </div>
 
@@ -944,28 +998,61 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
               <div
                 role="group"
                 aria-label="Trim range"
-                className="relative h-11 cursor-ew-resize touch-none select-none overflow-hidden rounded-2xl bg-white/10"
+                className="relative h-11 cursor-ew-resize touch-none select-none"
                 onPointerDown={handleTimelinePointerDown}
                 onPointerMove={handleTimelinePointerMove}
                 onPointerUp={handleTimelinePointerUp}
               >
-                {/* Selected region */}
+                {/*
+                  The clip lives on an inner layer, not on the group. The fills
+                  have to be cut to the track's rounding, but a focus ring on a
+                  handle sitting at 0% or 100% would be cut with them — an
+                  invisible focus indicator is the same bug as no focus at all.
+                */}
+                <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl bg-white/10">
+                  {/* Selected region */}
+                  <div
+                    className="absolute inset-y-0 bg-duo-gold/25"
+                    style={{ left: `${trimStartPct}%`, width: `${trimEndPct - trimStartPct}%` }}
+                  />
+                  {/* Playhead */}
+                  <div
+                    className="absolute inset-y-1.5 w-0.5 rounded-full bg-white/70"
+                    style={{ left: `${trimTimePct}%` }}
+                  />
+                </div>
+
+                {/*
+                  Handles. `pointer-events-none` stays on purpose: pointer input
+                  belongs to the whole 44px bar, which grabs whichever handle is
+                  nearer — a far better target while standing back from the
+                  phone than two 12px slivers. Keyboard focus is unaffected by
+                  pointer-events, so Tab still reaches both thumbs. Pointer gets
+                  the bar, keyboard gets the thumbs, and neither is degraded to
+                  serve the other.
+                */}
                 <div
-                  className="pointer-events-none absolute inset-y-0 bg-duo-gold/25"
-                  style={{ left: `${trimStartPct}%`, width: `${trimEndPct - trimStartPct}%` }}
-                />
-                {/* Playhead */}
-                <div
-                  className="pointer-events-none absolute inset-y-1.5 w-0.5 rounded-full bg-white/70"
-                  style={{ left: `${trimTimePct}%` }}
-                />
-                {/* Handles */}
-                <div
-                  className="pointer-events-none absolute inset-y-0 w-3 -translate-x-1/2 rounded-full bg-duo-gold"
+                  role="slider"
+                  tabIndex={0}
+                  aria-label="Trim in point"
+                  aria-valuemin={0}
+                  aria-valuemax={Math.max(0, trimEnd - MIN_TRIM)}
+                  aria-valuenow={trimStart}
+                  aria-valuetext={`In ${fmtPrecise(trimStart)}`}
+                  onKeyDown={(e) => handleTrimKeyDown("start", e)}
+                  className="pointer-events-none absolute inset-y-0 w-3 -translate-x-1/2 rounded-full bg-duo-gold outline-none focus-visible:ring-2 focus-visible:ring-stage-text focus-visible:ring-offset-2 focus-visible:ring-offset-stage"
                   style={{ left: `${trimStartPct}%` }}
                 />
                 <div
-                  className="pointer-events-none absolute inset-y-0 w-3 -translate-x-1/2 rounded-full bg-duo-gold"
+                  role="slider"
+                  tabIndex={0}
+                  aria-label="Trim out point"
+                  aria-valuemin={Math.min(trimDuration, trimStart + MIN_TRIM)}
+                  aria-valuemax={trimDuration}
+                  aria-valuenow={trimEnd}
+                  aria-valuetext={`Out ${fmtPrecise(trimEnd)}`}
+                  onKeyDown={(e) => handleTrimKeyDown("end", e)}
+                  className="pointer-events-none absolute inset-y-0 w-3 -translate-x-1/2 rounded-full bg-duo-gold outline-none focus-visible:ring-2 focus-visible:ring-stage-text focus-visible:ring-offset-2 focus-visible:ring-offset-stage"
                   style={{ left: `${trimEndPct}%` }}
                 />
               </div>
