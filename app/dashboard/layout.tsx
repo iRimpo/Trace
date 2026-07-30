@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import IconButton from "@/components/ui/IconButton";
+import LoadingState from "@/components/states/LoadingState";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -19,14 +19,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-brand-cream">
-        <div className="relative h-10 w-10">
-          <div className="absolute inset-0 rounded-full border-2 border-ink/10" />
-          <motion.div
-            className="absolute inset-0 rounded-full border-2 border-transparent border-t-ink"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }}
-          />
-        </div>
+        {/* The same moment as the practice page's session check, so the same
+            component — this was a hand-rolled framer ring drawing a second
+            spinner for one wait. */}
+        <LoadingState message="Checking your session…" />
       </div>
     );
   }

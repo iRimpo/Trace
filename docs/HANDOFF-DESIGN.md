@@ -118,19 +118,20 @@ outlives everything.
 
 ## 4. Mechanical follow-ups — Sonnet, no judgement needed
 
-1. **Extract the auth page-level error box.** `rounded-2xl border-2 border-duo-red/30
-   bg-duo-red/[0.07] px-4 py-3` + `text-sm font-semibold text-duo-red` is copy-pasted in
-   `app/login/page.tsx` (inline), `app/signup/page.tsx` (`PageError`) and
-   `app/forgot-password/page.tsx` (inline). It is an inline form error, not a centred plate, so
-   `StateBlock` is the wrong home — it wants a small component in `components/states/`.
-2. **Two hand-rolled Suspense spinners** in `app/login/page.tsx` and `app/signup/page.tsx` still
-   draw `h-8 w-8 rounded-full border-2 border-ink/10 border-t-ink animate-spin` where the upload
-   page uses `LoadingState`.
-3. **`app/dashboard/layout.tsx`'s auth-check loading state** is a hand-rolled two-element framer
-   rotating ring; the upload page's equivalent is `LoadingState`. Same moment, two spinners.
-4. **Two stragglers from the tracking sweep**: `signup`'s `StepHeader` uses `tracking-[0.12em]`
-   and both auth "or" dividers use `tracking-widest`. The paper standard is
-   `text-hud uppercase tracking-[0.18em]`.
+**4.1–4.4 are DONE** (uncommitted in the working tree as of 2026-07-30). All four verification
+commands in §7 were green afterwards. What was done:
+
+1. ~~**Extract the auth page-level error box.**~~ Now `components/states/FormError.tsx`, used by
+   `login`, `signup` and `forgot-password`. `signup`'s `PageError` is deleted. The component reads
+   `useReducedMotion()` itself rather than taking a `reduce` prop — login's copy had omitted the
+   check, which is the failure mode a prop invites.
+2. ~~**Two hand-rolled Suspense spinners.**~~ Both now `LoadingState`.
+3. ~~**`app/dashboard/layout.tsx`'s auth-check loading state.**~~ Now `LoadingState` with the same
+   "Checking your session…" copy as `app/practice/page.tsx:244` — it is the same moment.
+4. ~~**Two stragglers from the tracking sweep.**~~ `StepHeader` and both "or" dividers are now
+   `tracking-[0.18em]`. Verified in emitted CSS (`letter-spacing:.18em`). Note the remaining
+   `tracking-widest` hits in `components/practice/` and `components/landing/` are **stage** and
+   **landing** surfaces, deliberately out of scope for the paper standard.
 5. **Migration `008_scan_cache_v3.sql` is still UNAPPLIED** (from the original handoff). It
    contains a destructive `delete from scan_cache where scan_version < 3`, deliberately left for a
    human. Not urgent — old rows read as cache misses.
@@ -142,11 +143,13 @@ outlives everything.
 1. **Trim handles in `CalibrationModal` have no keyboard access.** Pointer-only, as they always
    were. `role="group"` and a label were added, but no keyboard interaction was invented — that is
    a new control, not a redesign. Needs a real decision about arrow-key semantics.
-2. **`StateBlock`'s title is `text-xl` on an `<h3>` sitting under a `text-lg` `<h2>`** on the
-   dashboard — visually inverted against semantic rank. Left because it is internally consistent
-   across the dashboard, upload page and `ErrorBoundary`; fixing it touches four surfaces.
-3. **`components/dashboard/VideoCard.tsx` is imported by nothing.** Its own header comment flags
-   this. Delete-or-keep call now that the overhaul has settled.
+   **DEFERRED by Richard, 2026-07-30** — until after the §3 device pass. The real use case is a
+   phone propped across a room, where there is no keyboard, and Aug 7 is close. Still open.
+2. ~~**`StateBlock`'s title is `text-xl` on an `<h3>` under a `text-lg` `<h2>`.**~~ **DONE** —
+   dropped to `text-lg`, so the block is subordinate by position rather than by size. Fixed
+   centrally in `StateBlock`, which covers all ten call sites at once.
+3. ~~**`components/dashboard/VideoCard.tsx` is imported by nothing.**~~ **DELETED** by Richard's
+   call, 2026-07-30. Verified no importers first. Recoverable from git.
 4. **Six landing components are unwired** and were correctly skipped: `Problem`, `Solution`,
    `StickySteps`, `Testimonial`, `Testimonials`, `LogoCloud`. `app/page.tsx` renders only `Navbar`,
    `Hero`, `MeetTrace`, `HowItWorks`, `Features`, `Waitlist`, `Footer`, `FloatingCTA`. The original

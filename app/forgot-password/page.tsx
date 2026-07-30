@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import Pressable from "@/components/ui/Pressable";
 import Panel from "@/components/ui/Panel";
 import Field from "@/components/ui/Field";
+import FormError from "@/components/states/FormError";
 
 export default function ForgotPasswordPage() {
   const reduce = useReducedMotion();
@@ -123,17 +124,7 @@ export default function ForgotPasswordPage() {
                     there is nothing to attach to the email field. Page level,
                     with role="alert" so it is announced, not merely coloured.
                   */}
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0, y: reduce ? 0 : -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.18 }}
-                      role="alert"
-                      className="rounded-2xl border-2 border-duo-red/30 bg-duo-red/[0.07] px-4 py-3"
-                    >
-                      <p className="text-sm font-semibold text-duo-red">{error}</p>
-                    </motion.div>
-                  )}
+                  {error && <FormError message={error} />}
 
                   <Pressable type="submit" variant="ink" size="lg" block loading={loading}>
                     {loading ? (

@@ -68,7 +68,15 @@ export default function StateBlock({
           {icon}
         </div>
       )}
-      <h3 className="mt-5 text-xl font-extrabold tracking-tight text-ink">{title}</h3>
+      {/*
+        `text-lg`, not `text-xl`. This is an `<h3>` and it lands under the
+        dashboard's `text-lg` `<h2>`, so sizing it larger inverted the visual
+        hierarchy against the semantic one — the "no videos yet" plate outranked
+        the "Your practice" header it was sitting inside. Matching the h2's size
+        makes the block subordinate by position rather than by shrinking it,
+        which would have made it timid instead of merely well-behaved.
+      */}
+      <h3 className="mt-5 text-lg font-extrabold tracking-tight text-ink">{title}</h3>
       {body && (
         <p className="mt-2 max-w-sm text-sm font-medium leading-relaxed text-clay/70">{body}</p>
       )}

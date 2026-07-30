@@ -10,6 +10,8 @@ import Pressable from "@/components/ui/Pressable";
 import IconButton from "@/components/ui/IconButton";
 import Panel from "@/components/ui/Panel";
 import Field from "@/components/ui/Field";
+import LoadingState from "@/components/states/LoadingState";
+import FormError from "@/components/states/FormError";
 
 /**
  * Signup is a door, not a form.
@@ -350,7 +352,7 @@ function SignupForm() {
                     error={fieldErrors.code}
                   />
 
-                  {error && <PageError message={error} reduce={!!reduce} />}
+                  {error && <FormError message={error} />}
 
                   <Pressable type="submit" variant="ink" size="lg" block loading={verifying}>
                     {verifying ? (
@@ -396,7 +398,7 @@ function SignupForm() {
                       <div className="w-full border-t-2 border-duo-edge" />
                     </div>
                     <div className="relative flex justify-center">
-                      <span className="bg-white px-3 text-hud font-bold uppercase tracking-widest text-clay/50">
+                      <span className="bg-white px-3 text-hud font-bold uppercase tracking-[0.18em] text-clay/50">
                         or
                       </span>
                     </div>
@@ -497,7 +499,7 @@ function SignupForm() {
                     a single input stays here, announced rather than only
                     coloured.
                   */}
-                  {error && <PageError message={error} reduce={!!reduce} />}
+                  {error && <FormError message={error} />}
 
                   <Pressable type="submit" variant="ink" size="lg" block loading={loading}>
                     {loading ? (
@@ -533,7 +535,7 @@ export default function SignupPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center bg-brand-cream">
-          <div className="h-8 w-8 rounded-full border-2 border-ink/10 border-t-ink animate-spin motion-reduce:animate-pulse" />
+          <LoadingState message="Loading…" />
         </div>
       }
     >
@@ -577,25 +579,11 @@ function StepHeader({ current, onBack }: { current: number; onBack?: () => void 
       </div>
       <span
         aria-live="polite"
-        className="text-hud font-extrabold uppercase tracking-[0.12em] text-clay/60"
+        className="text-hud font-extrabold uppercase tracking-[0.18em] text-clay/60"
       >
         Step {current} of {TOTAL_STEPS}
       </span>
     </div>
-  );
-}
-
-function PageError({ message, reduce }: { message: string; reduce: boolean }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: reduce ? 0 : -6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18 }}
-      role="alert"
-      className="rounded-2xl border-2 border-duo-red/30 bg-duo-red/[0.07] px-4 py-3"
-    >
-      <p className="text-sm font-semibold text-duo-red">{message}</p>
-    </motion.div>
   );
 }
 
