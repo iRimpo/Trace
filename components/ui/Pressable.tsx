@@ -22,19 +22,29 @@ import type { ReactNode } from "react";
  * minimum.
  */
 
-type Variant = "primary" | "secondary" | "quiet" | "danger";
-type Size = "md" | "lg";
+type Variant = "primary" | "secondary" | "quiet" | "danger" | "ink" | "stage";
+type Size = "sm" | "md" | "lg";
 
 const VARIANT: Record<Variant, { face: string; chunk: string; text: string }> = {
   primary:   { face: "bg-duo-green", chunk: "shadow-chunk-green", text: "text-white" },
   secondary: { face: "bg-duo-blue",  chunk: "shadow-chunk-blue",  text: "text-white" },
   quiet:     { face: "bg-white",     chunk: "shadow-chunk-quiet", text: "text-ink" },
   danger:    { face: "bg-duo-red",   chunk: "shadow-chunk-red",   text: "text-white" },
+  /**
+   * Neutral commit on paper — "Log in", "Continue". A form's submit button is
+   * not the same promise as "Start practising", and colouring both green makes
+   * neither read as the primary action on its own screen.
+   */
+  ink:       { face: "bg-ink",       chunk: "shadow-chunk-ink",   text: "text-white" },
+  /** The same object, sitting on the dark stage instead of on paper. */
+  stage:     { face: "bg-stage-raised border border-stage-edge", chunk: "shadow-chunk-stage", text: "text-stage-text" },
 };
 
 const SIZE: Record<Size, string> = {
   // min-h rather than h: the chunk lives outside the box, and text must be able
-  // to wrap on a 320px viewport without clipping.
+  // to wrap on a 320px viewport without clipping. 44px is the floor at every
+  // size — `sm` buys horizontal room, never a smaller target.
+  sm: "min-h-[44px] px-3.5 text-hud",
   md: "min-h-[44px] px-5 text-sm",
   lg: "min-h-[56px] px-7 text-base",
 };
@@ -43,9 +53,12 @@ interface Props {
   children:   ReactNode;
   onClick?:   () => void;
   href?:      string;
+  type?:      "button" | "submit";
   variant?:   Variant;
   size?:      Size;
   disabled?:  boolean;
+  /** Stretch to the container. Forms want this; toolbars never do. */
+  block?:     boolean;
   className?: string;
   ariaLabel?: string;
 }
@@ -54,16 +67,19 @@ export default function Pressable({
   children,
   onClick,
   href,
+  type = "button",
   variant = "primary",
   size = "md",
   disabled = false,
+  block = false,
   className = "",
   ariaLabel,
 }: Props) {
   const v = VARIANT[variant];
 
   const classes = [
-    "inline-flex select-none items-center justify-center gap-2",
+    block ? "flex w-full" : "inline-flex",
+    "select-none items-center justify-center gap-2",
     "rounded-2xl font-extrabold tracking-tight",
     SIZE[size],
     v.face,
@@ -76,6 +92,9 @@ export default function Pressable({
     // Hover only where hovering is real; touch fires hover on tap.
     "[@media(hover:hover)and(pointer:fine)]:hover:brightness-[1.06]",
     "motion-reduce:transition-none motion-reduce:active:translate-y-0",
+    // Keyboard focus has to survive on both grounds, so the ring is offset off
+    // the face rather than tinted to match it.
+    "outline-none focus-visible:ring-2 focus-visible:ring-duo-blue focus-visible:ring-offset-2",
     disabled ? "pointer-events-none opacity-40" : "",
     className,
   ].join(" ");
@@ -90,12 +109,11 @@ export default function Pressable({
 
   return (
     <button
-      type="button"
+      type={type}
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}
       className={classes}
-     
     >
       {children}
     </button>

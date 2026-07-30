@@ -138,6 +138,77 @@ html {
   }
 }
 
+/**
+ * ── Stage utilities ────────────────────────────────────────────────────
+ * The practice screen draws chrome directly over a live camera feed. A room
+ * can be any brightness, so contrast has to come from the element itself.
+ */
+
+/**
+ * Text sitting on video with no panel behind it — badges, the "Ready to test"
+ * caption, count numbers. A shadow rather than a plate: a plate would occlude
+ * the dancer, and the shadow only costs contrast where the glyph already is.
+ */
+.hud-text {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), 0 0 12px rgba(0, 0, 0, 0.45);
+}
+
+/**
+ * Range inputs. The default is a 2px hairline with a 12px thumb — invisible at
+ * distance and hard to grab. 6px track, 22px thumb, and the thumb keeps a ring
+ * so it stays findable against both a bright and a dark track.
+ *
+ * `-webkit-slider-thumb` and `-moz-range-thumb` cannot be combined into one
+ * rule: an unrecognised selector invalidates the whole list in both engines.
+ */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 22px;
+  background: transparent;
+  cursor: pointer;
+}
+.slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--slider-track, rgba(26, 15, 0, 0.14));
+}
+.slider::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--slider-track, rgba(26, 15, 0, 0.14));
+}
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -8px;
+  height: 22px;
+  width: 22px;
+  border-radius: 9999px;
+  background: var(--slider-thumb, #1a0f00);
+  border: 3px solid var(--slider-thumb-ring, #ffffff);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+.slider::-moz-range-thumb {
+  height: 22px;
+  width: 22px;
+  border-radius: 9999px;
+  background: var(--slider-thumb, #1a0f00);
+  border: 3px solid var(--slider-thumb-ring, #ffffff);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+/* Same control on the dark stage. */
+.slider-stage {
+  --slider-track: rgba(255, 255, 255, 0.22);
+  --slider-thumb: #ffffff;
+  --slider-thumb-ring: rgba(11, 11, 12, 0.85);
+}
+
+/* Focus rings need a ground to offset against; on the stage that is not cream. */
+.ring-on-stage {
+  --tw-ring-offset-color: #0b0b0c;
+}
+
 /* Hide scrollbar while keeping scroll functionality */
 .scrollbar-hide {
   -ms-overflow-style: none;
