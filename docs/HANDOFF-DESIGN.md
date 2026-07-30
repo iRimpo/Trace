@@ -33,9 +33,11 @@ parallel against one contract.
 
 ---
 
-## 2. What was done — branch `design-overhaul`, 4 commits, 53 files, +5719/−3465
+## 2. What was done — branch `design-overhaul`, 57 files, +6253/−3607
 
-Not pushed. `main` untouched. Nothing has been seen on a phone.
+**Pushed to `origin/design-overhaul` and merged to `main` on 2026-07-30** so it could be
+seen on hardware at all — see §3 for why a preview URL was not an option. Still nothing
+has been seen on a phone; merging is what makes looking possible, not evidence that it works.
 
 | Commit | What |
 |---|---|
@@ -43,6 +45,14 @@ Not pushed. `main` untouched. Nothing has been seen on a phone.
 | `1b09843` | Practice screen onto the stage; login and dashboard chrome rebuilt |
 | `7e3fb75` | Tempo controls, dashboard, landing, Test/Sync phases |
 | `ebec02f` | Calibration finished, cross-surface seams closed, silent Tailwind bugs fixed |
+| `cf7fedf` | §4.1–4.4 + §5.2–5.3: auth states consolidated, state heading rank, dead `VideoCard` gone |
+| `2a45184` | §5.1: keyboard access for the trim handles, semantics extracted to `lib/trimControls.ts` |
+
+**To undo the whole thing** if it is wrong on the phone — one command, ~2 minutes to redeploy:
+
+```bash
+git checkout main && git revert -m 1 <merge-sha> && git push origin main
+```
 
 ### The organising idea
 
@@ -91,8 +101,14 @@ all ≥44px, plus `block`, `loading`, `href`, `type`), `IconButton` (required `a
 desktop browser and no stylesheet can override it, so notch geometry cannot be checked by looking
 at it locally.
 
-Run against the branch (deploy a preview or merge — see the origin caveat in `docs/HANDOFF.md`
-§2 before choosing). Check:
+**This is now live on production** (`main` → `https://trace-app-rho.vercel.app`). Merging rather
+than deploying a preview was deliberate, for the reason in `docs/HANDOFF.md` §2: **a preview is a
+different origin**, videos live in origin-scoped IndexedDB, and testing there would mean
+re-uploading the video and installing a second PWA to earn the 7-day eviction exemption. Merging
+keeps the existing origin, stored video and installed PWA — the same call Richard made on
+2026-07-29. The revert command is in §2.
+
+Check, in this order:
 
 1. **Safe-area geometry.** `TOP_STACK` owns the top offset for every absolutely-positioned element
    on the practice screen. `CountStrip` grew from 40px to 56px cells this session and has **not**
@@ -140,11 +156,13 @@ commands in §7 were green afterwards. What was done:
 
 ## 5. Design calls left open — Opus
 
-1. **Trim handles in `CalibrationModal` have no keyboard access.** Pointer-only, as they always
-   were. `role="group"` and a label were added, but no keyboard interaction was invented — that is
-   a new control, not a redesign. Needs a real decision about arrow-key semantics.
-   **DEFERRED by Richard, 2026-07-30** — until after the §3 device pass. The real use case is a
-   phone propped across a room, where there is no keyboard, and Aug 7 is close. Still open.
+1. ~~**Trim handles in `CalibrationModal` have no keyboard access.**~~ **DONE** (`2a45184`).
+   Two `role="slider"` thumbs inside the existing `role="group"` — the WAI-ARIA dual-thumb
+   pattern. Arrows nudge 0.1s, Shift/Page jump 1s, Home/End run to each handle's *live* limit
+   so the 0.5s minimum stays an invariant rather than a wall. Semantics live in
+   `lib/trimControls.ts` (pure, 16 tests); the component only wires them up.
+   Pointer behaviour is unchanged — the handles keep `pointer-events-none` so the whole 44px
+   bar remains the pointer target.
 2. ~~**`StateBlock`'s title is `text-xl` on an `<h3>` under a `text-lg` `<h2>`.**~~ **DONE** —
    dropped to `text-lg`, so the block is subordinate by position rather than by size. Fixed
    centrally in `StateBlock`, which covers all ten call sites at once.
