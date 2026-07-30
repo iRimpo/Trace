@@ -23,21 +23,20 @@ npm run build:check       # safe build while dev server runs
 
 ---
 
-## 2. ⚠️ Immediate decision waiting
+## 2. Shipped to production 2026-07-29
 
-**All work below is on branch `feedback-redesign`, not `main`. Production still has the broken iPhone header.**
+**`feedback-redesign` was merged to `main` and pushed** (merge commit `7375444`). Richard chose this over the preview URL. Production has every fix.
 
-If Richard rehearses on `trace-app-rho.vercel.app` he gets the *old* code with the chrome bug. Options:
+Why not the preview URL: **a Vercel preview is a different origin**, and videos live in origin-scoped IndexedDB. Rehearsing there would mean re-uploading the video and installing a *second* PWA to earn the 7-day eviction exemption. Merging kept his existing origin, stored video and installed PWA.
 
-- **Use the Vercel preview URL** for `feedback-redesign` — gets every fix, but the whole branch is unverified.
-- **Cherry-pick only the chrome fixes to `main`** — lowest risk, fixes the actual reported pain:
-  ```bash
-  git checkout main && git cherry-pick 3ba5990 a895c24 e99fba2
-  ```
-  Those three are self-contained layout/sizing fixes with no logic changes.
-- **Merge the whole branch** — do not do this without a device pass first.
+Why the merge was acceptable unverified: `adoptScan` sets `setFeedbackEnabled(false)`, so all four unverified cue features are dormant behind a Beta toggle. The default experience is effectively `main` + chrome fixes + tempo diagnostics.
 
-Nothing has been merged or deployed. That call is Richard's.
+### Two corrections to the earlier version of this doc
+
+- **The recommended cherry-pick did not work.** Dry-run in a throwaway worktree: `a895c24` and `e99fba2` apply clean, but `3ba5990` conflicts two ways — `CountStrip.tsx` does not exist on `main`, and `TraceTab.tsx` hits a content conflict. It was also **not** "pure layout, no logic": it additionally flips cues to off-by-default, fixes auto-hide firing while paused, and rewrites the transport sheet as a framer-motion drag sheet.
+- **`TOP_STACK` was only half-applied.** See §4.
+
+Verified before pushing: `tsc` clean, 79/79 tests, `build:check` green on `main`, no console errors, geometry measured (below). **Not verified: anything requiring a login** — Claude cannot enter credentials, so no in-app practice-screen pass was possible.
 
 ---
 
@@ -62,6 +61,8 @@ Verified only by `tsc` clean + 79 tests + green `build:check` + the app booting 
 | `3ba5990` | **Practice chrome no longer stacks under the iPhone status bar** |
 | `a895c24` | **Recording HUD visible from dancing distance** |
 | `e99fba2` | **Touch targets at 44px on mobile** |
+| `ebefee0` | **Finished applying `TOP_STACK` — 7 surfaces `3ba5990` missed, incl. all of `03 SYNC`** |
+| `7375444` | **Merge to `main` → production** |
 
 Specs: `docs/superpowers/specs/2026-07-29-cue-feedback-redesign-design.md`, plan: `docs/superpowers/plans/2026-07-29-cue-feedback-redesign.md`.
 
@@ -89,6 +90,26 @@ Also: `anchorX/anchorY` was a **cooldown-reset artifact** — wherever a joint s
 Measured at a simulated 59px inset: tab bar was at **35px**, now **59px**, with no horizontal collision down to a 320px viewport.
 
 **One shared `TOP_STACK` in `components/practice/chrome.ts` now owns this. Import it — do not add a fourth guess.**
+
+#### `3ba5990` only half-applied it — finished in `ebefee0`
+
+Seven more surfaces were still on hardcoded offsets, every one absolutely positioned against a viewport-filling tab root:
+
+| Surface | Was | Overlap into header @59px inset |
+|---|---|---|
+| TraceTab top-left TRACE + loop badge | `top-16` | 39px — collided with the back button, while its top-right sibling one line below sat correctly |
+| SyncTab SYNC/score badge | `top-14` | 47px |
+| SyncTab score side panel | `top-14` | 47px |
+| SyncTab done action sheet | `top-14` | 47px |
+| TestTab PREVIEW badge | `top-3` | 91px |
+| TestTab framing instruction | `top-11` | 59px |
+| TestTab `saveError` banner | `top-20` | 23px |
+
+All seven were also *beneath the status bar itself* at a 59px inset. The whole `03 SYNC` tab and the `02 TEST` framing state were untouched by the original fix.
+
+**Measured, not assumed.** `env(safe-area-inset-top)` always resolves to 0 in a desktop browser and no stylesheet can override it, so the geometry was checked in a harness that substitutes a controllable variable into the exact CSS from source. Across insets 0/20/44/47/59 (flat, notch, 14/15 Pro, Dynamic Island): the header's bounding box ends at `inset + 44`, `TOP_STACK` lands at `inset + 48`, so clearance is **4px at every inset**. Stacked elements offset from `TOP_STACK` rather than re-guessing, preserving their original gaps.
+
+Note the `chrome.ts` doc comment claims the header ends at 105px at a 59px inset; measured it is 103px. The `3rem` value is still correct.
 
 ### Beat detector defects (fixed)
 
@@ -132,7 +153,7 @@ scan  →  MovementEvent[]              tempo-free, cached      ← the expensiv
 ## 6. Open items
 
 **Blocking**
-1. Device pass on a real iPhone — nothing in §3 has been seen running. Critical checks: never more than one cue on screen; scrubbing to the same moment always shows the identical cue; changing BPM after a scan re-lands cues without a rescan.
+1. Device pass on a real iPhone — **now against production**, since §3 is merged. Chrome geometry is measured and trustworthy; the cue behaviour is not. Critical checks (turn the Beta cue toggle *on* first): never more than one cue on screen; scrubbing to the same moment always shows the identical cue; changing BPM after a scan re-lands cues without a rescan. Also confirm `03 SYNC` and `02 TEST` framing badges now clear the Dynamic Island. **If the phone looks stale, delete the PWA from the Home Screen and re-add it** (§7).
 2. **Migration `008_scan_cache_v3.sql` is UNAPPLIED.** It contains `delete from scan_cache where scan_version < 3` — destructive against production, deliberately left for a human. Not urgent: old rows just read as cache misses.
 3. Report which `beat_detection` reason fires on the phone.
 
@@ -144,7 +165,7 @@ scan  →  MovementEvent[]              tempo-free, cached      ← the expensiv
 8. 32 modules / 3,318 LOC unreachable from any entrypoint (incl. a disconnected 3D character subsystem, 6 unwired landing sections, 8 SVG character components). Richard chose to leave it.
 
 **Housekeeping**
-9. **Revoke the Supabase and Vercel tokens** pasted into chat earlier — they are in `.env.local` as `SUPABASE_ACCESS_TOKEN` and `VERCEL_TOKEN`.
+9. **Revoke the Supabase and Vercel tokens** pasted into chat earlier — they are in `.env.local` as `SUPABASE_ACCESS_TOKEN` and `VERCEL_TOKEN`. **Confirmed still present 2026-07-29.** Rotate at the Supabase and Vercel dashboards; Claude cannot do this for you. Highest-value item on this list that takes under two minutes.
 
 ---
 
