@@ -1,25 +1,28 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { initPoseDetection, detectPose } from "@/lib/mediapipe";
 import FeedbackCanvas from "@/components/practice/FeedbackCanvas";
+import CountStrip from "@/components/practice/CountStrip";
+import { TOP_STACK, BOTTOM_SAFE } from "@/components/practice/chrome";
+import TapTempoSheet from "@/components/practice/TapTempoSheet";
 import BpmInput from "@/components/practice/BpmInput";
 import type { CalibrationData } from "@/components/practice/CalibrationModal";
 import { CountGrid } from "@/lib/countGrid";
-import { detectBeatsFromVideo } from "@/lib/beatDetector";
+import { detectBeatsFromVideo, BEAT_FAILURE_COPY } from "@/lib/beatDetector";
+import type { BeatFailure } from "@/lib/beatDetector";
 import { preScanVideo, type PreScanResult, type PersonCenter } from "@/lib/videoPreScan";
 import type { Keypoint } from "@/lib/mediapipe";
-import type { ChoreoTimeline } from "@/lib/choreoTimeline";
-import { DEFAULT_LEAD_MS } from "@/lib/cueRuntime";
-import type { PoseFrame } from "@/lib/poseRecorder";
-import { getCachedTimeline, putCachedTimeline, type ScanCacheKey } from "@/lib/scanCache";
+import { composeCueScript } from "@/lib/cueScript";
+import type { CueScript } from "@/lib/cueScript";
+import type { MovementEvent } from "@/lib/movementEventDetector";
+import { getCachedScan, putCachedScan, type ScanCacheKey } from "@/lib/scanCache";
 import { parseLinkIdentity, type VideoIdentity } from "@/lib/videoIdentity";
 import { track } from "@/lib/analytics";
 import DashboardTutorial from "@/components/dashboard/DashboardTutorial";
 
 const PRACTICE_TUTORIAL_KEY = "trace_practice_tutorial_dismissed";
-const CUE_LEAD_KEY = "trace_cue_lead_ms";
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -30,6 +33,7 @@ type ViewMode = "overlay" | "side-by-side";
 const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5] as const;
 const L_SHOULDER = 11, R_SHOULDER = 12, L_HIP = 23, R_HIP = 24;
 const IDLE_TIMEOUT = 3000;
+
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
@@ -183,16 +187,11 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
   const [feedbackEnabled, setFeedbackEnabled] = useState(false);
   const [countsEnabled,   setCountsEnabled]   = useState(true);
   const [feedbackOffset,  setFeedbackOffset]  = useState(0);
-  const [cueLeadMs,       setCueLeadMs]       = useState(() => {
-    if (typeof window === "undefined") return DEFAULT_LEAD_MS;
-    const saved = parseInt(localStorage.getItem(CUE_LEAD_KEY) ?? "", 10);
-    return Number.isFinite(saved) && saved >= 0 && saved <= 1500 ? saved : DEFAULT_LEAD_MS;
-  });
-  const userFramesRef      = useRef<PoseFrame[]>([]);
-  const userVideoHeightRef = useRef(0);
+  const [showTapTempo,    setShowTapTempo]    = useState(false);
 
   // ── Pre-scan ────────────────────────────────────────────────────
-  const [timeline,           setTimeline]           = useState<ChoreoTimeline | null>(null);
+  const [scanEvents,      setScanEvents]      = useState<MovementEvent[] | null>(null);
+  const [scanVideoHeight, setScanVideoHeight] = useState(0);
   const [scanProgress,       setScanProgress]       = useState<number | null>(null);
   const [scanEtaSeconds,     setScanEtaSeconds]     = useState<number | null>(null);
   const [scanCompleteFlash,  setScanCompleteFlash]  = useState(false);
@@ -219,6 +218,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
   const [beatOneOffset, setBeatOneOffset] = useState(0);
   const [countGrid,     setCountGrid]     = useState<CountGrid | null>(null);
   const [beatDetecting, setBeatDetecting] = useState(false);
+  const [beatFailure,   setBeatFailure]   = useState<BeatFailure | null>(null);
   const beatDetectedRef = useRef(false);
   const tapTimesRef     = useRef<number[]>([]);
 
@@ -260,12 +260,33 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
 
   const runBeatDetection = useCallback(async () => {
     setBeatDetecting(true);
+    setBeatFailure(null);
+    const startedAt = performance.now();
     try {
-      const result = await detectBeatsFromVideo(videoUrl);
-      if (result) {
-        setBpm(result.bpm);
-        if (result.firstBeatTime !== undefined) setBeatOneOffset(result.firstBeatTime);
+      // Analyse the section the user actually trimmed to. Reading the first 30
+      // seconds instead meant a clip that opens on a logo card or a talking
+      // intro was fed to the detector as if it were the song.
+      const { start, end } = trimBoundsRef.current;
+      const outcome = await detectBeatsFromVideo(videoUrl, { start, end });
+
+      if (outcome.ok) {
+        setBpm(outcome.bpm);
+        if (outcome.firstBeatTime !== undefined) setBeatOneOffset(outcome.firstBeatTime);
+      } else {
+        setBeatFailure(outcome.reason);
       }
+
+      // Which failure fires is the one thing that could not be established
+      // from a phone before, and feedback is now gated on having a tempo.
+      track("beat_detection", {
+        ok:      outcome.ok,
+        reason:  outcome.ok ? null : outcome.reason,
+        detail:  outcome.ok ? null : outcome.detail ?? null,
+        bpm:     outcome.ok ? outcome.bpm : null,
+        from:    outcome.ok ? outcome.from : null,
+        seconds: outcome.ok ? outcome.seconds : null,
+        ms:      Math.round(performance.now() - startedAt),
+      });
     } finally { setBeatDetecting(false); }
   }, [videoUrl]);
 
@@ -297,23 +318,27 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
     }
   }
 
-  // Grid available inside runScan without re-creating the callback
-  const countGridRef = useRef(countGrid);
-  countGridRef.current = countGrid;
+  /**
+   * The cue script is derived, never stored. Recomposing when the tempo or the
+   * count-1 offset changes is what makes correcting the beat instant instead of
+   * a rescan — the scan output itself is tempo-free.
+   */
+  const script: CueScript | null = useMemo(
+    () => (scanEvents ? composeCueScript(scanEvents, countGrid, scanVideoHeight) : null),
+    [scanEvents, countGrid, scanVideoHeight],
+  );
 
-  /** Adopt a finished/cached timeline into practice state. */
-  const adoptTimeline = useCallback((tl: ChoreoTimeline) => {
-    setTimeline(tl);
-    setFeedbackEnabled(true);
-    setScanCompleteCount(tl.entries.length);
+  /** Adopt finished/cached scan output into practice state. */
+  const adoptScan = useCallback((events: MovementEvent[], videoHeight: number) => {
+    setScanEvents(events);
+    setScanVideoHeight(videoHeight);
+    // Cues stay opt-in while the feature is experimental: telling a dancer
+    // which body part to move on which count is not reliable enough yet to
+    // switch itself on over the reference video.
+    setFeedbackEnabled(false);
+    setScanCompleteCount(events.length);
     setScanCompleteFlash(true);
     setTimeout(() => setScanCompleteFlash(false), 2000);
-    // A cached timeline knows its BPM — adopt it if we have none yet
-    if (tl.bpm !== null) {
-      setBpm(prev => prev ?? tl.bpm);
-      setBeatOneOffset(prev => (prev === 0 ? tl.beatOneOffset : prev));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const runScan = useCallback((source: "auto" | "feedback" = "auto", overridePersonCenter?: { x: number; y: number }) => {
@@ -334,7 +359,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
     // L1: in-memory cache for this page load
     const cached = preScanCache.get(cacheKey);
     if (cached) {
-      adoptTimeline(cached.timeline);
+      adoptScan(cached.events, cached.videoHeight);
       setScanProgress(null);
       autoPlayAfterScan();
       return;
@@ -367,16 +392,19 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
         end,
         effectiveCenter,
         handlePersonChoice,
-        countGridRef.current,
       )
         .then(result => {
           if (result && !abort.signal.aborted) {
             preScanCache.set(cacheKey, result);
-            adoptTimeline(result.timeline);
+            adoptScan(result.events, result.videoHeight);
             autoPlayAfterScan();
             if (scanKey) {
               // Best-effort shared cache write — never blocks practice
-              putCachedTimeline(scanKey, result.timeline, identity!.kind === "file");
+              putCachedScan(
+                scanKey,
+                { events: result.events, videoHeight: result.videoHeight },
+                identity!.kind === "file",
+              );
             }
             // Scan cost is dominated by device speed, and the phones that feel
             // slow are exactly the ones we can't profile locally. Report the
@@ -387,7 +415,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               msPerFrame:  frames > 0 ? Math.round(totalMs / frames) : null,
               seekShare:   totalMs > 0 ? +(seekMs / totalMs).toFixed(2) : null,
               detectShare: totalMs > 0 ? +(detectMs / totalMs).toFixed(2) : null,
-              cueCount:    result.timeline.entries.length,
+              cueCount:    result.events.length,
               source:      source,
             });
           }
@@ -404,11 +432,11 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
 
     // L2: shared Supabase cache — instant repeat practice across sessions
     if (scanKey) {
-      getCachedTimeline(scanKey)
-        .then(tl => {
+      getCachedScan(scanKey)
+        .then(payload => {
           if (abort.signal.aborted) return;
-          if (tl) {
-            adoptTimeline(tl);
+          if (payload) {
+            adoptScan(payload.events, payload.videoHeight);
             setScanProgress(null);
             setScanSource(null);
             autoPlayAfterScan();
@@ -421,7 +449,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
       runFreshScan();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoUrl, scanProgress, videoIdentity, adoptTimeline, handlePersonChoice]);
+  }, [videoUrl, scanProgress, videoIdentity, adoptScan, handlePersonChoice]);
 
   useEffect(() => { return () => { scanAbortRef.current?.abort(); }; }, []);
 
@@ -564,33 +592,19 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
     if (webcam && stream && !webcam.srcObject) { webcam.srcObject = stream; webcam.play().catch(() => {}); }
   }, [viewMode]);
 
-  // ── Live user pose sampler (feeds cue hit/miss judging) ─────────
-  // ~10Hz is enough for travel-magnitude judging and cheap on mobile.
-  useEffect(() => {
-    if (!feedbackEnabled || !webcamReady) return;
-    const id = setInterval(() => {
-      const webcam = webcamRef.current, pro = proVideoRef.current;
-      if (!webcam || !pro || pro.paused || !poseInitRef.current) return;
-      const kps = detectPose(webcam);
-      if (!kps) return;
-      userVideoHeightRef.current = webcam.videoHeight;
-      const buf = userFramesRef.current;
-      buf.push({ t: pro.currentTime * 1000, kps: kps.map(k => [k.x, k.y, k.score ?? 0]) });
-      if (buf.length > 40) buf.splice(0, buf.length - 40);
-    }, 100);
-    return () => clearInterval(id);
-  }, [feedbackEnabled, webcamReady]);
-
-  // ── Persist cue lead time ────────────────────────────────────────
-  useEffect(() => {
-    localStorage.setItem(CUE_LEAD_KEY, String(cueLeadMs));
-  }, [cueLeadMs]);
-
   // ── Auto-hide controls ──────────────────────────────────────────
+  const playingRef = useRef(playing);
+  playingRef.current = playing;
+
   const showControls = useCallback(() => {
     setControlsVisible(true);
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    hideTimerRef.current = setTimeout(() => setControlsVisible(false), IDLE_TIMEOUT);
+    // Only auto-hide during playback. While paused you are almost certainly
+    // reaching for these controls, and hiding them after 3s of "idle" meant
+    // they disappeared exactly when you were about to use them.
+    if (playingRef.current) {
+      hideTimerRef.current = setTimeout(() => setControlsVisible(false), IDLE_TIMEOUT);
+    }
   }, []);
 
   // ── Video callbacks ─────────────────────────────────────────────
@@ -778,11 +792,13 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
           />
 
           <FeedbackCanvas
-            proVideoRef={proVideoRef} enabled={feedbackEnabled} showCounts={countsEnabled}
+            proVideoRef={proVideoRef} enabled={feedbackEnabled}
             proOffsetX={proOffsetX} proOffsetY={proOffsetY} proZoom={proZoom} mirrored={mirrored}
-            timeline={timeline} countGrid={countGrid} feedbackOffset={feedbackOffset}
-            topOffset={64} leadMs={cueLeadMs}
-            userFramesRef={userFramesRef} userVideoHeightRef={userVideoHeightRef}
+            script={script} feedbackOffset={feedbackOffset}
+          />
+          <CountStrip
+            proVideoRef={proVideoRef} grid={countGrid} script={script}
+            visible={countsEnabled}
           />
 
           <video ref={proVideoRef} {...proProps} className="hidden" />
@@ -797,7 +813,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
         <div className="absolute inset-0 grid grid-cols-2">
           <div className="relative overflow-hidden bg-black">
             <video ref={proVideoRef} {...proProps} className="absolute inset-0 h-full w-full object-contain" style={proStyle} />
-            <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur">
+            <div className="absolute left-3 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur" style={{ top: TOP_STACK }}>
               <div className="h-1.5 w-1.5 rounded-full bg-pink-500" />
               <span className="text-[10px] font-semibold tracking-wide text-white/70">REFERENCE</span>
             </div>
@@ -808,13 +824,32 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
             ) : (
               <video ref={webcamRef} className="absolute inset-0 h-full w-full object-cover" style={{ transform: "scaleX(-1)" }} playsInline muted autoPlay />
             )}
-            <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur">
+            <div className="absolute left-3 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur" style={{ top: TOP_STACK }}>
               <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
               <span className="text-[10px] font-semibold tracking-wide text-white/70">YOU</span>
             </div>
           </div>
         </div>
       )}
+
+      {/* ══════════════════ TEMPO GATE ══════════════════ */}
+      <AnimatePresence>
+        {showTapTempo && (
+          <TapTempoSheet
+            detecting={beatDetecting}
+            failure={beatFailure ? BEAT_FAILURE_COPY[beatFailure] : null}
+            onRetry={runBeatDetection}
+            onCancel={() => setShowTapTempo(false)}
+            onConfirm={(v) => {
+              // The user has just been tapping along, so this is precisely the
+              // moment they know where "1" falls — mark it while they do.
+              setBpm(v);
+              setBeatOneOffset(proVideoRef.current?.currentTime ?? 0);
+              setShowTapTempo(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ══════════════════ MID-SCAN REACQUIRE PROMPT ══════════════════ */}
       <AnimatePresence>
@@ -870,7 +905,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
         point of this tab and needs no scan — the scan only adds anticipatory
         cues on top. A full-screen overlay here used to lock the user out of
         the video for the entire scan, so the slowest part of the app blocked
-        its most useful part. Cues fade in when the timeline lands.
+        its most useful part. Cues fade in when the scan lands.
       */}
       <AnimatePresence>
         {scanProgress !== null && reacquireCandidates === null && (
@@ -918,7 +953,10 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
       <div className={`pointer-events-none absolute inset-0 z-30 transition-opacity duration-500 ${controlsVisible ? "opacity-100" : "opacity-0"}`}>
 
         {/* ── Top-left: badge + loop indicator ────────────────── */}
-        <div className="pointer-events-auto absolute left-3 top-16 flex flex-col gap-2">
+        {/* Anchored to TOP_STACK like its top-right sibling below. The old
+            top-16 (64px) sat 39px inside the header at a 59px inset, on top
+            of the back button. */}
+        <div className="pointer-events-auto absolute left-3 flex flex-col gap-2" style={{ top: TOP_STACK }}>
           <div className={`flex items-center gap-1.5 rounded-full ${GLASS} px-3 py-1.5`}>
             <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
               <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" stroke="#1a0f00" strokeWidth="1.5" strokeLinejoin="round" opacity="0.6"/>
@@ -935,10 +973,10 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
         </div>
 
         {/* ── Top-right: utility buttons ──────────────────────── */}
-        <div className="pointer-events-auto absolute right-3 top-3 flex items-center gap-2">
+        <div className="pointer-events-auto absolute right-3 flex items-center gap-2" style={{ top: TOP_STACK }}>
           {/* Auto-align */}
           {viewMode === "overlay" && (
-            <button onClick={autoAlign} disabled={aligning} className={`h-8 w-8 rounded-lg ${GLASS} ${GLASS_BTN} disabled:opacity-40`} title="Auto-align">
+            <button onClick={autoAlign} disabled={aligning} className={`h-11 w-11 rounded-lg sm:h-8 sm:w-8 ${GLASS} ${GLASS_BTN} disabled:opacity-40`} title="Auto-align">
               {aligning
                 ? <div className="h-3.5 w-3.5 animate-spin rounded-full border border-white/40 border-t-white" />
                 : <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" /></svg>
@@ -946,11 +984,11 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
             </button>
           )}
           {/* Keyboard shortcuts help */}
-          <button onClick={() => setKeysOpen(k => !k)} className={`h-8 w-8 rounded-lg ${GLASS} ${GLASS_BTN}`} title="Keyboard shortcuts">
+          <button onClick={() => setKeysOpen(k => !k)} className={`h-11 w-11 rounded-lg sm:h-8 sm:w-8 ${GLASS} ${GLASS_BTN}`} title="Keyboard shortcuts">
             <span className="text-xs font-bold">?</span>
           </button>
           {/* Fullscreen */}
-          <button onClick={toggleFullscreen} className={`h-8 w-8 rounded-lg ${GLASS} ${GLASS_BTN}`} title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}>
+          <button onClick={toggleFullscreen} className={`h-11 w-11 rounded-lg sm:h-8 sm:w-8 ${GLASS} ${GLASS_BTN}`} title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}>
             {isFullscreen ? (
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 15v4.5M9 15H4.5M15 9V4.5M15 9h4.5M15 15v4.5m0-4.5h4.5" /></svg>
             ) : (
@@ -964,7 +1002,8 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
           {keysOpen && (
             <motion.div
               initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-              className={`pointer-events-auto absolute right-3 top-14 rounded-xl ${GLASS} p-3`}
+              className={`pointer-events-auto absolute right-3 rounded-xl ${GLASS} p-3`}
+              style={{ top: `calc(${TOP_STACK} + 2.5rem)` }}
             >
               <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                 {[
@@ -1016,25 +1055,6 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                         ? "On beat"
                         : `${Math.abs(Math.round(feedbackOffset * 1000))}ms ${feedbackOffset < 0 ? "early" : "late"}`}
                     </button>
-                  </div>
-                )}
-
-                {/* Cue lead time — how far ahead cues appear */}
-                {feedbackEnabled && (
-                  <div className="flex items-center gap-2">
-                    <span className="w-14 text-[10px] text-ink/40">Lead</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1200"
-                      step="100"
-                      value={cueLeadMs}
-                      onChange={e => setCueLeadMs(parseInt(e.target.value, 10))}
-                      className="h-0.5 flex-1 cursor-pointer appearance-none rounded-full bg-ink/10 accent-[#080808]"
-                    />
-                    <span className="min-w-[3.5rem] text-right text-[10px] tabular-nums text-ink/40">
-                      {cueLeadMs}ms
-                    </span>
                   </div>
                 )}
 
@@ -1128,21 +1148,36 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
         </div>
 
         {/* Dynamic island transport */}
-        <div
+        <motion.div
           id="trace-transport"
-          className={`pointer-events-auto absolute bottom-2 left-1/2 z-30 w-[min(720px,96vw)] -translate-x-1/2 transition-transform duration-500 sm:bottom-4 sm:w-[min(720px,90vw)] ${
-            controlsVisible ? "translate-y-0" : "translate-y-full"
-          }`}
-          style={{ bottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
+          className="pointer-events-auto absolute left-1/2 z-30 w-[min(720px,96vw)] sm:w-[min(720px,90vw)]"
+          // x lives here rather than as a -translate-x-1/2 class because framer
+          // writes the whole transform; a Tailwind translate would be clobbered.
+          style={{ bottom: BOTTOM_SAFE, x: "-50%" }}
+          animate={{ y: controlsVisible ? 0 : "100%" }}
+          transition={{ type: "spring", stiffness: 420, damping: 42 }}
+          // Flick or drag the sheet away instead of waiting out a timeout.
+          drag="y"
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={{ top: 0, bottom: 0.45 }}
+          onDragEnd={(_, info) => {
+            if (info.offset.y > 56 || info.velocity.y > 480) {
+              if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+              setControlsVisible(false);
+            }
+          }}
         >
           <div className={`rounded-2xl ${GLASS} px-3 py-2 sm:rounded-3xl sm:px-4 sm:py-3`} style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}>
-            {/* Mobile drag handle — tap to collapse */}
+            {/* Drag handle — swipe the sheet down, or tap to collapse. */}
             <button
-              className="mb-1 flex w-full cursor-pointer items-center justify-center py-0.5 sm:hidden"
-              onClick={() => setControlsVisible(false)}
-              aria-label="Collapse controls"
+              className="mb-1 flex w-full cursor-grab items-center justify-center py-1.5 active:cursor-grabbing sm:hidden"
+              onClick={() => {
+                if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+                setControlsVisible(false);
+              }}
+              aria-label="Hide controls"
             >
-              <div className="h-1 w-8 rounded-full bg-ink/20" />
+              <div className="h-1 w-10 rounded-full bg-ink/25" />
             </button>
             {/* ── Secondary controls row ─────────────────────────────────────── */}
             <div id="trace-controls-row" className="mb-2 flex flex-wrap items-center gap-1.5 sm:mb-3 sm:gap-2">
@@ -1169,8 +1204,12 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               <button
                 id="trace-feedback-pill"
                 onClick={() => {
-                  if (timeline === null && scanProgress === null) { runScan("feedback"); return; }
-                  if (timeline !== null) setFeedbackEnabled(f => !f);
+                  // Cues land on counts, so a grid is a hard prerequisite. Without
+                  // one the old code silently composed against a 0.1s spacing and
+                  // showed no counts at all.
+                  if (!countGrid?.hasBpm) { setShowTapTempo(true); return; }
+                  if (scanEvents === null && scanProgress === null) { runScan("feedback"); return; }
+                  if (scanEvents !== null) setFeedbackEnabled(f => !f);
                 }}
                 className={glassToggle(feedbackEnabled, "emerald")}
               >
@@ -1178,7 +1217,13 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   ? <span className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
                   : <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" /></svg>
                 }
-                {feedbackEnabled ? "Feedback" : timeline === null ? "Scan & Feedback" : "Feedback"}
+                {!countGrid?.hasBpm
+                  ? "Set tempo"
+                  : feedbackEnabled ? "Cues on"
+                  : scanEvents === null ? "Try cues" : "Cues"}
+                <span className="ml-1 rounded-full bg-ink/10 px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-ink/45">
+                  Beta
+                </span>
               </button>
 
               {/* Opacity slider (overlay only, hidden on very small screens) */}
@@ -1310,22 +1355,22 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 loop, timecode, speed) needs ~445px and a 375px phone has ~336px.
                 Without wrapping the icon buttons flex-shrink into ovals. */}
             <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
-              <button onClick={skipBack} title="−5s" className={`h-8 w-8 ${GLASS_BTN} rounded-lg`}>
+              <button onClick={skipBack} title="−5s" className={`h-11 w-11 sm:h-8 sm:w-8 ${GLASS_BTN} rounded-lg`}>
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 16.811c0 .864-.933 1.406-1.683.977l-7.108-4.061a1.125 1.125 0 0 1 0-1.954l7.108-4.061A1.125 1.125 0 0 1 21 8.689v8.122ZM11.25 16.811c0 .864-.933 1.406-1.683.977l-7.108-4.061a1.125 1.125 0 0 1 0-1.954l7.108-4.061a1.125 1.125 0 0 1 1.683.977v8.122Z" /></svg>
               </button>
 
-              <button onClick={togglePlay} className="flex h-9 w-9 items-center justify-center rounded-full bg-ink/10 text-ink transition-all hover:bg-ink/18">
+              <button onClick={togglePlay} className="flex h-14 w-14 items-center justify-center rounded-full bg-ink/10 text-ink transition-all hover:bg-ink/18 sm:h-9 sm:w-9">
                 {playing
                   ? <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4Zm8 0h4v16h-4V4Z" /></svg>
                   : <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                 }
               </button>
 
-              <button onClick={skipForward} title="+5s" className={`h-8 w-8 ${GLASS_BTN} rounded-lg`}>
+              <button onClick={skipForward} title="+5s" className={`h-11 w-11 sm:h-8 sm:w-8 ${GLASS_BTN} rounded-lg`}>
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061A1.125 1.125 0 0 1 3 16.811V8.69ZM12.75 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061a1.125 1.125 0 0 1-1.683-.977V8.69Z" /></svg>
               </button>
 
-              <button onClick={restart} title="Restart" className={`h-8 w-8 ${GLASS_BTN} rounded-lg border border-white/[0.06]`}>
+              <button onClick={restart} title="Restart" className={`h-11 w-11 sm:h-8 sm:w-8 ${GLASS_BTN} rounded-lg border border-white/[0.06]`}>
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" /></svg>
               </button>
 
@@ -1392,7 +1437,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
             )}
           </div>
 
-        </div>
+        </motion.div>
       </div>
 
       {/* ── Video error toast ──────────────────────────────────── */}

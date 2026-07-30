@@ -9,6 +9,7 @@ import { createPracticeSession } from "@/lib/uploadRecording";
 import { storeRecordingSession, loadVideoSession } from "@/lib/sessionVideoStorage";
 import { useAuth } from "@/context/AuthContext";
 import type { CalibrationData } from "@/components/practice/CalibrationModal";
+import { TOP_STACK } from "@/components/practice/chrome";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -395,13 +396,15 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
         )}
 
         {/* Floating header badge */}
-        <div className="absolute left-4 top-4 z-10 rounded-xl bg-black/50 px-4 py-2.5 backdrop-blur-xl border border-white/[0.06]">
+        <div className="absolute left-4 z-10 rounded-xl bg-black/50 px-4 py-2.5 backdrop-blur-xl border border-white/[0.06]" style={{ top: TOP_STACK }}>
           <h2 className="text-sm font-bold text-white">Recording Complete!</h2>
           <p className="mt-0.5 text-[11px] text-white/40">Review your take, then analyze.</p>
         </div>
 
         {saveError && (
-          <div className="absolute left-4 right-4 top-20 z-10">
+          /* Sits below the "Recording Complete!" badge, which is anchored to
+             TOP_STACK — the +4rem keeps the original 16px→80px relationship. */
+          <div className="absolute left-4 right-4 z-10" style={{ top: `calc(${TOP_STACK} + 4rem)` }}>
             <p className="rounded-lg bg-red-500/20 px-3 py-2 text-xs font-medium text-red-400 backdrop-blur-xl border border-red-500/20">{saveError}</p>
           </div>
         )}
@@ -507,14 +510,30 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
       {/* Recording HUD */}
       {isRecording && (
         <>
-          <div className="absolute left-4 top-4 z-10 flex items-center gap-2 rounded-xl bg-black/50 px-3 py-1.5 backdrop-blur-xl border border-white/[0.06]">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
-            <span className="text-xs font-semibold text-white">Recording</span>
-            <span className="font-mono text-xs text-white/50">
+          {/*
+            You stand several feet back from a propped-up phone while recording,
+            and the only "you are being recorded" signal was an 8px pulsing dot
+            in a corner — unreadable from dancing distance. A full-bleed red
+            edge glow reads instantly from across a room, and it costs no
+            screen space because it lives in the margin the video letterboxes
+            into anyway. Non-interactive, so it never eats a tap.
+          */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-10 animate-pulse motion-reduce:animate-none"
+            style={{ boxShadow: "inset 0 0 0 4px rgb(239 68 68 / 0.9), inset 0 0 40px rgb(239 68 68 / 0.35)" }}
+          />
+          <div
+            className="absolute left-4 z-10 flex items-center gap-2.5 rounded-xl bg-red-600 px-3.5 py-2 shadow-lg"
+            style={{ top: TOP_STACK }}
+          >
+            <div className="h-3 w-3 animate-pulse rounded-full bg-white motion-reduce:animate-none" />
+            <span className="text-sm font-bold tracking-wide text-white">REC</span>
+            <span className="font-mono text-sm font-semibold tabular-nums text-white/85">
               {fmt(elapsedSec)} / {fmt(refDurationRef.current)}
             </span>
           </div>
-          <div className="absolute inset-x-0 bottom-6 z-10 flex justify-center">
+          <div className="absolute inset-x-0 z-10 flex justify-center" style={{ bottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}>
             <button
               onClick={() => stopTriggerRef.current?.()}
               className="flex items-center gap-2 rounded-xl bg-black/50 px-6 py-3 text-sm font-semibold text-white backdrop-blur-xl border border-white/[0.06] transition-all hover:bg-white/20"
@@ -528,15 +547,17 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
 
       {/* PREVIEW badge (framing) */}
       {testState === "framing" && (
-        <div className="absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur-xl border border-white/[0.06]">
+        <div className="absolute left-3 z-20 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur-xl border border-white/[0.06]" style={{ top: TOP_STACK }}>
           <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
           <span className="text-[10px] font-semibold tracking-wide text-white/70">PREVIEW</span>
         </div>
       )}
 
-      {/* Framing instruction — floating badge top-left */}
+      {/* Framing instruction — floating badge top-left. Stacked below the
+          PREVIEW badge; the +2rem preserves the original 12px→44px gap now
+          that both are anchored to TOP_STACK. */}
       {testState === "framing" && (
-        <div className="absolute left-3 top-11 z-20 max-w-xs rounded-xl bg-black/50 px-3.5 py-2 backdrop-blur-xl border border-white/[0.06]">
+        <div className="absolute left-3 z-20 max-w-xs rounded-xl bg-black/50 px-3.5 py-2 backdrop-blur-xl border border-white/[0.06]" style={{ top: `calc(${TOP_STACK} + 2rem)` }}>
           <h2 className="text-xs font-bold text-white">Position yourself</h2>
           <p className="mt-0.5 text-[10px] leading-relaxed text-white/40">
             Drag the reference overlay to align with your body. Scrub to your starting frame, then press &ldquo;I&apos;m Ready&rdquo;.

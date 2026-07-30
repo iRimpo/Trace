@@ -1,6 +1,5 @@
-import type { MovementEvent } from "./movementEventDetector";
 import { CUE_PALETTE } from "./cuePalette";
-import type { Accent } from "./countGrid";
+import type { BeatCue } from "./cueScript";
 
 // ── Coordinate transform ─────────────────────────────────────────────────
 
@@ -40,20 +39,18 @@ function toCanvas(
 
 function easeOut(t: number): number { return 1 - (1 - t) ** 3; }
 
-/** Standard cue alpha: fade in (0–15%), hold (15–70%), fade out (70–100%). */
+/**
+ * Progress at which the cue's moment arrives. Before it the cue is a warning,
+ * after it a confirmation. Must match LEAD_BEATS in cueScript.ts.
+ */
+const HIT_AT = 0.75;
+
+/** Alpha envelope across the one-beat window: fade in, hold, fade out. */
 function cueAlpha(progress: number): number {
-  if (progress < 0.15) return progress / 0.15;
-  if (progress < 0.70) return 1;
-  return 1 - (progress - 0.70) / 0.30;
+  if (progress < 0.12) return progress / 0.12;
+  if (progress < 0.85) return 1;
+  return Math.max(0, 1 - (progress - 0.85) / 0.15);
 }
-
-// ── Body-region color palette ─────────────────────────────────────────────
-
-const COLORS = CUE_PALETTE;
-
-// ── Cap arrow length ──────────────────────────────────────────────────────
-
-const MAX_ARROW_PX = 56;
 
 // ── Curve + trail helpers ─────────────────────────────────────────────────
 
@@ -115,456 +112,6 @@ function drawDottedTrail(
   }
 }
 
-// ── Renderers ─────────────────────────────────────────────────────────────
-
-/** Cyan curved arrow from anchor to destination with dotted trail. */
-function renderMoveArrow(
-  ctx: CanvasRenderingContext2D,
-  ev:  MovementEvent,
-  progress: number,
-  p:   TransformParams,
-  beatPhase: number,
-): void {
-  const [ax, ay] = toCanvas(ev.anchorX, ev.anchorY, p);
-  const [ex, ey] = toCanvas(ev.x, ev.y, p);
-
-  const rawDx  = ex - ax;
-  const rawDy  = ey - ay;
-  const rawLen = Math.sqrt(rawDx * rawDx + rawDy * rawDy);
-  if (rawLen < 4) return;
-
-  const capLen = Math.min(rawLen, MAX_ARROW_PX);
-  const s      = capLen / rawLen;
-  const dx = rawDx * s, dy = rawDy * s;
-  const destX = ax + dx, destY = ay + dy;
-
-  const [qx, qy] = curveControl(ax, ay, destX, destY, 0.22);
-  const drawFrac  = Math.min(1, easeOut(progress / 0.5));
-  const [tipX, tipY]  = quadBezierAt(ax, ay, qx, qy, destX, destY, drawFrac);
-  const [tux, tuy]    = quadBezierTangent(ax, ay, qx, qy, destX, destY, drawFrac);
-  const headLen  = Math.max(6, capLen * 0.32);
-  const headAng  = 0.38;
-  const alpha    = cueAlpha(progress);
-
-  ctx.save();
-
-  if (rawLen > 16) {
-    drawDottedTrail(ctx, ax, ay, qx, qy, destX, destY, drawFrac, COLORS.hand, alpha);
-  }
-
-  ctx.globalAlpha = alpha;
-  ctx.shadowColor = COLORS.hand;
-  ctx.shadowBlur  = 10 + beatPhase * 4;
-  ctx.strokeStyle = COLORS.hand;
-  ctx.lineWidth   = 2.4;
-  ctx.lineCap     = "round";
-  ctx.lineJoin    = "round";
-
-  ctx.beginPath();
-  const [startX, startY] = quadBezierAt(ax, ay, qx, qy, destX, destY, 0.06);
-  ctx.moveTo(startX, startY);
-  const stopT = Math.max(0, drawFrac - 0.03);
-  const steps = Math.max(8, Math.round(capLen / 3));
-  for (let i = 1; i <= steps; i++) {
-    const t = 0.06 + (stopT - 0.06) * (i / steps);
-    const [sx, sy] = quadBezierAt(ax, ay, qx, qy, destX, destY, t);
-    ctx.lineTo(sx, sy);
-  }
-  ctx.stroke();
-
-  if (drawFrac > 0.6) {
-    const headAlpha = (drawFrac - 0.6) / 0.4;
-    ctx.globalAlpha = alpha * headAlpha;
-    ctx.beginPath();
-    ctx.moveTo(tipX, tipY);
-    ctx.lineTo(
-      tipX - headLen * (tux * Math.cos( headAng) - tuy * Math.sin( headAng)),
-      tipY - headLen * (tuy * Math.cos( headAng) + tux * Math.sin( headAng)),
-    );
-    ctx.moveTo(tipX, tipY);
-    ctx.lineTo(
-      tipX - headLen * (tux * Math.cos(-headAng) - tuy * Math.sin(-headAng)),
-      tipY - headLen * (tuy * Math.cos(-headAng) + tux * Math.sin(-headAng)),
-    );
-    ctx.stroke();
-  }
-
-  ctx.globalAlpha = alpha * 0.45;
-  ctx.fillStyle   = COLORS.hand;
-  ctx.shadowBlur  = 6;
-  ctx.beginPath();
-  ctx.arc(ax, ay, 3, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.restore();
-}
-
-/** Expanding teal ring at foot contact with directional wedge. Accent controls intensity. */
-function renderStepPulse(
-  ctx: CanvasRenderingContext2D,
-  ev:  MovementEvent,
-  progress: number,
-  p:   TransformParams,
-  accent?: Accent,
-): void {
-  const [cx, cy] = toCanvas(ev.x, ev.y, p);
-
-  const isStrong = accent === "downbeat";
-  const isMedium = accent === "snare";
-  const baseR    = isStrong ? 14 : 12;
-  const maxR     = isStrong ? 32 : isMedium ? 28 : 26;
-  const radius   = baseR + (maxR - baseR) * easeOut(progress);
-  const alpha    = Math.max(0, 1 - progress) * (isStrong ? 1 : 0.9);
-
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.shadowColor = COLORS.foot;
-  ctx.shadowBlur  = isStrong ? 18 : 12;
-  ctx.strokeStyle = COLORS.foot;
-  ctx.lineWidth   = isStrong ? 3 : 2.2;
-
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-  ctx.stroke();
-
-  if (isStrong && progress < 0.7) {
-    ctx.globalAlpha = alpha * 0.4;
-    ctx.lineWidth   = 1.4;
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius * 1.3, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-
-  ctx.globalAlpha = alpha * 0.6;
-  ctx.fillStyle   = COLORS.foot;
-  ctx.beginPath();
-  ctx.arc(cx, cy, 3, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Dotted trail showing foot travel path
-  const [fax, fay] = toCanvas(ev.anchorX, ev.anchorY, p);
-  const fdx = cx - fax, fdy = cy - fay;
-  const fLen = Math.sqrt(fdx * fdx + fdy * fdy);
-  if (fLen > 6) {
-    const [fqx, fqy] = curveControl(fax, fay, cx, cy, 0.15);
-    const trailFrac = Math.min(1, easeOut(progress / 0.6));
-    drawDottedTrail(ctx, fax, fay, fqx, fqy, cx, cy, trailFrac, COLORS.foot, alpha, 8);
-
-    // Directional wedge at contact point
-    if (progress < 0.8) {
-      const fAngle     = Math.atan2(fdy, fdx);
-      const wedgeR     = radius * 0.5;
-      const wedgeSpread = 0.35;
-      ctx.globalAlpha = alpha * 0.5;
-      ctx.fillStyle   = COLORS.foot;
-      ctx.shadowBlur  = 0;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.arc(cx, cy, wedgeR, fAngle - wedgeSpread, fAngle + wedgeSpread);
-      ctx.closePath();
-      ctx.fill();
-    }
-  }
-
-  ctx.restore();
-}
-
-/** Amber pulsing halo with directional tick for head nods/tilts. */
-function renderHeadNod(
-  ctx: CanvasRenderingContext2D,
-  ev:  MovementEvent,
-  progress: number,
-  p:   TransformParams,
-  beatPhase: number,
-): void {
-  const [cx, cy] = toCanvas(ev.x, ev.y, p);
-  const [ax, ay] = toCanvas(ev.anchorX, ev.anchorY, p);
-  const alpha    = cueAlpha(progress);
-  const pulse    = 1 + 0.15 * Math.sin(beatPhase * Math.PI * 2);
-  const radius   = (18 + 6 * easeOut(progress)) * pulse;
-
-  ctx.save();
-
-  // Translucent fill
-  ctx.globalAlpha = alpha * 0.25;
-  ctx.fillStyle   = COLORS.head;
-  ctx.shadowColor = COLORS.head;
-  ctx.shadowBlur  = 14;
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Outer ring
-  ctx.globalAlpha = alpha * 0.85;
-  ctx.strokeStyle = COLORS.head;
-  ctx.lineWidth   = 2;
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // Direction tick with dotted trail
-  const ddx = cx - ax, ddy = cy - ay;
-  const len = Math.sqrt(ddx * ddx + ddy * ddy);
-  if (len > 3) {
-    const drawFrac = Math.min(1, easeOut(progress / 0.4));
-    const ux = ddx / len, uy = ddy / len;
-    const tickLen = Math.min(len, radius * 0.7) * drawFrac;
-
-    if (len > 8) {
-      const [hqx, hqy] = curveControl(ax, ay, cx, cy, 0.18);
-      drawDottedTrail(ctx, ax, ay, hqx, hqy, cx, cy, drawFrac, COLORS.head, alpha * 0.7, 5);
-    }
-
-    ctx.globalAlpha = alpha;
-    ctx.strokeStyle = COLORS.head;
-    ctx.lineWidth   = 2.5;
-    ctx.lineCap     = "round";
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + ux * tickLen, cy + uy * tickLen);
-    ctx.stroke();
-  }
-
-  ctx.restore();
-}
-
-/** Orange arc bracket opening in the direction of elbow bend. */
-function renderElbowArc(
-  ctx: CanvasRenderingContext2D,
-  ev:  MovementEvent,
-  progress: number,
-  p:   TransformParams,
-  beatPhase: number,
-): void {
-  const [cx, cy] = toCanvas(ev.x, ev.y, p);
-  const [ax, ay] = toCanvas(ev.anchorX, ev.anchorY, p);
-  const ddx      = cx - ax, ddy = cy - ay;
-  const rawLen   = Math.sqrt(ddx * ddx + ddy * ddy);
-  if (rawLen < 3) return;
-
-  const angle    = Math.atan2(ddy, ddx);
-  const alpha    = cueAlpha(progress);
-  const drawFrac = Math.min(1, easeOut(progress / 0.5));
-  const arcR     = 16 + 8 * drawFrac;
-  const sweep    = Math.PI * 0.7 * drawFrac;
-
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.strokeStyle = COLORS.elbow;
-  ctx.shadowColor = COLORS.elbow;
-  ctx.shadowBlur  = 10 + beatPhase * 4;
-  ctx.lineWidth   = 2.8;
-  ctx.lineCap     = "round";
-
-  ctx.beginPath();
-  ctx.arc(cx, cy, arcR, angle - sweep / 2, angle + sweep / 2);
-  ctx.stroke();
-
-  ctx.globalAlpha = alpha * 0.4;
-  ctx.lineWidth   = 1.6;
-  ctx.beginPath();
-  ctx.arc(cx, cy, arcR * 0.65, angle - sweep * 0.4, angle + sweep * 0.4);
-  ctx.stroke();
-
-  if (rawLen > 8) {
-    const [eqx, eqy] = curveControl(ax, ay, cx, cy, 0.2);
-    drawDottedTrail(ctx, ax, ay, eqx, eqy, cx, cy, drawFrac, COLORS.elbow, alpha * 0.6, 5);
-  }
-
-  ctx.globalAlpha = alpha * 0.5;
-  ctx.fillStyle   = COLORS.elbow;
-  ctx.beginPath();
-  ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.restore();
-}
-
-/** Purple diamond indicating center-of-gravity shift. */
-function renderHipSway(
-  ctx: CanvasRenderingContext2D,
-  ev:  MovementEvent,
-  progress: number,
-  p:   TransformParams,
-  beatPhase: number,
-): void {
-  const [cx, cy] = toCanvas(ev.x, ev.y, p);
-  const [ax, ay] = toCanvas(ev.anchorX, ev.anchorY, p);
-  const ddx      = cx - ax, ddy = cy - ay;
-  const rawLen   = Math.sqrt(ddx * ddx + ddy * ddy);
-
-  const alpha    = cueAlpha(progress);
-  const drawFrac = Math.min(1, easeOut(progress / 0.5));
-  const pulse    = 1 + 0.1 * Math.sin(beatPhase * Math.PI * 2);
-  const s        = (14 + 6 * drawFrac) * pulse;
-
-  const offsetDist = Math.min(rawLen, 20) * drawFrac;
-  const ux = rawLen > 1 ? ddx / rawLen : 0;
-  const uy = rawLen > 1 ? ddy / rawLen : 0;
-  const ox = cx + ux * offsetDist * 0.3;
-  const oy = cy + uy * offsetDist * 0.3;
-
-  ctx.save();
-
-  // Translucent fill
-  ctx.globalAlpha = alpha * 0.2;
-  ctx.fillStyle   = COLORS.hip;
-  ctx.shadowColor = COLORS.hip;
-  ctx.shadowBlur  = 16;
-  ctx.beginPath();
-  ctx.moveTo(ox,          oy - s);
-  ctx.lineTo(ox + s * 0.7, oy);
-  ctx.lineTo(ox,          oy + s);
-  ctx.lineTo(ox - s * 0.7, oy);
-  ctx.closePath();
-  ctx.fill();
-
-  // Outline
-  ctx.globalAlpha = alpha * 0.8;
-  ctx.strokeStyle = COLORS.hip;
-  ctx.lineWidth   = 2;
-  ctx.stroke();
-
-  // Direction indicator with dotted trail
-  if (rawLen > 4) {
-    if (rawLen > 10) {
-      const [hpqx, hpqy] = curveControl(ax, ay, cx, cy, 0.12);
-      drawDottedTrail(ctx, ax, ay, hpqx, hpqy, cx, cy, drawFrac, COLORS.hip, alpha * 0.5, 5);
-    }
-
-    ctx.globalAlpha = alpha * 0.6;
-    ctx.strokeStyle = COLORS.hip;
-    ctx.lineWidth   = 1.8;
-    ctx.lineCap     = "round";
-    const arrLen = Math.min(rawLen * 0.4, 16) * drawFrac;
-    ctx.beginPath();
-    ctx.moveTo(ox, oy);
-    ctx.lineTo(ox + ux * arrLen, oy + uy * arrLen);
-    ctx.stroke();
-  }
-
-  ctx.restore();
-}
-
-/** Sky-blue T-bar indicating shoulder/posture shift. */
-function renderShoulderShift(
-  ctx: CanvasRenderingContext2D,
-  ev:  MovementEvent,
-  progress: number,
-  p:   TransformParams,
-  beatPhase: number,
-): void {
-  const [cx, cy] = toCanvas(ev.x, ev.y, p);
-  const [ax, ay] = toCanvas(ev.anchorX, ev.anchorY, p);
-  const ddx      = cx - ax, ddy = cy - ay;
-  const rawLen   = Math.sqrt(ddx * ddx + ddy * ddy);
-  if (rawLen < 3) return;
-
-  const alpha    = cueAlpha(progress);
-  const drawFrac = Math.min(1, easeOut(progress / 0.5));
-  const barHalf  = 12 + 8 * drawFrac;
-  const capH     = 6;
-  const ux = ddx / rawLen, uy = ddy / rawLen;
-
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.strokeStyle = COLORS.shoulder;
-  ctx.shadowColor = COLORS.shoulder;
-  ctx.shadowBlur  = 8 + beatPhase * 3;
-  ctx.lineWidth   = 2.2;
-  ctx.lineCap     = "round";
-
-  if (rawLen > 10) {
-    const [sqx, sqy] = curveControl(ax, ay, cx, cy, 0.15);
-    drawDottedTrail(ctx, ax, ay, sqx, sqy, cx, cy, drawFrac, COLORS.shoulder, alpha * 0.5, 5);
-  }
-
-  const startX = cx - ux * barHalf * 0.3;
-  const startY = cy - uy * barHalf * 0.3;
-  const endX   = cx + ux * barHalf;
-  const endY   = cy + uy * barHalf;
-
-  ctx.beginPath();
-  ctx.moveTo(startX, startY);
-  ctx.lineTo(endX, endY);
-  ctx.stroke();
-
-  // Perpendicular end cap
-  const px = -uy, py = ux;
-  ctx.beginPath();
-  ctx.moveTo(endX - px * capH, endY - py * capH);
-  ctx.lineTo(endX + px * capH, endY + py * capH);
-  ctx.stroke();
-
-  ctx.globalAlpha = alpha * 0.4;
-  ctx.fillStyle   = COLORS.shoulder;
-  ctx.beginPath();
-  ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.restore();
-}
-
-/** Pink mirrored wing arcs for simultaneous bilateral arm movement. */
-function renderBothArms(
-  ctx: CanvasRenderingContext2D,
-  ev:  MovementEvent,
-  progress: number,
-  p:   TransformParams,
-  beatPhase: number,
-): void {
-  const [cx, cy] = toCanvas(ev.x, ev.y, p);
-  const [ax, ay] = toCanvas(ev.anchorX, ev.anchorY, p);
-  const alpha    = cueAlpha(progress);
-  const drawFrac = Math.min(1, easeOut(progress / 0.4));
-  const pulse    = 1 + 0.12 * Math.sin(beatPhase * Math.PI * 2);
-  const r        = (20 + 14 * drawFrac) * pulse;
-
-  const ddx = cx - ax, ddy = cy - ay;
-  const armLen = Math.sqrt(ddx * ddx + ddy * ddy);
-
-  ctx.save();
-
-  if (armLen > 10) {
-    const [aqx, aqy] = curveControl(ax, ay, cx, cy, 0.18);
-    drawDottedTrail(ctx, ax, ay, aqx, aqy, cx, cy, drawFrac, COLORS.armBoth, alpha * 0.5, 6);
-  }
-
-  ctx.globalAlpha = alpha;
-  ctx.strokeStyle = COLORS.armBoth;
-  ctx.shadowColor = COLORS.armBoth;
-  ctx.shadowBlur  = 12 + beatPhase * 5;
-  ctx.lineWidth   = 2.6;
-  ctx.lineCap     = "round";
-
-  // Left wing arc
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, Math.PI * 0.7, Math.PI * 1.3);
-  ctx.stroke();
-
-  // Right wing arc
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, -Math.PI * 0.3, Math.PI * 0.3);
-  ctx.stroke();
-
-  ctx.globalAlpha = alpha * 0.5;
-  ctx.fillStyle   = COLORS.armBoth;
-  ctx.beginPath();
-  ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Outer glow ring
-  if (progress < 0.6) {
-    ctx.globalAlpha = alpha * 0.2;
-    ctx.lineWidth   = 1.2;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r * 1.4, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-
-  ctx.restore();
-}
-
 // ── Person-bounds clip ────────────────────────────────────────────────────
 
 /**
@@ -572,7 +119,7 @@ function renderBothArms(
  * with enough padding to contain the largest possible shape (arrows + rings).
  * Must be called inside a ctx.save() / ctx.restore() pair.
  */
-const CLIP_PAD_NORMAL  = 72; // uncrowded: covers MAX_ARROW_PX (56) + ring halo + shadow
+const CLIP_PAD_NORMAL  = 72; // uncrowded: covers the arrow, ring halo and shadow
 const CLIP_PAD_CROWDED = 20; // crowded formations: tight clip to avoid bleeding onto neighbours
 
 function applyPersonClip(
@@ -606,31 +153,197 @@ function centeredTransform(p: TransformParams, bounds: { x1: number; y1: number;
   return { ...p, offsetX: p.offsetX + extraOffsetX };
 }
 
-// ── Public entry points ───────────────────────────────────────────────────
+// ── Cue parts ─────────────────────────────────────────────────────────────
+
+/** Locates the body part. Contracts toward the joint, then pops on the hit. */
+function drawRing(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, color: string, progress: number, alpha: number,
+): void {
+  const r = progress < HIT_AT
+    ? 34 - 14 * easeOut(Math.min(1, progress / HIT_AT))
+    : 20 + 16 * easeOut((progress - HIT_AT) / (1 - HIT_AT));
+
+  ctx.globalAlpha = alpha * 0.22;
+  ctx.fillStyle   = color;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur  = 12;
+  ctx.lineWidth   = progress >= HIT_AT ? 3.4 : 2.4;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+}
+
+/** Arrow along the true travel vector, drawn in as the moment approaches. */
+function drawTravelGlyph(
+  ctx: CanvasRenderingContext2D,
+  fx: number, fy: number, tx: number, ty: number,
+  color: string, progress: number, alpha: number, maxLen: number,
+): void {
+  const rawLen = Math.hypot(tx - fx, ty - fy);
+  if (rawLen < 6) return;
+
+  const s  = Math.min(1, maxLen / rawLen);
+  const ex = fx + (tx - fx) * s, ey = fy + (ty - fy) * s;
+  const [qx, qy] = curveControl(fx, fy, ex, ey, 0.18);
+  const frac = Math.min(1, easeOut(progress / HIT_AT));
+
+  drawDottedTrail(ctx, fx, fy, qx, qy, ex, ey, frac, color, alpha);
+
+  const [tipX, tipY] = quadBezierAt(fx, fy, qx, qy, ex, ey, frac);
+  const [ux,   uy]   = quadBezierTangent(fx, fy, qx, qy, ex, ey, frac);
+  const head = Math.max(8, Math.min(rawLen, maxLen) * 0.28);
+
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur  = 10;
+  ctx.lineWidth   = 3;
+  ctx.lineCap     = "round";
+
+  ctx.beginPath();
+  ctx.moveTo(fx, fy);
+  const steps = 16;
+  for (let i = 1; i <= steps; i++) {
+    const [sx, sy] = quadBezierAt(fx, fy, qx, qy, ex, ey, (frac * i) / steps);
+    ctx.lineTo(sx, sy);
+  }
+  ctx.stroke();
+
+  for (const sign of [1, -1]) {
+    const a = 0.4 * sign;
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(
+      tipX - head * (ux * Math.cos(a) - uy * Math.sin(a)),
+      tipY - head * (uy * Math.cos(a) + ux * Math.sin(a)),
+    );
+    ctx.stroke();
+  }
+}
+
+/** Looping arrow — the roll / wave indicator. */
+function drawRollGlyph(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, color: string, progress: number, alpha: number,
+): void {
+  const r     = 26;
+  const sweep = Math.PI * 1.6 * Math.min(1, easeOut(progress / HIT_AT));
+  const start = -Math.PI / 2;
+
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur  = 12;
+  ctx.lineWidth   = 3;
+  ctx.lineCap     = "round";
+  ctx.beginPath();
+  ctx.arc(x, y, r, start, start + sweep);
+  ctx.stroke();
+
+  // Arrowhead tangent to the loop's leading edge.
+  const a  = start + sweep;
+  const hx = x + r * Math.cos(a), hy = y + r * Math.sin(a);
+  const tx = -Math.sin(a),        ty = Math.cos(a);
+  for (const sign of [1, -1]) {
+    const ang = 0.5 * sign;
+    ctx.beginPath();
+    ctx.moveTo(hx, hy);
+    ctx.lineTo(
+      hx - 11 * (tx * Math.cos(ang) - ty * Math.sin(ang)),
+      hy - 11 * (ty * Math.cos(ang) + tx * Math.sin(ang)),
+    );
+    ctx.stroke();
+  }
+}
+
+/** Expanding pulse for foot contact — the pulse IS the landing. */
+function drawStepGlyph(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, color: string, progress: number, alpha: number,
+): void {
+  if (progress < HIT_AT) return;
+  const t = (progress - HIT_AT) / (1 - HIT_AT);
+  ctx.globalAlpha = alpha * (1 - t);
+  ctx.strokeStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur  = 16;
+  ctx.lineWidth   = 3;
+  ctx.beginPath();
+  ctx.arc(x, y, 20 + 30 * easeOut(t), 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+/** Names the body part and the count it lands on. */
+function drawLabel(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, text: string, count: number,
+  color: string, alpha: number,
+): void {
+  ctx.shadowColor  = "rgba(0,0,0,0.85)";
+  ctx.shadowBlur   = 6;
+  ctx.textAlign    = "center";
+  ctx.textBaseline = "middle";
+
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle   = "#FFFFFF";
+  ctx.font        = "700 15px system-ui, sans-serif";
+  ctx.fillText(text, x, y - 46);
+
+  ctx.fillStyle = color;
+  ctx.font      = "800 30px system-ui, sans-serif";
+  ctx.fillText(String(count), x, y + 52);
+}
+
+// ── Public entry point ────────────────────────────────────────────────────
 
 /**
- * Render a movement event directly with an explicit progress value (0–1).
- * Used by the deterministic pre-scan replay path.
+ * Draw the single cue visible at this moment.
+ *
+ * One grammar for every body part: a ring locating it, a glyph describing the
+ * motion, a label naming it, and the count it lands on. The seven bespoke
+ * abstract shapes this replaces carried no body-part name and no count, which
+ * are the two things a dancer actually needs to read at a glance.
  */
-export function renderEvent(
+export function renderCue(
   ctx:       CanvasRenderingContext2D,
-  ev:        MovementEvent,
+  cue:       BeatCue,
   progress:  number,
   transform: TransformParams,
   beatPhase: number,
-  accent?:   Accent,
 ): void {
-  const t = ev.crowded && ev.personBounds ? centeredTransform(transform, ev.personBounds) : transform;
+  const p = cue.crowded && cue.personBounds
+    ? centeredTransform(transform, cue.personBounds)
+    : transform;
+
   ctx.save();
-  applyPersonClip(ctx, ev.personBounds, t, !!ev.crowded);
-  switch (ev.type) {
-    case "move":     renderMoveArrow(ctx, ev, progress, t, beatPhase);     break;
-    case "step":     renderStepPulse(ctx, ev, progress, t, accent);        break;
-    case "head":     renderHeadNod(ctx, ev, progress, t, beatPhase);       break;
-    case "elbow":    renderElbowArc(ctx, ev, progress, t, beatPhase);      break;
-    case "hip":      renderHipSway(ctx, ev, progress, t, beatPhase);       break;
-    case "shoulder": renderShoulderShift(ctx, ev, progress, t, beatPhase); break;
-    case "arm-both": renderBothArms(ctx, ev, progress, t, beatPhase);      break;
+  applyPersonClip(ctx, cue.personBounds, p, !!cue.crowded);
+
+  const color    = CUE_PALETTE[cue.region];
+  const alpha    = cueAlpha(progress);
+  const [tx, ty] = toCanvas(cue.toX,   cue.toY,   p);
+  const [fx, fy] = toCanvas(cue.fromX, cue.fromY, p);
+
+  // Arrows are clamped to a third of the dancer's height rather than a fixed
+  // pixel count, so length stays meaningful at any zoom.
+  const boxH = cue.personBounds
+    ? Math.abs(toCanvas(0, cue.personBounds.y2 * p.pvH, p)[1]
+             - toCanvas(0, cue.personBounds.y1 * p.pvH, p)[1])
+    : p.cH;
+  const maxLen = Math.max(40, boxH / 3);
+
+  switch (cue.motion) {
+    case "travel": drawTravelGlyph(ctx, fx, fy, tx, ty, color, progress, alpha, maxLen); break;
+    case "roll":   drawRollGlyph(ctx, tx, ty, color, progress, alpha);                   break;
+    case "step":   drawStepGlyph(ctx, tx, ty, color, progress, alpha);                   break;
+    case "hold":   break;
   }
+
+  drawRing(ctx, tx, ty, color, progress, alpha * (0.85 + 0.15 * beatPhase));
+  drawLabel(ctx, tx, ty, cue.label, cue.count, color, alpha);
+
   ctx.restore();
 }
+

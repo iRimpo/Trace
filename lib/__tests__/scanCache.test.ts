@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { cacheRowKey, getCachedTimeline, putCachedTimeline } from "../scanCache";
-import { SCAN_VERSION, type ChoreoTimeline } from "../choreoTimeline";
+import { cacheRowKey, getCachedScan, putCachedScan, type ScanPayload } from "../scanCache";
+import { SCAN_VERSION } from "../cueScript";
 
 // ── Supabase stub ─────────────────────────────────────────────────────────
 const state: {
@@ -34,9 +34,7 @@ vi.mock("../supabase", () => ({
   },
 }));
 
-const timeline: ChoreoTimeline = {
-  version: SCAN_VERSION, bpm: 120, beatOneOffset: 0, videoHeight: 720, entries: [],
-};
+const payload: ScanPayload = { events: [], videoHeight: 720 };
 
 beforeEach(() => { state.rows = []; state.inserted = []; state.user = { id: "user-1" }; });
 
@@ -55,31 +53,44 @@ describe("cacheRowKey", () => {
   });
 });
 
-describe("getCachedTimeline", () => {
-  it("returns the timeline on a cache hit", async () => {
+describe("getCachedScan", () => {
+  it("returns the payload on a cache hit", async () => {
     state.rows.push({
       video_identity: "youtube:abc", segment_start: 0, segment_end: 30,
-      scan_version: SCAN_VERSION, timeline,
+      scan_version: SCAN_VERSION, timeline: payload,
     });
-    const got = await getCachedTimeline({
+    const got = await getCachedScan({
       identity: { kind: "youtube", id: "abc" }, segmentStart: 0, segmentEnd: 30,
     });
-    expect(got).toEqual(timeline);
+    expect(got).toEqual(payload);
   });
 
   it("returns null on miss", async () => {
-    const got = await getCachedTimeline({
+    const got = await getCachedScan({
       identity: { kind: "youtube", id: "missing" }, segmentStart: 0, segmentEnd: 30,
+    });
+    expect(got).toBeNull();
+  });
+
+  it("treats a pre-v3 payload as a miss", async () => {
+    // A v2 row's jsonb has `entries`, not `events`. Returning it would render
+    // nothing; a miss just costs one rescan.
+    state.rows.push({
+      video_identity: "youtube:legacy", segment_start: 0, segment_end: 30,
+      scan_version: SCAN_VERSION, timeline: { entries: [], version: 2 },
+    });
+    const got = await getCachedScan({
+      identity: { kind: "youtube", id: "legacy" }, segmentStart: 0, segmentEnd: 30,
     });
     expect(got).toBeNull();
   });
 });
 
-describe("putCachedTimeline", () => {
+describe("putCachedScan", () => {
   it("inserts shared row (owner null) for link videos", async () => {
-    await putCachedTimeline(
+    await putCachedScan(
       { identity: { kind: "youtube", id: "abc" }, segmentStart: 0, segmentEnd: 30 },
-      timeline, false,
+      payload, false,
     );
     expect(state.inserted).toHaveLength(1);
     expect(state.inserted[0]).toMatchObject({
@@ -88,9 +99,9 @@ describe("putCachedTimeline", () => {
   });
 
   it("inserts owner-scoped row for uploads", async () => {
-    await putCachedTimeline(
+    await putCachedScan(
       { identity: { kind: "file", sha256: "ff" }, segmentStart: 0, segmentEnd: 15 },
-      timeline, true,
+      payload, true,
     );
     expect(state.inserted[0]).toMatchObject({
       video_identity: "file:ff", is_upload: true, owner_id: "user-1",
@@ -99,9 +110,9 @@ describe("putCachedTimeline", () => {
 
   it("swallows errors (best-effort put)", async () => {
     state.user = null; // upload put with no user would be invalid — must not throw
-    await expect(putCachedTimeline(
+    await expect(putCachedScan(
       { identity: { kind: "file", sha256: "ee" }, segmentStart: 0, segmentEnd: 15 },
-      timeline, true,
+      payload, true,
     )).resolves.toBeUndefined();
     expect(state.inserted).toHaveLength(0);
   });

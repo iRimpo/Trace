@@ -1,0 +1,11 @@
+-- Scan cache v3: rows now store raw movement events instead of a composed
+-- timeline, so a timeline can be recomposed when the BPM is detected or
+-- corrected after the scan, without rescanning the video.
+--
+-- The `timeline` jsonb column is reused as-is rather than renamed — the shape
+-- inside it changed, the column did not, and a rename would need a coordinated
+-- deploy for no benefit.
+--
+-- Nothing has ever purged superseded versions, so v1 and v2 rows are already
+-- dead weight against the 500MB free-tier database limit. Drop them.
+delete from scan_cache where scan_version < 3;

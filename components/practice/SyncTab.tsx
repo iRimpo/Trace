@@ -7,6 +7,7 @@ import type { PoseFrame } from "@/lib/poseRecorder";
 import type { CalibrationData } from "@/components/practice/CalibrationModal";
 import { saveSyncScore } from "@/lib/uploadRecording";
 import { loadRecordingSession, clearRecordingSession } from "@/lib/sessionVideoStorage";
+import { TOP_STACK } from "@/components/practice/chrome";
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
@@ -664,7 +665,10 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
       </div>
 
       {/* ── Top-left floating badge (Sync + score) ─────────────── */}
-      <div className="absolute left-3 top-14 z-10 flex items-center gap-2">
+      {/* top-14 was a fourth independent guess at the offset: 56px sits under a
+          59px Dynamic Island inset, and collides with PracticeView's header at
+          any inset. TOP_STACK is the one value that clears it. */}
+      <div className="absolute left-3 z-10 flex items-center gap-2" style={{ top: TOP_STACK }}>
         <div className="flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur-xl border border-white/[0.06]">
           <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
           <span className="text-[10px] font-semibold tracking-wide text-white/70">SYNC</span>
@@ -688,7 +692,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
 
       {/* ── Score breakdown floating side panel (right) — hidden on phone, shown on tablet+ ─── */}
       {(feedbackItems.length > 0 || regionScores) && (
-        <div className="absolute right-3 top-14 bottom-44 z-10 hidden w-56 overflow-y-auto rounded-2xl bg-black/50 backdrop-blur-xl border border-white/[0.06] p-3 md:block">
+        <div className="absolute right-3 bottom-44 z-10 hidden w-56 overflow-y-auto rounded-2xl bg-black/50 backdrop-blur-xl border border-white/[0.06] p-3 md:block" style={{ top: TOP_STACK }}>
 
           {/* Region scores */}
           {regionScores && (
@@ -818,7 +822,8 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
         <motion.div
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="absolute left-2 right-2 top-14 z-20 rounded-2xl border border-white/[0.08] bg-black/80 p-3 backdrop-blur-xl sm:left-3 sm:right-auto sm:w-72 sm:p-4"
+          className="absolute left-2 right-2 z-20 rounded-2xl border border-white/[0.08] bg-black/80 p-3 backdrop-blur-xl sm:left-3 sm:right-auto sm:w-72 sm:p-4"
+          style={{ top: TOP_STACK }}
         >
           {/* Score */}
           <div className="mb-3 text-center">

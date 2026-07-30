@@ -83,6 +83,116 @@ const PARENT_JOINT: Readonly<Record<number, number | null>> = {
   32: 28,    // R Foot Index relative to R Ankle
 };
 
+// ── Movement origin ───────────────────────────────────────────────────────
+
+/** How far back to look for the start of the current gesture. */
+const ORIGIN_LOOKBACK_MS = 600;
+
+/**
+ * Where the current movement actually began: the slowest point within the
+ * lookback window.
+ *
+ * The detector's own `anchorX/anchorY` cannot answer this. That anchor is
+ * reset when a joint's cooldown expires, so it marks an arbitrary moment up
+ * to 1.2s before the gesture — which is why arrow length never represented
+ * how far a limb travels. Walking back to the velocity minimum finds the rest
+ * position the limb actually left from.
+ */
+export function movementOrigin(
+  frames:     PoseFrame[],
+  jointIdx:   number,
+  lookbackMs: number = ORIGIN_LOOKBACK_MS,
+  minConf:    number = 0.3,
+): { x: number; y: number } | null {
+  if (frames.length < 2) return null;
+  const newest = frames[frames.length - 1];
+  const cutoff = newest.wallTime - lookbackMs;
+
+  let best: { x: number; y: number } | null = null;
+  let bestSpeed = Infinity;
+
+  for (let i = 0; i < frames.length - 1; i++) {
+    const f = frames[i], next = frames[i + 1];
+    if (f.wallTime < cutoff) continue;
+    const a = f.kps[jointIdx], b = next.kps[jointIdx];
+    if (!a || !b || (a.score ?? 0) < minConf || (b.score ?? 0) < minConf) continue;
+
+    const dtS   = Math.max(0.001, (next.wallTime - f.wallTime) / 1000);
+    const speed = Math.hypot(b.x - a.x, b.y - a.y) / dtS;
+    if (speed < bestSpeed) { bestSpeed = speed; best = { x: a.x, y: a.y }; }
+  }
+
+  return best;
+}
+
+// ── Roll / wave detection ─────────────────────────────────────────────────
+//
+// A chest roll, hip circle, arm wave or head roll is not a translation: the
+// limb returns near where it started, so net displacement is ~0 and the
+// displacement-threshold path above is blind to it. What distinguishes them
+// is circuity — how much path is travelled per unit of net progress.
+//
+// The window is one beat at 120bpm. The detector has no BPM, and taking the
+// window from the count grid would make scan output depend on the tempo,
+// which is exactly the coupling this redesign removes.
+const ROLL_WINDOW_MS     = 500;
+/** Below this many samples in the window a loop is indistinguishable from noise. */
+const ROLL_MIN_FRAMES    = 3;
+/** pathLength / netDisplacement above which motion reads as rotational. */
+const ROLL_CIRCUITY      = 2.5;
+/** Minimum path length, as a fraction of video height, to be a real gesture. */
+const ROLL_MIN_PATH_FRAC = 0.06;
+/** Min gap between rolls on one joint, so a long roll fires once, not per frame. */
+const ROLL_COOLDOWN_MS   = 900;
+
+/** Joints whose oscillation reads as a roll: head, shoulders, wrists, hips. */
+const ROLL_JOINTS = [0, 11, 12, 15, 16, 23, 24];
+
+export interface RollSignal {
+  /** Path length travelled, video px — not net displacement. */
+  magnitude: number;
+  x: number; y: number;         // newest position
+  fromX: number; fromY: number; // oldest position in the window
+}
+
+/**
+ * Detect rotational / oscillatory motion for one joint over the trailing
+ * window. Returns null when the joint translates instead of loops, when the
+ * gesture is too small, or when the scan sampled too few frames to tell.
+ */
+export function detectRoll(
+  frames:      PoseFrame[],
+  jointIdx:    number,
+  videoHeight: number,
+  minConf:     number = 0.3,
+): RollSignal | null {
+  if (frames.length < ROLL_MIN_FRAMES) return null;
+
+  const newest = frames[frames.length - 1];
+  const cutoff = newest.wallTime - ROLL_WINDOW_MS;
+
+  const pts: { x: number; y: number }[] = [];
+  for (const f of frames) {
+    if (f.wallTime < cutoff) continue;
+    const kp = f.kps[jointIdx];
+    if (!kp || (kp.score ?? 0) < minConf) continue;
+    pts.push({ x: kp.x, y: kp.y });
+  }
+  if (pts.length < ROLL_MIN_FRAMES) return null;
+
+  let pathLength = 0;
+  for (let i = 1; i < pts.length; i++) {
+    pathLength += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+  }
+  if (videoHeight <= 0 || pathLength / videoHeight < ROLL_MIN_PATH_FRAC) return null;
+
+  const first = pts[0], last = pts[pts.length - 1];
+  const net   = Math.hypot(last.x - first.x, last.y - first.y);
+  if (pathLength / Math.max(net, 1e-6) < ROLL_CIRCUITY) return null;
+
+  return { magnitude: pathLength, x: last.x, y: last.y, fromX: first.x, fromY: first.y };
+}
+
 // ── Joints tracked ────────────────────────────────────────────────────────
 
 /** Priority order — extremities first, then core. */
@@ -124,7 +234,8 @@ export type EventType =
   | "hip"        // hip                   — diamond sway indicator
   | "elbow"      // elbow                 — arc bracket
   | "shoulder"   // shoulder              — T-bar shift indicator
-  | "arm-both";  // both wrists together  — mirrored wing arcs
+  | "arm-both"   // both wrists together  — mirrored wing arcs
+  | "roll";      // oscillatory / rotational motion — looping arrow
 
 export interface MovementEvent {
   type:       EventType;
@@ -183,8 +294,9 @@ interface AnchorState {
 
 export class MovementEventDetector {
   private _states = new Map<number, AnchorState>();
+  private _rollFiredAt = new Map<number, number>();
 
-  reset(): void { this._states.clear(); }
+  reset(): void { this._states.clear(); this._rollFiredAt.clear(); }
 
   /**
    * Process the latest frame buffer and return any new movement events.
@@ -267,6 +379,11 @@ export class MovementEventDetector {
       const effectiveFrac  = thr.dispFrac * velocityScale;
 
       if (dispPx / videoHeight >= effectiveFrac) {
+        // Render from where the gesture actually started, not from the
+        // cooldown-reset anchor. `dx`/`dy` deliberately stay parent-relative:
+        // they drive the threshold test above, and rewriting them would change
+        // which events fire.
+        const origin = movementOrigin(frames, idx) ?? { x: st.anchorX, y: st.anchorY };
         rawEvents.push({
           type:       eventTypeFor(idx),
           jointIndex: idx,
@@ -274,8 +391,8 @@ export class MovementEventDetector {
           videoTime:  lastFrame.videoTime,
           x:          kp.x,
           y:          kp.y,
-          anchorX:    st.anchorX,
-          anchorY:    st.anchorY,
+          anchorX:    origin.x,
+          anchorY:    origin.y,
           dx,
           dy,
           magnitude:  dispPx,
@@ -288,6 +405,29 @@ export class MovementEventDetector {
         st.inCooldown = true;
         st.lastFireAt = _now;
       }
+    }
+
+    // Rolls are checked independently of the displacement thresholds above —
+    // by definition they do not clear them.
+    for (const idx of ROLL_JOINTS) {
+      const firedAt = this._rollFiredAt.get(idx) ?? -Infinity;
+      if (_now - firedAt < ROLL_COOLDOWN_MS) continue;
+
+      const roll = detectRoll(frames, idx, videoHeight);
+      if (!roll) continue;
+
+      this._rollFiredAt.set(idx, _now);
+      rawEvents.push({
+        type:       "roll",
+        jointIndex: idx,
+        jointName:  TRACKED_JOINTS.find(j => j.idx === idx)?.name ?? `Joint ${idx}`,
+        videoTime:  lastFrame.videoTime,
+        x:          roll.x,     y:       roll.y,
+        anchorX:    roll.fromX, anchorY: roll.fromY,
+        dx:         roll.x - roll.fromX,
+        dy:         roll.y - roll.fromY,
+        magnitude:  roll.magnitude,
+      });
     }
 
     return this._groupBilateral(this._deduplicateFeet(rawEvents));
@@ -327,8 +467,10 @@ export class MovementEventDetector {
     const consumed = new Set<number>();
 
     for (const [leftIdx, rightIdx] of BILATERAL_PAIRS) {
-      const left  = events.find(e => e.jointIndex === leftIdx);
-      const right = events.find(e => e.jointIndex === rightIdx);
+      // Rolls are excluded: a bilateral wrist *roll* is two rolls, not one
+      // compound arm translation, and merging them would erase the motion type.
+      const left  = events.find(e => e.jointIndex === leftIdx  && e.type !== "roll");
+      const right = events.find(e => e.jointIndex === rightIdx && e.type !== "roll");
       if (!left || !right) continue;
 
       const leftLen  = Math.sqrt(left.dx  * left.dx  + left.dy  * left.dy);

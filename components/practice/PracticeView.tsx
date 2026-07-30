@@ -9,6 +9,7 @@ import TestTab from "@/components/practice/TestTab";
 import SyncTab from "@/components/practice/SyncTab";
 import CalibrationModal, { type CalibrationData } from "@/components/practice/CalibrationModal";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import InstallGate from "@/components/practice/InstallGate";
 import { track } from "@/lib/posthog";
 import { parseIdentityKey } from "@/lib/videoIdentity";
 import { useWakeLock } from "@/lib/useWakeLock";
@@ -70,6 +71,12 @@ export default function PracticeView({ videoUrl, videoId, videoTitle, videoSourc
 
   return (
     <div className="relative h-[100dvh] w-full overflow-hidden bg-black md:h-screen">
+      {/* iOS has no Fullscreen API, so installing is the only way to practise
+          without Safari's address bar covering the frame. Mounted here rather
+          than in the root layout: a takeover on the landing page or dashboard
+          would fire long before the user has a reason to want the app. */}
+      <InstallGate />
+
       {/* Calibration modal */}
       {!calibrated && videoUrl && (
         <CalibrationModal videoUrl={videoUrl} onCalibrated={handleCalibrated} onSkip={handleCalibrationSkip} />
@@ -80,13 +87,26 @@ export default function PracticeView({ videoUrl, videoId, videoTitle, videoSourc
         className="pointer-events-none absolute left-0 right-0 top-0 z-50 px-3 py-3"
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
       >
-        <div className="flex items-center justify-between">
+        {/*
+          Three columns, all in normal flow. The tab bar used to be
+          `absolute top-1/2 -translate-y-1/2`, which centres on the *padding*
+          box — so on a Dynamic Island iPhone the ~59px safe-area inset counted
+          as centreable space and the bar landed underneath the status bar,
+          colliding with the back button sitting correctly below it. A grid
+          keeps the bar optically centred without leaving the padded flow.
+        */}
+        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
           {/* Back + title */}
           <div className="pointer-events-auto flex items-center gap-3">
             <Link href="/dashboard" className="flex h-8 items-center gap-1.5 rounded-full bg-black/60 px-3 text-[11px] font-semibold text-white/60 backdrop-blur-xl border border-white/[0.08] transition-all hover:text-white hover:bg-black/80">
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
               <span className="hidden sm:inline max-w-[160px] truncate">{videoTitle}</span>
             </Link>
+          </div>
+
+          {/* Tab bar — centre column. */}
+          <div className="pointer-events-auto flex justify-center">
+            <TabNavigation currentTab={currentTab} onTabChange={setCurrentTab} completedTabs={completedTabs} />
           </div>
 
           {/* Logo badge — decorative, and it sits on the same coordinates as
@@ -101,11 +121,6 @@ export default function PracticeView({ videoUrl, videoId, videoTitle, videoSourc
               </svg>
             </div>
           </div>
-        </div>
-
-        {/* Top dynamic island nav (centered) */}
-        <div className="pointer-events-auto absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <TabNavigation currentTab={currentTab} onTabChange={setCurrentTab} completedTabs={completedTabs} />
         </div>
       </div>
 

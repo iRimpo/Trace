@@ -34,6 +34,7 @@ const config: Config = {
           hip:      "#A78BFA",
           shoulder: "#60A5FA",
           arm:      "#F472B6",
+          body:     "#E879F9",
         },
         trace: {
           black: "#080808",
