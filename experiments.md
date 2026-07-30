@@ -117,3 +117,52 @@ addition vs subtraction. That is the shape worth pointing a property at next: an
 the code computes one value two ways.
 
 ---
+## Cycles 3-6 — design ratchet (2026-07-29)
+
+Four rules driven to their floor. Each cycle verified with tsc + 79 tests + 24
+properties at 50000 runs + a production build, and the new Tailwind utilities
+were checked against `.next-check` CSS rather than assumed — silent non-emission
+is how the `/06` opacity bug shipped before.
+
+| Rule | Before | After |
+|---|---|---|
+| transition_all | 74 | **0** |
+| motion_no_reduce | 35 | **0** |
+| small_touch_target | 8 | **0** |
+| raw_hex | 332 | **56** |
+| ease_in | 0 | 0 |
+
+**Cycle 3 — transition_all.** `all` animates width/height/padding/margin too,
+forcing layout and paint every frame. A `transition-ui` token names exactly the
+composited properties. One mechanical swap, 74 sites.
+
+**Cycle 4 — motion_no_reduce.** Spinners got `motion-reduce:animate-pulse`, not
+`animate-none`: rotation is a vestibular trigger, opacity is not, and a loading
+indicator that stops indicating is a worse outcome than one that pulses.
+
+**Cycle 5 — small_touch_target.** A `.touch-target` utility expands the hit area
+to 44px with a centred pseudo-element, leaving the visual alone. Enlarging small
+icon buttons would make the dense practice control rows clumsy.
+
+The rule then still counted all 8, because it keys on the `h-*` class — a proxy
+for hit area, not hit area itself. Narrowed it to exempt elements carrying the
+utility. Same judgement as cycle 1: the rule was measuring the wrong thing, and
+an element with neither still fails.
+
+**Cycle 6 — raw_hex.** 160 arbitrary values became token classes; 111 literals in
+SVG attributes and data structures became imports. `lib/cuePalette.ts` already
+existed for exactly this purpose and components had simply never migrated.
+
+Mid-cycle the landing page rendered nearly blank and looked like a regression
+from the automated rewrite. It was not: stashing the changes reproduced it
+exactly. Pre-existing — framer entrance animations mid-flight plus a navbar
+styled `text-white/70` for a dark hero that renders pale. **Recorded as a
+separate finding, not fixed here.** The five minutes spent proving that beat
+reverting a correct 271-site change on a hunch.
+
+**Lesson:** three of the four rules were fixable mechanically once the right
+token existed. The one that needed judgement — touch targets — needed it because
+the rule measured a proxy. When a rule and a real fix disagree, check which one
+is describing the actual goal before changing either.
+
+---
