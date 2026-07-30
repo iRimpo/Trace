@@ -402,7 +402,9 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
         </div>
 
         {saveError && (
-          <div className="absolute left-4 right-4 top-20 z-10">
+          /* Sits below the "Recording Complete!" badge, which is anchored to
+             TOP_STACK — the +4rem keeps the original 16px→80px relationship. */
+          <div className="absolute left-4 right-4 z-10" style={{ top: `calc(${TOP_STACK} + 4rem)` }}>
             <p className="rounded-lg bg-red-500/20 px-3 py-2 text-xs font-medium text-red-400 backdrop-blur-xl border border-red-500/20">{saveError}</p>
           </div>
         )}
@@ -545,15 +547,17 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
 
       {/* PREVIEW badge (framing) */}
       {testState === "framing" && (
-        <div className="absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur-xl border border-white/[0.06]">
+        <div className="absolute left-3 z-20 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur-xl border border-white/[0.06]" style={{ top: TOP_STACK }}>
           <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
           <span className="text-[10px] font-semibold tracking-wide text-white/70">PREVIEW</span>
         </div>
       )}
 
-      {/* Framing instruction — floating badge top-left */}
+      {/* Framing instruction — floating badge top-left. Stacked below the
+          PREVIEW badge; the +2rem preserves the original 12px→44px gap now
+          that both are anchored to TOP_STACK. */}
       {testState === "framing" && (
-        <div className="absolute left-3 top-11 z-20 max-w-xs rounded-xl bg-black/50 px-3.5 py-2 backdrop-blur-xl border border-white/[0.06]">
+        <div className="absolute left-3 z-20 max-w-xs rounded-xl bg-black/50 px-3.5 py-2 backdrop-blur-xl border border-white/[0.06]" style={{ top: `calc(${TOP_STACK} + 2rem)` }}>
           <h2 className="text-xs font-bold text-white">Position yourself</h2>
           <p className="mt-0.5 text-[10px] leading-relaxed text-white/40">
             Drag the reference overlay to align with your body. Scrub to your starting frame, then press &ldquo;I&apos;m Ready&rdquo;.

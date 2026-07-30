@@ -953,7 +953,10 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
       <div className={`pointer-events-none absolute inset-0 z-30 transition-opacity duration-500 ${controlsVisible ? "opacity-100" : "opacity-0"}`}>
 
         {/* ── Top-left: badge + loop indicator ────────────────── */}
-        <div className="pointer-events-auto absolute left-3 top-16 flex flex-col gap-2">
+        {/* Anchored to TOP_STACK like its top-right sibling below. The old
+            top-16 (64px) sat 39px inside the header at a 59px inset, on top
+            of the back button. */}
+        <div className="pointer-events-auto absolute left-3 flex flex-col gap-2" style={{ top: TOP_STACK }}>
           <div className={`flex items-center gap-1.5 rounded-full ${GLASS} px-3 py-1.5`}>
             <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
               <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" stroke="#1a0f00" strokeWidth="1.5" strokeLinejoin="round" opacity="0.6"/>
