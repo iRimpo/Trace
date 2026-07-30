@@ -155,7 +155,7 @@ export default function PracticePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f8f4e0]">
+      <div className="flex min-h-screen items-center justify-center bg-brand-cream">
         <div className="relative h-10 w-10">
           <div className="absolute inset-0 rounded-full border-2 border-ink/10" />
           <motion.div className="absolute inset-0 rounded-full border-2 border-transparent border-t-ink"
@@ -170,9 +170,9 @@ export default function PracticePage() {
   const canUpload = !!selectedFile && !error && songName.trim().length >= 3;
 
   return (
-    <div className="min-h-screen bg-[#f8f4e0]">
+    <div className="min-h-screen bg-brand-cream">
       {/* Header */}
-      <header className="border-b border-ink/[0.08] bg-[#f8f4e0]">
+      <header className="border-b border-ink/[0.08] bg-brand-cream">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-6">
           <Link href="/dashboard"
             className="flex items-center gap-2 text-sm text-ink/40 hover:text-ink transition-colors">
@@ -210,7 +210,7 @@ export default function PracticePage() {
             <input type="text" value={songName} onChange={(e) => setSongName(e.target.value)}
               placeholder="e.g., APT - Rose & Bruno Mars"
               maxLength={100}
-              className="w-full rounded-xl border border-ink/10 bg-[#f8f4e0]/60 px-4 py-3 text-sm text-ink placeholder:text-ink/25 outline-none transition-ui focus:border-[#080808]/30 focus:ring-2 focus:ring-[#080808]/[0.08]" />
+              className="w-full rounded-xl border border-ink/10 bg-brand-cream/60 px-4 py-3 text-sm text-ink placeholder:text-ink/25 outline-none transition-ui focus:border-brand-primary/30 focus:ring-2 focus:ring-brand-primary/[0.08]" />
             <div className="mt-1 flex items-center justify-between">
               <p className="text-[11px] text-ink/25">Required · Min. 3 characters</p>
               <AnimatePresence>
@@ -244,16 +244,16 @@ export default function PracticePage() {
                     onClick={() => fileInputRef.current?.click()}
                     className={`group cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-ui duration-200 sm:p-12 ${
                       dragActive
-                        ? "border-[#080808] bg-[#080808]/5"
-                        : "border-ink/10 hover:border-[#080808]/30 hover:bg-[#080808]/3"
+                        ? "border-brand-primary bg-brand-primary/5"
+                        : "border-ink/10 hover:border-brand-primary/30 hover:bg-brand-primary/3"
                     }`}
                   >
                     <input ref={fileInputRef} type="file" accept="video/mp4,video/quicktime,video/webm"
                       onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }} className="hidden" />
                     <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-2xl transition-colors ${
-                      dragActive ? "bg-[#080808]/15" : "bg-[#080808]/[0.06] group-hover:bg-[#080808]/12"
+                      dragActive ? "bg-brand-primary/15" : "bg-brand-primary/[0.06] group-hover:bg-brand-primary/12"
                     }`}>
-                      <FaUpload className={`text-xl transition-colors ${dragActive ? "text-[#080808]" : "text-ink/30 group-hover:text-[#080808]"}`} />
+                      <FaUpload className={`text-xl transition-colors ${dragActive ? "text-brand-primary" : "text-ink/30 group-hover:text-brand-primary"}`} />
                     </div>
                     <p className="mt-4 text-sm font-semibold text-ink">
                       <span className="hidden sm:inline">Drag &amp; drop your video here</span>
@@ -265,16 +265,16 @@ export default function PracticePage() {
                     </p>
                     <div className="mt-4 flex items-center justify-center gap-2">
                       {["MP4", "MOV", "WebM"].map((f) => (
-                        <span key={f} className="rounded-full bg-[#080808]/[0.06] px-3 py-1 text-[10px] font-bold text-ink/50">{f}</span>
+                        <span key={f} className="rounded-full bg-brand-primary/[0.06] px-3 py-1 text-[10px] font-bold text-ink/50">{f}</span>
                       ))}
                       <span className="text-[10px] text-ink/20">Max 200MB</span>
                     </div>
                   </div>
                 ) : (
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                    className="rounded-2xl border border-[#080808]/12 bg-[#080808]/5 p-5">
+                    className="rounded-2xl border border-brand-primary/12 bg-brand-primary/5 p-5">
                     <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-[#080808]/10">
+                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-brand-primary/10">
                         <FaFilm className="text-ink text-lg" />
                       </div>
                       <div className="flex-1 overflow-hidden">
@@ -306,14 +306,14 @@ export default function PracticePage() {
               <motion.div key="uploading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-8 text-center">
                 <div className="relative mx-auto h-16 w-16">
                   <div className="absolute inset-0 rounded-full border-2 border-ink/10" />
-                  <motion.div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#080808]"
+                  <motion.div className="absolute inset-0 rounded-full border-2 border-transparent border-t-brand-primary"
                     animate={{ rotate: 360 }} transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }} />
-                  <motion.div className="absolute inset-2 rounded-full border-2 border-transparent border-t-[#00D4FF]"
+                  <motion.div className="absolute inset-2 rounded-full border-2 border-transparent border-t-cue-hand"
                     animate={{ rotate: -360 }} transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }} />
                 </div>
                 <p className="mt-5 text-sm font-semibold text-ink">Preparing your session...</p>
                 <div className="mx-auto mt-4 h-1.5 max-w-xs overflow-hidden rounded-full bg-ink/[0.08]">
-                  <motion.div className="h-full rounded-full bg-[#080808]"
+                  <motion.div className="h-full rounded-full bg-brand-primary"
                     style={{ width: `${Math.min(progress, 100)}%` }} transition={{ duration: 0.3 }} />
                 </div>
                 <p className="mt-2 text-xs text-ink/30">{Math.round(progress)}%</p>
@@ -324,8 +324,8 @@ export default function PracticePage() {
             {uploadState === "success" && (
               <motion.div key="success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
                 transition={{ ease: "backOut" }} className="py-8 text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#34D399]/15">
-                  <FaCheckCircle className="text-[#34D399] text-3xl" />
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-cue-foot/15">
+                  <FaCheckCircle className="text-cue-foot text-3xl" />
                 </div>
                 <p className="mt-4 text-sm font-semibold text-ink">Video ready!</p>
                 <p className="mt-1 text-xs text-ink/30">Redirecting to your session...</p>
@@ -354,7 +354,7 @@ export default function PracticePage() {
               <button onClick={handleUpload} disabled={!canUpload}
                 className={`flex flex-1 items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold transition-ui duration-200 ${
                   canUpload
-                    ? "bg-[#080808] text-white shadow-lg hover:bg-[#1a1a1a] active:scale-[0.98]"
+                    ? "bg-brand-primary text-white shadow-lg hover:bg-brand-accent active:scale-[0.98]"
                     : "cursor-not-allowed bg-ink/[0.08] text-ink/25"
                 }`}>
                 {uploadState === "error" ? "Retry" : "Start Session"}

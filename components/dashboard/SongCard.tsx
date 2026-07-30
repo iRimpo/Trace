@@ -1,5 +1,7 @@
 "use client";
 
+import { CUE_PALETTE } from "@/lib/cuePalette";
+
 import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,8 +15,8 @@ const REGION_LABELS: Record<string, string> = {
 };
 
 const PART_COLORS: Record<string, string> = {
-  torso: "#A78BFA", leftArm: "#F97316", rightArm: "#00D4FF",
-  leftLeg: "#F472B6", rightLeg: "#34D399",
+  torso: CUE_PALETTE.hip, leftArm: CUE_PALETTE.elbow, rightArm: CUE_PALETTE.hand,
+  leftLeg: CUE_PALETTE.armBoth, rightLeg: CUE_PALETTE.foot,
 };
 
 const REGION_TIPS: Record<string, string> = {
@@ -28,7 +30,7 @@ const REGION_TIPS: Record<string, string> = {
 function scoreColor(s: number): string {
   if (s >= 80) return "#10B981";
   if (s >= 55) return "#EAB308";
-  if (s >= 30) return "#F97316";
+  if (s >= 30) return CUE_PALETTE.elbow;
   return "#EF4444";
 }
 
@@ -163,7 +165,7 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
             <div className="border-t border-ink/[0.06] px-5 pb-5 pt-4">
 
               {/* Graph */}
-              <div className="mb-5 rounded-xl bg-[#f8f4e0]/60 px-3 py-2">
+              <div className="mb-5 rounded-xl bg-brand-cream/60 px-3 py-2">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-clay/40">Progress</p>
                 <ProgressGraph attempts={group.attempts} />
               </div>
@@ -228,7 +230,7 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
                       return (
                         <div
                           key={i}
-                          className={`flex shrink-0 flex-col items-center gap-1 rounded-xl px-3 py-2 ${isLatest ? "bg-[#080808]" : "bg-[#f8f4e0]"}`}
+                          className={`flex shrink-0 flex-col items-center gap-1 rounded-xl px-3 py-2 ${isLatest ? "bg-brand-primary" : "bg-brand-cream"}`}
                         >
                           <span className={`text-sm font-black tabular-nums ${isLatest ? "text-white" : ""}`}
                             style={isLatest ? {} : { color }}>
@@ -250,7 +252,7 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
                 <button
                   type="button"
                   onClick={() => setShowPracticeModal(true)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-[#080808] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#1a1a1a] transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-primary px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-accent transition-colors"
                 >
                   Practice Again →
                 </button>
@@ -318,7 +320,7 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
                 </button>
                 <Link
                   href={practiceHref}
-                  className="flex-1 rounded-full bg-[#080808] px-4 py-2 text-center text-xs font-semibold text-white hover:bg-[#1a1a1a]"
+                  className="flex-1 rounded-full bg-brand-primary px-4 py-2 text-center text-xs font-semibold text-white hover:bg-brand-accent"
                 >
                   Upload video
                 </Link>

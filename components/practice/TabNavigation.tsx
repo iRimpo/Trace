@@ -63,7 +63,7 @@ export default function TabNavigation({ currentTab, onTabChange, completedTabs }
             {state === "active" && (
               <motion.div
                 layoutId="tab-pill"
-                className="absolute inset-0 rounded-full bg-[#080808]"
+                className="absolute inset-0 rounded-full bg-brand-primary"
                 transition={{ type: "spring", stiffness: 400, damping: 35 }}
               />
             )}

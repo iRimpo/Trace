@@ -73,7 +73,7 @@ export default function Navbar() {
         <div className="flex items-center gap-2 md:hidden">
           {!loading && (
             user ? (
-              <a href="/dashboard" className="inline-flex h-8 items-center rounded-full bg-[#080808] px-4 text-xs font-semibold text-white">
+              <a href="/dashboard" className="inline-flex h-8 items-center rounded-full bg-brand-primary px-4 text-xs font-semibold text-white">
                 Dashboard
               </a>
             ) : (
@@ -81,7 +81,7 @@ export default function Navbar() {
                 <a href="/login" className={`inline-flex h-8 items-center rounded-full px-3 text-xs font-medium ${scrolled || mobileOpen ? "text-ink/60" : "text-white/70"}`}>
                   Log in
                 </a>
-                <a href="#waitlist" className="inline-flex h-8 items-center rounded-full bg-[#080808] px-4 text-xs font-semibold text-white">
+                <a href="#waitlist" className="inline-flex h-8 items-center rounded-full bg-brand-primary px-4 text-xs font-semibold text-white">
                   Sign up
                 </a>
               </>
@@ -141,7 +141,7 @@ function NavPill({
     return (
       <a
         href={href}
-        className="touch-target inline-flex h-10 items-center rounded-full border border-[#080808] bg-[#080808] px-5 text-sm font-medium text-white transition-ui duration-200 hover:bg-[#1a1a1a] hover:border-[#1a1a1a]"
+        className="touch-target inline-flex h-10 items-center rounded-full border border-brand-primary bg-brand-primary px-5 text-sm font-medium text-white transition-ui duration-200 hover:bg-brand-accent hover:border-brand-accent"
       >
         {label}
       </a>

@@ -79,7 +79,7 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
 
   if (checking) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f8f4e0]">
+      <div className="flex min-h-screen items-center justify-center bg-brand-cream">
         <div className="relative h-10 w-10">
           <div className="absolute inset-0 rounded-full border-2 border-ink/10" />
           <motion.div

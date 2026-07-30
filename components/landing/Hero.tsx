@@ -13,19 +13,19 @@ const CUE = CUE_ORDER.map(region => ({
 
 // ── Skeleton data ─────────────────────────────────────────────────────
 const JOINTS = [
-  { x: 110, y: 28,  r: 18, label: "head",     color: "#FBBF24" },
-  { x: 78,  y: 88,  r: 6,  label: "lShoulder", color: "#60A5FA" },
-  { x: 142, y: 88,  r: 6,  label: "rShoulder", color: "#60A5FA" },
-  { x: 52,  y: 148, r: 5,  label: "lElbow",    color: "#F97316" },
-  { x: 168, y: 148, r: 5,  label: "rElbow",    color: "#F97316" },
-  { x: 30,  y: 200, r: 5,  label: "lHand",     color: "#00D4FF" },
-  { x: 190, y: 200, r: 5,  label: "rHand",     color: "#00D4FF" },
-  { x: 90,  y: 200, r: 6,  label: "lHip",      color: "#A78BFA" },
-  { x: 130, y: 200, r: 6,  label: "rHip",      color: "#A78BFA" },
-  { x: 80,  y: 275, r: 5,  label: "lKnee",     color: "#34D399" },
-  { x: 140, y: 275, r: 5,  label: "rKnee",     color: "#34D399" },
-  { x: 70,  y: 345, r: 5,  label: "lFoot",     color: "#34D399" },
-  { x: 150, y: 345, r: 5,  label: "rFoot",     color: "#34D399" },
+  { x: 110, y: 28,  r: 18, label: "head",     color: CUE_PALETTE.head },
+  { x: 78,  y: 88,  r: 6,  label: "lShoulder", color: CUE_PALETTE.shoulder },
+  { x: 142, y: 88,  r: 6,  label: "rShoulder", color: CUE_PALETTE.shoulder },
+  { x: 52,  y: 148, r: 5,  label: "lElbow",    color: CUE_PALETTE.elbow },
+  { x: 168, y: 148, r: 5,  label: "rElbow",    color: CUE_PALETTE.elbow },
+  { x: 30,  y: 200, r: 5,  label: "lHand",     color: CUE_PALETTE.hand },
+  { x: 190, y: 200, r: 5,  label: "rHand",     color: CUE_PALETTE.hand },
+  { x: 90,  y: 200, r: 6,  label: "lHip",      color: CUE_PALETTE.hip },
+  { x: 130, y: 200, r: 6,  label: "rHip",      color: CUE_PALETTE.hip },
+  { x: 80,  y: 275, r: 5,  label: "lKnee",     color: CUE_PALETTE.foot },
+  { x: 140, y: 275, r: 5,  label: "rKnee",     color: CUE_PALETTE.foot },
+  { x: 70,  y: 345, r: 5,  label: "lFoot",     color: CUE_PALETTE.foot },
+  { x: 150, y: 345, r: 5,  label: "rFoot",     color: CUE_PALETTE.foot },
 ];
 
 const BONES: [number, number][] = [
@@ -85,17 +85,17 @@ function DancerSvg({ dimmed }: { dimmed?: boolean }) {
 export default function Hero() {
 
   return (
-    <section className="relative min-h-screen overflow-hidden bg-[#f8f4e0] flex items-center">
+    <section className="relative min-h-screen overflow-hidden bg-brand-cream flex items-center">
 
       {/* Background orbs — CSS-only animation, hidden on mobile */}
       <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-slow motion-reduce:animate-none"
-        style={{ width: 340, height: 340, left: "65%", top: "10%", backgroundColor: "#A78BFA", filter: "blur(60px)", opacity: 0.12 }} />
+        style={{ width: 340, height: 340, left: "65%", top: "10%", backgroundColor: CUE_PALETTE.hip, filter: "blur(60px)", opacity: 0.12 }} />
       <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-reverse motion-reduce:animate-none"
-        style={{ width: 260, height: 260, left: "72%", top: "50%", backgroundColor: "#00D4FF", filter: "blur(60px)", opacity: 0.12 }} />
+        style={{ width: 260, height: 260, left: "72%", top: "50%", backgroundColor: CUE_PALETTE.hand, filter: "blur(60px)", opacity: 0.12 }} />
       <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-slow motion-reduce:animate-none"
-        style={{ width: 200, height: 200, left: "55%", top: "70%", backgroundColor: "#34D399", filter: "blur(60px)", opacity: 0.12 }} />
+        style={{ width: 200, height: 200, left: "55%", top: "70%", backgroundColor: CUE_PALETTE.foot, filter: "blur(60px)", opacity: 0.12 }} />
       <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-reverse motion-reduce:animate-none"
-        style={{ width: 180, height: 180, left: "5%", top: "60%", backgroundColor: "#FBBF24", filter: "blur(60px)", opacity: 0.12 }} />
+        style={{ width: 180, height: 180, left: "5%", top: "60%", backgroundColor: CUE_PALETTE.head, filter: "blur(60px)", opacity: 0.12 }} />
 
       {/* Subtle dot grid */}
       <div
@@ -119,7 +119,7 @@ export default function Hero() {
             className="mb-5 flex items-center gap-2"
           >
             <motion.div
-              className="h-2 w-2 rounded-full bg-[#34D399]"
+              className="h-2 w-2 rounded-full bg-cue-foot"
               animate={{ scale: [1, 1.4, 1] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
             />
@@ -162,7 +162,7 @@ export default function Hero() {
           >
             <a
               href="#waitlist"
-              className="inline-flex h-11 items-center gap-2 rounded-full bg-[#080808] px-7 text-sm font-semibold text-white shadow-sm transition-ui duration-200 hover:bg-[#1a1a1a] active:scale-95"
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-7 text-sm font-semibold text-white shadow-sm transition-ui duration-200 hover:bg-brand-accent active:scale-95"
             >
               Sign up
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -214,7 +214,7 @@ export default function Hero() {
           className="relative flex-shrink-0"
         >
           {/* Soft glow behind skeleton */}
-          <div className="absolute inset-0 -m-12 rounded-full bg-[#A78BFA]/12 blur-3xl" />
+          <div className="absolute inset-0 -m-12 rounded-full bg-cue-hip/12 blur-3xl" />
 
           <div className="relative flex items-center gap-4 sm:gap-8">
 
@@ -253,7 +253,7 @@ export default function Hero() {
             className="absolute -top-4 right-0 flex items-center gap-1.5 rounded-full border border-ink/[0.08] bg-white/80 px-3 py-1.5 backdrop-blur-sm"
           >
             <motion.div
-              className="h-1.5 w-1.5 rounded-full bg-[#34D399]"
+              className="h-1.5 w-1.5 rounded-full bg-cue-foot"
               animate={{ scale: [1, 1.6, 1] }}
               transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
             />

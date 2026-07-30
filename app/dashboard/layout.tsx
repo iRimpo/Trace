@@ -17,7 +17,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f8f4e0]">
+      <div className="flex min-h-screen items-center justify-center bg-brand-cream">
         <div className="relative h-10 w-10">
           <div className="absolute inset-0 rounded-full border-2 border-ink/10" />
           <motion.div
@@ -39,15 +39,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const userInitial = displayInitial.toUpperCase();
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f8f4e0]">
+    <div className="flex min-h-screen flex-col bg-brand-cream">
       {/* Top bar */}
-      <header className="flex h-14 items-center justify-between border-b border-ink/[0.08] bg-[#f8f4e0] px-5 sm:px-8">
+      <header className="flex h-14 items-center justify-between border-b border-ink/[0.08] bg-brand-cream px-5 sm:px-8">
         <Link href="/" className="flex items-center">
           <img src="/trace_logo.svg" width="36" height="36" alt="Trace" className="rounded-full" />
         </Link>
 
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#080808] text-xs font-bold text-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary text-xs font-bold text-white">
             {userInitial}
           </div>
 

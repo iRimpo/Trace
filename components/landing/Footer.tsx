@@ -1,12 +1,14 @@
 "use client";
 
+import { CUE_PALETTE } from "@/lib/cuePalette";
+
 import { motion } from "framer-motion";
 
-const CUE_COLORS = ["#00D4FF", "#34D399", "#FBBF24", "#F97316", "#A78BFA", "#60A5FA", "#F472B6"];
+const CUE_COLORS = [CUE_PALETTE.hand, CUE_PALETTE.foot, CUE_PALETTE.head, CUE_PALETTE.elbow, CUE_PALETTE.hip, CUE_PALETTE.shoulder, CUE_PALETTE.armBoth];
 
 export default function Footer() {
   return (
-    <footer className="bg-[#f8f4e0] py-10">
+    <footer className="bg-brand-cream py-10">
       <motion.div
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
@@ -16,14 +18,14 @@ export default function Footer() {
       >
         {/* Logo */}
         <a href="/" className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 flex-col items-center justify-center rounded-full border-2 border-[#080808] bg-[#080808] shadow">
+          <div className="flex h-9 w-9 flex-col items-center justify-center rounded-full border-2 border-brand-primary bg-brand-primary shadow">
             <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
               <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" stroke="white" strokeWidth="1.5" strokeLinejoin="round"/>
               <circle cx="7" cy="7" r="2" fill="white"/>
             </svg>
           </div>
           <span className="font-calistoga text-lg text-ink">
-            Trace<span className="text-[#080808]">.</span>
+            Trace<span className="text-brand-primary">.</span>
           </span>
         </a>
 

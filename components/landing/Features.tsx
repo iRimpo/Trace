@@ -1,10 +1,12 @@
 "use client";
 
+import { CUE_PALETTE } from "@/lib/cuePalette";
+
 import { motion } from "framer-motion";
 
 const CUE = {
-  hand: "#00D4FF", foot: "#34D399", head: "#FBBF24",
-  elbow: "#F97316", hip: "#A78BFA", shoulder: "#60A5FA", arm: "#F472B6",
+  hand: CUE_PALETTE.hand, foot: CUE_PALETTE.foot, head: CUE_PALETTE.head,
+  elbow: CUE_PALETTE.elbow, hip: CUE_PALETTE.hip, shoulder: CUE_PALETTE.shoulder, arm: CUE_PALETTE.armBoth,
 };
 
 const FEATURES = [

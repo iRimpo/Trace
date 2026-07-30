@@ -1,21 +1,23 @@
 "use client";
 
+import { CUE_PALETTE } from "@/lib/cuePalette";
+
 import { motion } from "framer-motion";
 
 const CARDS = [
   {
     title: "Ghost Mirror",
     desc: "Reference dancer overlaid on your feed",
-    accent: "#60A5FA",
+    accent: CUE_PALETTE.shoulder,
     rotate: -8,
     icon: (
       <svg width="40" height="60" viewBox="0 0 40 60" fill="none">
-        <circle cx="20" cy="8" r="6" fill="#FBBF24" opacity="0.9"/>
-        <rect x="13" y="16" width="14" height="20" rx="4" fill="#A78BFA" opacity="0.7"/>
-        <rect x="4" y="18" width="8" height="16" rx="4" fill="#F97316" opacity="0.5"/>
-        <rect x="28" y="18" width="8" height="16" rx="4" fill="#F97316" opacity="0.5"/>
-        <rect x="9" y="38" width="9" height="18" rx="4" fill="#34D399" opacity="0.6"/>
-        <rect x="22" y="38" width="9" height="18" rx="4" fill="#34D399" opacity="0.6"/>
+        <circle cx="20" cy="8" r="6" fill={CUE_PALETTE.head} opacity="0.9"/>
+        <rect x="13" y="16" width="14" height="20" rx="4" fill={CUE_PALETTE.hip} opacity="0.7"/>
+        <rect x="4" y="18" width="8" height="16" rx="4" fill={CUE_PALETTE.elbow} opacity="0.5"/>
+        <rect x="28" y="18" width="8" height="16" rx="4" fill={CUE_PALETTE.elbow} opacity="0.5"/>
+        <rect x="9" y="38" width="9" height="18" rx="4" fill={CUE_PALETTE.foot} opacity="0.6"/>
+        <rect x="22" y="38" width="9" height="18" rx="4" fill={CUE_PALETTE.foot} opacity="0.6"/>
       </svg>
     ),
   },
@@ -48,7 +50,7 @@ const CARDS = [
     rotate: -4,
     icon: (
       <div className="flex flex-wrap gap-2 p-1">
-        {["#00d4ff","#34d399","#fbbf24","#f97316","#a78bfa","#60a5fa","#f472b6"].map((c,i)=>(
+        {[CUE_PALETTE.hand,CUE_PALETTE.foot,CUE_PALETTE.head,CUE_PALETTE.elbow,CUE_PALETTE.hip,CUE_PALETTE.shoulder,CUE_PALETTE.armBoth].map((c,i)=>(
           <div key={i} className="h-6 w-6 rounded-full" style={{background:c}}/>
         ))}
       </div>
@@ -94,13 +96,13 @@ export default function HowItWorks() {
       <div className="h-7 w-full checkered-brown" />
 
       {/* Story section */}
-      <section id="how-it-works" className="bg-[#f8f4e0] py-16 px-4 sm:py-28 sm:px-6 lg:px-10 relative overflow-hidden">
+      <section id="how-it-works" className="bg-brand-cream py-16 px-4 sm:py-28 sm:px-6 lg:px-10 relative overflow-hidden">
         {/* Floating decorative joint dots — CSS-only animation */}
         <div className="pointer-events-none absolute inset-0">
-          <div className="animate-float-slow motion-reduce:animate-none absolute top-20 left-12 h-10 w-10 rounded-full bg-[#60A5FA]/20 border-2 border-[#60A5FA]/30" />
-          <div className="animate-float-reverse motion-reduce:animate-none absolute top-40 right-16 h-7 w-7 rounded-full bg-[#F472B6]/20 border-2 border-[#F472B6]/30" />
-          <div className="animate-float-slow motion-reduce:animate-none absolute bottom-32 left-24 h-5 w-5 rounded-full bg-[#00D4FF]/20 border-2 border-[#00D4FF]/30" />
-          <div className="animate-float-reverse motion-reduce:animate-none absolute bottom-24 right-20 h-8 w-8 rounded-full bg-[#34D399]/20 border-2 border-[#34D399]/30" />
+          <div className="animate-float-slow motion-reduce:animate-none absolute top-20 left-12 h-10 w-10 rounded-full bg-cue-shoulder/20 border-2 border-cue-shoulder/30" />
+          <div className="animate-float-reverse motion-reduce:animate-none absolute top-40 right-16 h-7 w-7 rounded-full bg-cue-arm/20 border-2 border-cue-arm/30" />
+          <div className="animate-float-slow motion-reduce:animate-none absolute bottom-32 left-24 h-5 w-5 rounded-full bg-cue-hand/20 border-2 border-cue-hand/30" />
+          <div className="animate-float-reverse motion-reduce:animate-none absolute bottom-24 right-20 h-8 w-8 rounded-full bg-cue-foot/20 border-2 border-cue-foot/30" />
         </div>
 
         <div className="relative mx-auto max-w-3xl text-center">
@@ -120,7 +122,7 @@ export default function HowItWorks() {
             </p>
             <a
               href="#features"
-              className="mt-8 inline-flex h-12 items-center gap-2 rounded-full border-2 border-ink/20 bg-transparent px-8 text-sm font-semibold text-ink transition-ui duration-200 hover:bg-ink hover:text-[#f8f4e0]"
+              className="mt-8 inline-flex h-12 items-center gap-2 rounded-full border-2 border-ink/20 bg-transparent px-8 text-sm font-semibold text-ink transition-ui duration-200 hover:bg-ink hover:text-brand-cream"
             >
               See the features
             </a>
@@ -129,7 +131,7 @@ export default function HowItWorks() {
       </section>
 
       {/* Tilted card gallery — scrollable on mobile, overlapping on desktop */}
-      <section className="bg-[#f8f4e0] pb-16 sm:pb-28 overflow-hidden">
+      <section className="bg-brand-cream pb-16 sm:pb-28 overflow-hidden">
         {/* Mobile: vertical 2-column grid */}
         <div className="grid grid-cols-2 gap-3 px-4 pb-6 md:hidden">
           {CARDS.map((card, i) => (

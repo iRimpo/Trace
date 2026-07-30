@@ -43,7 +43,7 @@ export default function InstallGate() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-[#080808] px-6 text-center"
+      className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-brand-primary px-6 text-center"
       style={{
         paddingTop:    "env(safe-area-inset-top)",
         paddingBottom: "env(safe-area-inset-bottom)",

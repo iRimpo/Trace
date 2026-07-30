@@ -24,7 +24,7 @@ export default function FloatingCTA() {
       </Link>
       <Link
         href="#waitlist"
-        className="group flex items-center gap-2 rounded-full border-2 border-ink bg-[#080808] px-4 py-2 text-white shadow-xl transition-ui duration-200 hover:bg-[#1a1a1a] sm:gap-2.5 sm:px-5 sm:py-3"
+        className="group flex items-center gap-2 rounded-full border-2 border-ink bg-brand-primary px-4 py-2 text-white shadow-xl transition-ui duration-200 hover:bg-brand-accent sm:gap-2.5 sm:px-5 sm:py-3"
       >
         <span className="text-xs font-bold sm:text-sm">Sign up</span>
         <div className="touch-target flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-sm font-bold transition-transform duration-200 group-hover:scale-110">

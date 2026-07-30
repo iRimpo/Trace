@@ -160,7 +160,7 @@ export default function TraceTutorial({ onClose }: { onClose: () => void }) {
               </button>
               <button
                 onClick={next}
-                className="flex-1 rounded-lg bg-[#080808] py-1.5 text-[11px] font-semibold text-white transition-ui hover:bg-[#1a1a1a]"
+                className="flex-1 rounded-lg bg-brand-primary py-1.5 text-[11px] font-semibold text-white transition-ui hover:bg-brand-accent"
               >
                 {step === STEPS.length - 1 ? "Finish 🎉" : "Next →"}
               </button>

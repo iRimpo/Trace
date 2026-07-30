@@ -36,7 +36,7 @@ export default function Problem() {
   return (
     <section className="relative overflow-hidden bg-brand-dark px-4 py-16 sm:px-8 sm:py-24 md:py-32 lg:px-16">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="blob absolute -bottom-32 -right-32 h-[400px] w-[400px] bg-[#A78BFA] opacity-10" />
+        <div className="blob absolute -bottom-32 -right-32 h-[400px] w-[400px] bg-cue-hip opacity-10" />
       </div>
 
       <div className="relative mx-auto max-w-[1200px]">
@@ -47,7 +47,7 @@ export default function Problem() {
           transition={{ duration: 0.7 }}
           className="text-center mb-16"
         >
-          <span className="font-mono text-xs font-bold tracking-widest text-[#60A5FA]/80 uppercase">
+          <span className="font-mono text-xs font-bold tracking-widest text-cue-shoulder/80 uppercase">
             The Reality
           </span>
           <h2 className="mt-3 font-hero font-bold text-4xl lg:text-5xl text-white tracking-tight">
@@ -108,22 +108,22 @@ export default function Problem() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, delay: 0.1, ease: [0.075, 0.82, 0.165, 1] }}
-            className="rounded-3xl border border-[#00D4FF]/20 bg-[#00D4FF]/5 p-8 lg:p-10"
+            className="rounded-3xl border border-cue-hand/20 bg-cue-hand/5 p-8 lg:p-10"
           >
             <div className="flex items-center gap-3 mb-8">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#00D4FF]/15">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="text-[#00D4FF]">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cue-hand/15">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="text-cue-hand">
                   <circle cx="9" cy="9" r="8" stroke="currentColor" strokeWidth="1.5" />
                   <path d="M6 9.5L8 11.5L12 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <div>
-                <div className="font-mono text-xs text-[#00D4FF]/70 tracking-widest uppercase">With Trace</div>
+                <div className="font-mono text-xs text-cue-hand/70 tracking-widest uppercase">With Trace</div>
                 <h3 className="font-hero font-bold text-xl text-white mt-0.5">The solution</h3>
               </div>
             </div>
 
-            <p className="mb-8 rounded-2xl border border-[#00D4FF]/15 bg-black/20 p-5 text-white/80 text-sm leading-relaxed font-medium">
+            <p className="mb-8 rounded-2xl border border-cue-hand/15 bg-black/20 p-5 text-white/80 text-sm leading-relaxed font-medium">
               See exactly what your body should look like — in real time, frame by frame.
             </p>
 
@@ -137,7 +137,7 @@ export default function Problem() {
                   transition={{ delay: 0.1 + i * 0.08 }}
                   className="flex items-start gap-3 text-sm text-white/70"
                 >
-                  <CheckIcon className="mt-0.5 shrink-0 text-[#34D399]" />
+                  <CheckIcon className="mt-0.5 shrink-0 text-cue-foot" />
                   {item}
                 </motion.li>
               ))}

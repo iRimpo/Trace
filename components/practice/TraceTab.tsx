@@ -1039,7 +1039,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                       step="0.05"
                       value={feedbackOffset}
                       onChange={e => setFeedbackOffset(parseFloat(e.target.value))}
-                      className="h-0.5 flex-1 cursor-pointer appearance-none rounded-full bg-ink/10 accent-[#080808]"
+                      className="h-0.5 flex-1 cursor-pointer appearance-none rounded-full bg-ink/10 accent-brand-primary"
                     />
                     <button
                       onClick={() => setFeedbackOffset(0)}
@@ -1075,7 +1075,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
           <button
             onClick={() => setToolsOpen(o => !o)}
             className={`flex h-11 w-11 items-center justify-center rounded-full ${GLASS} transition-ui ${
-              toolsOpen ? "text-[#080808]" : "text-ink/40 hover:text-ink"
+              toolsOpen ? "text-brand-primary" : "text-ink/40 hover:text-ink"
             }`}
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -1135,7 +1135,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   const elapsed = Math.round((Date.now() - traceStartTimeRef.current) / 1000);
                   onComplete(elapsed);
                 }}
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-[#080808] text-white shadow-md transition-ui hover:bg-[#1a1a1a] active:scale-95"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-primary text-white shadow-md transition-ui hover:bg-brand-accent active:scale-95"
                 title="Ready for Test"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
@@ -1232,7 +1232,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   <span className="text-[10px] text-ink/40">Opacity</span>
                   <input type="range" min="10" max="90" value={overlayOpacity}
                     onChange={e => setOverlayOpacity(parseInt(e.target.value))}
-                    className="h-0.5 w-16 cursor-pointer appearance-none rounded-full bg-ink/10 accent-[#080808] sm:w-20" />
+                    className="h-0.5 w-16 cursor-pointer appearance-none rounded-full bg-ink/10 accent-brand-primary sm:w-20" />
                   <span className="w-7 text-right text-[10px] tabular-nums text-ink/30">{overlayOpacity}%</span>
                 </div>
               )}
@@ -1323,7 +1323,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               {loopStartPct !== null && loopEndPct !== null && (
                 <div className={`absolute top-0 h-full rounded-full ${loopSectionActive ? "bg-amber-400/40" : "bg-amber-400/20"}`} style={{ left: `${loopStartPct}%`, width: `${loopEndPct - loopStartPct}%` }} />
               )}
-              <div className="pointer-events-none absolute left-0 top-0 h-full rounded-full bg-[#080808]" style={{ width: `${progressPct}%` }} />
+              <div className="pointer-events-none absolute left-0 top-0 h-full rounded-full bg-brand-primary" style={{ width: `${progressPct}%` }} />
               {/* A handle */}
               {loopStartPct !== null && (
                 <div
@@ -1348,7 +1348,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   <div className="flex h-5 items-center rounded-full bg-amber-500 px-1.5 text-[9px] font-bold text-white shadow">B</div>
                 </div>
               )}
-              <div className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#080808] opacity-0 shadow-md transition-opacity group-hover:opacity-100" style={{ left: `${progressPct}%` }} />
+              <div className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-primary opacity-0 shadow-md transition-opacity group-hover:opacity-100" style={{ left: `${progressPct}%` }} />
             </div>
 
             {/* Controls row — wraps because the full set (skip, play, restart,
@@ -1415,7 +1415,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 </button>
                 <input type="range" min="0" max="1" step="0.05" value={muted ? 0 : volume}
                   onChange={e => { const v = parseFloat(e.target.value); setVolume(v); setMuted(v === 0); if (proVideoRef.current) { proVideoRef.current.volume = v; proVideoRef.current.muted = v === 0; } }}
-                  className="h-0.5 w-16 cursor-pointer appearance-none rounded-full bg-ink/10 accent-[#080808]"
+                  className="h-0.5 w-16 cursor-pointer appearance-none rounded-full bg-ink/10 accent-brand-primary"
                 />
               </div>
             </div>
@@ -1427,7 +1427,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   const elapsed = Math.round((Date.now() - traceStartTimeRef.current) / 1000);
                   onComplete(elapsed);
                 }}
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#080808] py-2.5 text-sm font-semibold text-white active:scale-[0.98] sm:hidden"
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-primary py-2.5 text-sm font-semibold text-white active:scale-[0.98] sm:hidden"
               >
                 Ready to test
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

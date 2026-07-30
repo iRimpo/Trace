@@ -1,5 +1,7 @@
 "use client";
 
+import { CUE_PALETTE } from "@/lib/cuePalette";
+
 import { motion } from "framer-motion";
 
 function Bubble({
@@ -144,7 +146,7 @@ export default function MeetTrace() {
             >
               {/* Color swatches */}
               <div className="flex flex-wrap justify-center gap-1.5 p-2">
-                {["#00d4ff","#34d399","#fbbf24","#f97316","#a78bfa","#60a5fa","#f472b6"].map((c,i)=>(
+                {[CUE_PALETTE.hand,CUE_PALETTE.foot,CUE_PALETTE.head,CUE_PALETTE.elbow,CUE_PALETTE.hip,CUE_PALETTE.shoulder,CUE_PALETTE.armBoth].map((c,i)=>(
                   <div key={i} className="h-4 w-4 rounded-full" style={{background:c,opacity:0.9}}/>
                 ))}
               </div>
