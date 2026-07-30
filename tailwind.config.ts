@@ -26,6 +26,24 @@ const config: Config = {
           cream:   "#f8f4e0",
           muted:   "#71717a",
         },
+        /**
+         * Action palette. Duolingo's structure, not its brand: a single
+         * saturated action colour plus a hard-edged darker shade used as the
+         * bottom "chunk" on pressables. The chunk is what makes a button read
+         * as physically pressable at a glance, which is the whole point on a
+         * phone propped across the room.
+         */
+        duo: {
+          green:     "#58CC02",
+          greenDark: "#43A302",
+          blue:      "#1CB0F6",
+          blueDark:  "#1899D6",
+          gold:      "#FFC800",
+          goldDark:  "#E5A600",
+          red:       "#FF4B4B",
+          redDark:   "#E23A3A",
+          edge:      "#E0DCC8",
+        },
         cue: {
           hand:     "#00D4FF",
           foot:     "#34D399",
@@ -66,6 +84,17 @@ const config: Config = {
       spacing: {
         18: "4.5rem",
         22: "5.5rem",
+      },
+      boxShadow: {
+        /** The pressable "chunk". Solid, not blurred — blur reads as soft. */
+        chunk:      "0 4px 0 0 var(--chunk-color, #43A302)",
+        "chunk-sm": "0 3px 0 0 var(--chunk-color, #43A302)",
+        /** Resting card lift on cream. */
+        card:       "0 2px 0 0 #E0DCC8",
+      },
+      transitionTimingFunction: {
+        /** Stronger than CSS ease-out, which is too weak to feel intentional. */
+        "out-strong": "cubic-bezier(0.23, 1, 0.32, 1)",
       },
       animation: {
         "fade-in":    "fadeIn 0.6s ease-out forwards",

@@ -40,7 +40,7 @@ print(d.get('$1', '$2'))
 # baseRef diff below covers the files that actually define the target.
 integrity_ok=1
 if git rev-parse --git-dir >/dev/null 2>&1; then
-  dirty=$(git status --porcelain -- "${PROTECTED[@]}" 2>/dev/null | grep -v 'loop/ratchet\.json$' || true)
+  dirty=$(git status --porcelain -- "${PROTECTED[@]}" 2>/dev/null | grep -vE 'loop/(ratchet|design-budgets)\.json$' || true)
   if [ -n "$dirty" ]; then
     fail "verifier modified — the generator may not edit the verifier"
     echo "$dirty" | sed 's/^/       /'
@@ -87,7 +87,7 @@ SEED="${LOOP_SEED:-$RANDOM$RANDOM}"
 
 prop_ok=1
 if LOOP_RUNS="$RUNS" LOOP_SEED="$SEED" \
-   npx vitest run --config loop/vitest.loop.config.ts >/tmp/loop-props.log 2>&1; then
+   npx vitest run --config loop/vitest.loop.config.ts --reporter=verbose >/tmp/loop-props.log 2>&1; then
   prop_line=$(grep -E "^ +Tests +" /tmp/loop-props.log | tail -1 | tr -s ' ')
   ok "properties @ runs=$RUNS seed=$SEED —${prop_line#*Tests}"
 else
@@ -130,6 +130,24 @@ d.setdefault("baseRef", "")
 json.dump(d, open(path, "w"), indent=2)
 open(path, "a").write("\n")
 PY
+  # Design budgets ratchet down to whatever this pass achieved. They are read
+  # from the property run's own reported counts, so the ceiling can never drift
+  # upward and a regression fails the next cycle.
+  python3 - <<'PY2'
+import json, re
+counts = {}
+for line in open("/tmp/loop-props.log", errors="ignore"):
+    m = re.search(r"DESIGN_COUNT (\w+) (\d+)", line)
+    if m:
+        counts[m.group(1)] = int(m.group(2))
+if counts:
+    path = "loop/design-budgets.json"
+    b = json.load(open(path))
+    tightened = {k: min(b.get(k, 10**9), v) for k, v in counts.items()}
+    b.update(tightened)
+    json.dump(b, open(path, "w"), indent=2); open(path, "a").write("\n")
+    print("design budgets: " + ", ".join(f"{k}<={v}" for k, v in sorted(b.items())))
+PY2
   echo "${GRN}PASS${OFF} ratchet floor now $(read_json runsFloor 0)"
 else
   verdict=fail

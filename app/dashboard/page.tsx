@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
@@ -9,6 +8,8 @@ import DashboardSkeleton from "@/components/skeletons/DashboardSkeleton";
 import SongCard from "@/components/dashboard/SongCard";
 import DashboardTutorial from "@/components/dashboard/DashboardTutorial";
 import DeviceVideos from "@/components/dashboard/DeviceVideos";
+import Pressable from "@/components/ui/Pressable";
+import StatTile from "@/components/ui/StatTile";
 import type { SongGroup } from "@/app/api/progress/route";
 
 interface Stats {
@@ -120,9 +121,10 @@ function DashboardContent() {
             Hi, {displayName}
           </p>
           {streak > 0 && (
-            <div className="flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1">
-              <span className="text-base">🔥</span>
-              <span className="text-sm font-bold text-amber-800">{streak} day streak</span>
+            <div className="flex items-center gap-1.5 rounded-2xl bg-duo-gold px-3 py-1.5 shadow-chunk-sm" style={{ ["--chunk-color" as string]: "#E5A600" }}>
+              <span className="text-base leading-none">🔥</span>
+              <span className="text-sm font-extrabold tabular-nums text-ink">{streak}</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-ink/70">day streak</span>
             </div>
           )}
         </div>
@@ -132,36 +134,15 @@ function DashboardContent() {
           </p>
         )}
 
-        {/* Stats: keep dark */}
+        {/* Stats — four glanceable tiles rather than one dark bar of 10px text.
+            Each number carries its own accent so the row can be read in a
+            glance instead of scanned left to right. */}
         {stats && (
-          <div className="flex rounded-b-2xl border-t border-white/10 bg-[#080808] px-4 py-4 text-white sm:px-5">
-            <div className="flex-1 text-center">
-              <p className="font-bold text-lg text-white tabular-nums sm:text-xl">
-                <AnimCount n={stats.total_sessions} />
-              </p>
-              <p className="text-[10px] text-white/50 sm:text-[11px]">Sessions</p>
-            </div>
-            <div className="w-px bg-white/10" />
-            <div className="flex-1 text-center">
-              <p className="font-bold text-lg text-white tabular-nums sm:text-xl">
-                <AnimCount n={Math.round(stats.avg_score)} suffix="%" />
-              </p>
-              <p className="text-[10px] text-white/50 sm:text-[11px]">Avg</p>
-            </div>
-            <div className="w-px bg-white/10" />
-            <div className="flex-1 text-center">
-              <p className="font-bold text-lg text-white tabular-nums sm:text-xl">
-                <AnimCount n={Math.round(stats.best_score)} suffix="%" />
-              </p>
-              <p className="text-[10px] text-white/50 sm:text-[11px]">Best</p>
-            </div>
-            <div className="w-px bg-white/10" />
-            <div className="flex-1 text-center">
-              <p className="text-lg font-bold tabular-nums text-white sm:text-xl">
-                <AnimCount n={stats.practice_days} />
-              </p>
-              <p className="text-[10px] text-white/50 sm:text-[11px]">Days</p>
-            </div>
+          <div className="flex gap-2 rounded-b-2xl bg-transparent pt-2">
+            <StatTile accent="ink"   label="Sessions" value={<AnimCount n={stats.total_sessions} />} />
+            <StatTile accent="blue"  label="Avg"      value={<AnimCount n={Math.round(stats.avg_score)} suffix="%" />} />
+            <StatTile accent="green" label="Best"     value={<AnimCount n={Math.round(stats.best_score)} suffix="%" />} />
+            <StatTile accent="gold"  label="Days"     value={<AnimCount n={stats.practice_days} />} />
           </div>
         )}
       </motion.div>
@@ -173,15 +154,12 @@ function DashboardContent() {
       <div className="mb-3 flex items-center justify-between">
         <h2 className="font-bold text-lg tracking-tight text-ink">Your Practice</h2>
         {hasData && (
-          <Link
-            href="/practice"
-            className="flex items-center gap-1.5 rounded-full bg-[#080808] px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[#1a1a1a] transition-colors"
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <Pressable href="/practice" size="md">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
             New Session
-          </Link>
+          </Pressable>
         )}
       </div>
 
@@ -230,14 +208,13 @@ function DashboardContent() {
           <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-clay/50">
             Upload a reference dance video and start your first Trace session.
           </p>
-          <motion.div animate={{ scale: [1, 1.03, 1] }} transition={{ duration: 2, repeat: Infinity }}>
-            <Link
-              href="/practice"
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#080808] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1a1a1a]"
-            >
+          {/* No idle pulse. The chunk already reads as pressable, and a looping
+              scale on the only CTA competes with the press feedback itself. */}
+          <div className="mt-6">
+            <Pressable href="/practice" size="lg">
               Upload Video →
-            </Link>
-          </motion.div>
+            </Pressable>
+          </div>
         </motion.div>
       )}
     </div>
