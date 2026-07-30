@@ -1,5 +1,7 @@
 "use client";
 
+import { CUE_PALETTE } from "@/lib/cuePalette";
+
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -12,17 +14,17 @@ import { CUE_COLORS } from "@/lib/cuePalette";
 
 function VisualSkeleton() {
   const joints = [
-    { x: 50, y: 10, r: 9,   color: "#FBBF24", delay: 0.1 },
-    { x: 32, y: 30, r: 4.5, color: "#60A5FA", delay: 0.2 },
-    { x: 68, y: 30, r: 4.5, color: "#60A5FA", delay: 0.25 },
-    { x: 18, y: 52, r: 4,   color: "#F97316", delay: 0.3 },
-    { x: 82, y: 52, r: 4,   color: "#F97316", delay: 0.35 },
-    { x: 6,  y: 70, r: 4,   color: "#00D4FF", delay: 0.4 },
-    { x: 94, y: 70, r: 4,   color: "#00D4FF", delay: 0.45 },
-    { x: 40, y: 70, r: 5,   color: "#A78BFA", delay: 0.5 },
-    { x: 60, y: 70, r: 5,   color: "#A78BFA", delay: 0.55 },
-    { x: 36, y: 88, r: 4,   color: "#34D399", delay: 0.6 },
-    { x: 64, y: 88, r: 4,   color: "#34D399", delay: 0.65 },
+    { x: 50, y: 10, r: 9,   color: CUE_PALETTE.head, delay: 0.1 },
+    { x: 32, y: 30, r: 4.5, color: CUE_PALETTE.shoulder, delay: 0.2 },
+    { x: 68, y: 30, r: 4.5, color: CUE_PALETTE.shoulder, delay: 0.25 },
+    { x: 18, y: 52, r: 4,   color: CUE_PALETTE.elbow, delay: 0.3 },
+    { x: 82, y: 52, r: 4,   color: CUE_PALETTE.elbow, delay: 0.35 },
+    { x: 6,  y: 70, r: 4,   color: CUE_PALETTE.hand, delay: 0.4 },
+    { x: 94, y: 70, r: 4,   color: CUE_PALETTE.hand, delay: 0.45 },
+    { x: 40, y: 70, r: 5,   color: CUE_PALETTE.hip, delay: 0.5 },
+    { x: 60, y: 70, r: 5,   color: CUE_PALETTE.hip, delay: 0.55 },
+    { x: 36, y: 88, r: 4,   color: CUE_PALETTE.foot, delay: 0.6 },
+    { x: 64, y: 88, r: 4,   color: CUE_PALETTE.foot, delay: 0.65 },
   ];
   const bones: [number, number][] = [
     [0,1],[0,2],[1,3],[2,4],[3,5],[4,6],[1,7],[2,8],[7,8],[7,9],[8,10],
@@ -56,24 +58,24 @@ function VisualGhostMirror() {
       {/* Reference ghost */}
       <div className="relative opacity-30">
         <svg viewBox="0 0 60 100" className="h-28 w-16">
-          <line x1="30" y1="8" x2="18" y2="30" stroke="#A78BFA" strokeWidth="2" strokeLinecap="round"/>
-          <line x1="30" y1="8" x2="42" y2="30" stroke="#A78BFA" strokeWidth="2" strokeLinecap="round"/>
-          <line x1="18" y1="30" x2="28" y2="65" stroke="#A78BFA" strokeWidth="2" strokeLinecap="round"/>
-          <line x1="42" y1="30" x2="32" y2="65" stroke="#A78BFA" strokeWidth="2" strokeLinecap="round"/>
-          <line x1="28" y1="65" x2="22" y2="92" stroke="#34D399" strokeWidth="2" strokeLinecap="round"/>
-          <line x1="32" y1="65" x2="38" y2="92" stroke="#34D399" strokeWidth="2" strokeLinecap="round"/>
-          <circle cx="30" cy="8" r="6" fill="#FBBF24"/>
-          <circle cx="18" cy="30" r="3.5" fill="#60A5FA"/>
-          <circle cx="42" cy="30" r="3.5" fill="#60A5FA"/>
-          <circle cx="28" cy="65" r="3.5" fill="#A78BFA"/>
-          <circle cx="32" cy="65" r="3.5" fill="#A78BFA"/>
+          <line x1="30" y1="8" x2="18" y2="30" stroke={CUE_PALETTE.hip} strokeWidth="2" strokeLinecap="round"/>
+          <line x1="30" y1="8" x2="42" y2="30" stroke={CUE_PALETTE.hip} strokeWidth="2" strokeLinecap="round"/>
+          <line x1="18" y1="30" x2="28" y2="65" stroke={CUE_PALETTE.hip} strokeWidth="2" strokeLinecap="round"/>
+          <line x1="42" y1="30" x2="32" y2="65" stroke={CUE_PALETTE.hip} strokeWidth="2" strokeLinecap="round"/>
+          <line x1="28" y1="65" x2="22" y2="92" stroke={CUE_PALETTE.foot} strokeWidth="2" strokeLinecap="round"/>
+          <line x1="32" y1="65" x2="38" y2="92" stroke={CUE_PALETTE.foot} strokeWidth="2" strokeLinecap="round"/>
+          <circle cx="30" cy="8" r="6" fill={CUE_PALETTE.head}/>
+          <circle cx="18" cy="30" r="3.5" fill={CUE_PALETTE.shoulder}/>
+          <circle cx="42" cy="30" r="3.5" fill={CUE_PALETTE.shoulder}/>
+          <circle cx="28" cy="65" r="3.5" fill={CUE_PALETTE.hip}/>
+          <circle cx="32" cy="65" r="3.5" fill={CUE_PALETTE.hip}/>
         </svg>
         <p className="text-center text-[9px] font-bold uppercase tracking-widest text-ink/30 mt-1">Reference</p>
       </div>
 
       {/* Blend arrow */}
       <motion.div animate={{ x: [-3, 3, -3] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}>
-        <div className="h-px w-8 bg-gradient-to-r from-[#A78BFA] to-[#00D4FF]" />
+        <div className="h-px w-8 bg-gradient-to-r from-cue-hip to-cue-hand" />
       </motion.div>
 
       {/* User skeleton */}
@@ -83,17 +85,17 @@ function VisualGhostMirror() {
           <line x1="30" y1="8" x2="45" y2="28" stroke="rgba(26,15,0,0.2)" strokeWidth="2" strokeLinecap="round"/>
           <line x1="15" y1="28" x2="26" y2="63" stroke="rgba(26,15,0,0.2)" strokeWidth="2" strokeLinecap="round"/>
           <line x1="45" y1="28" x2="34" y2="63" stroke="rgba(26,15,0,0.2)" strokeWidth="2" strokeLinecap="round"/>
-          <line x1="26" y1="63" x2="20" y2="90" stroke="#34D399" strokeWidth="2" strokeLinecap="round"/>
-          <line x1="34" y1="63" x2="40" y2="90" stroke="#34D399" strokeWidth="2" strokeLinecap="round"/>
-          <circle cx="30" cy="8" r="6" fill="#FBBF24"/>
-          <circle cx="15" cy="28" r="3.5" fill="#60A5FA"/>
-          <circle cx="45" cy="28" r="3.5" fill="#60A5FA"/>
-          <circle cx="26" cy="63" r="3.5" fill="#A78BFA"/>
-          <circle cx="34" cy="63" r="3.5" fill="#A78BFA"/>
+          <line x1="26" y1="63" x2="20" y2="90" stroke={CUE_PALETTE.foot} strokeWidth="2" strokeLinecap="round"/>
+          <line x1="34" y1="63" x2="40" y2="90" stroke={CUE_PALETTE.foot} strokeWidth="2" strokeLinecap="round"/>
+          <circle cx="30" cy="8" r="6" fill={CUE_PALETTE.head}/>
+          <circle cx="15" cy="28" r="3.5" fill={CUE_PALETTE.shoulder}/>
+          <circle cx="45" cy="28" r="3.5" fill={CUE_PALETTE.shoulder}/>
+          <circle cx="26" cy="63" r="3.5" fill={CUE_PALETTE.hip}/>
+          <circle cx="34" cy="63" r="3.5" fill={CUE_PALETTE.hip}/>
           {/* cue arrows on wrists */}
           <motion.g animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.4, repeat: Infinity }}>
-            <circle cx="8" cy="50" r="4" fill="#00D4FF" opacity={0.9}/>
-            <circle cx="52" cy="50" r="4" fill="#00D4FF" opacity={0.9}/>
+            <circle cx="8" cy="50" r="4" fill={CUE_PALETTE.hand} opacity={0.9}/>
+            <circle cx="52" cy="50" r="4" fill={CUE_PALETTE.hand} opacity={0.9}/>
           </motion.g>
         </svg>
         <p className="text-center text-[9px] font-bold uppercase tracking-widest text-ink/30 mt-1">You</p>
@@ -118,9 +120,9 @@ function VisualBeatCounts() {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 1.3, opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-[#A78BFA]/40 bg-[#A78BFA]/10"
+          className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-cue-hip/40 bg-cue-hip/10"
         >
-          <span className="font-calistoga text-5xl font-bold text-[#A78BFA]">{active}</span>
+          <span className="font-calistoga text-5xl font-bold text-cue-hip">{active}</span>
         </motion.div>
       </AnimatePresence>
       <div className="flex gap-1.5">
@@ -128,7 +130,7 @@ function VisualBeatCounts() {
           <motion.div key={n}
             animate={{ scale: active === n ? 1.4 : 1, opacity: active === n ? 1 : 0.25 }}
             transition={{ duration: 0.15 }}
-            className="h-2 w-2 rounded-full bg-[#A78BFA]"
+            className="h-2 w-2 rounded-full bg-cue-hip"
           />
         ))}
       </div>
@@ -138,13 +140,13 @@ function VisualBeatCounts() {
 
 function VisualFeedback() {
   const parts = [
-    { label: "Hands",     color: "#00D4FF", x: "15%", y: "45%" },
-    { label: "Hands",     color: "#00D4FF", x: "78%", y: "42%" },
-    { label: "Feet",      color: "#34D399", x: "30%", y: "88%" },
-    { label: "Feet",      color: "#34D399", x: "65%", y: "88%" },
-    { label: "Hips",      color: "#A78BFA", x: "48%", y: "60%" },
-    { label: "Shoulders", color: "#60A5FA", x: "30%", y: "28%" },
-    { label: "Shoulders", color: "#60A5FA", x: "65%", y: "28%" },
+    { label: "Hands",     color: CUE_PALETTE.hand, x: "15%", y: "45%" },
+    { label: "Hands",     color: CUE_PALETTE.hand, x: "78%", y: "42%" },
+    { label: "Feet",      color: CUE_PALETTE.foot, x: "30%", y: "88%" },
+    { label: "Feet",      color: CUE_PALETTE.foot, x: "65%", y: "88%" },
+    { label: "Hips",      color: CUE_PALETTE.hip, x: "48%", y: "60%" },
+    { label: "Shoulders", color: CUE_PALETTE.shoulder, x: "30%", y: "28%" },
+    { label: "Shoulders", color: CUE_PALETTE.shoulder, x: "65%", y: "28%" },
   ];
   return (
     <div className="relative h-full w-full">
@@ -180,7 +182,7 @@ function VisualSpeed() {
       <div className="flex items-center gap-1 rounded-xl bg-ink/[0.06] p-1">
         {speeds.map(s => (
           <button key={s} onClick={() => setSel(s)}
-            className={`rounded-lg px-2.5 py-1.5 text-sm font-bold transition-all ${sel === s ? "bg-white text-ink shadow" : "text-ink/30"}`}
+            className={`rounded-lg px-2.5 py-1.5 text-sm font-bold transition-ui ${sel === s ? "bg-white text-ink shadow" : "text-ink/30"}`}
           >{s}x</button>
         ))}
       </div>
@@ -206,31 +208,31 @@ const STEPS = [
     title: "Welcome to Trace",
     body: "Your personal AI dance coach. We'll overlay a reference dancer on your webcam so you can match every move, every beat.",
     visual: <VisualSkeleton />,
-    accent: "#A78BFA",
+    accent: CUE_PALETTE.hip,
   },
   {
     title: "Mirror the Reference",
     body: "The reference dancer appears as a ghost over your webcam feed. Match their pose, their timing, their energy.",
     visual: <VisualGhostMirror />,
-    accent: "#60A5FA",
+    accent: CUE_PALETTE.shoulder,
   },
   {
     title: "Stay on the Beat",
     body: "Beat counts (1–8) sync to the music so you always know exactly where you are in the choreography.",
     visual: <VisualBeatCounts />,
-    accent: "#A78BFA",
+    accent: CUE_PALETTE.hip,
   },
   {
     title: "Color-Coded Cues",
     body: "Each body part has its own color. Glowing cues appear on the joints you need to move — no guessing.",
     visual: <VisualFeedback />,
-    accent: "#00D4FF",
+    accent: CUE_PALETTE.hand,
   },
   {
     title: "Drill at Any Speed",
     body: "Slow down to 0.25× to learn tricky sections, then ramp up as you get comfortable.",
     visual: <VisualSpeed />,
-    accent: "#34D399",
+    accent: CUE_PALETTE.foot,
   },
   {
     title: "You're Ready!",
@@ -255,7 +257,7 @@ const STEPS = [
         </div>
       </div>
     ),
-    accent: "#34D399",
+    accent: CUE_PALETTE.foot,
   },
 ];
 
@@ -305,7 +307,7 @@ export default function DashboardTutorial({ onDone, dismissKey }: DashboardTutor
         </button>
 
         {/* Visual area */}
-        <div className="relative h-52 w-full overflow-hidden bg-[#f8f4e0]">
+        <div className="relative h-52 w-full overflow-hidden bg-brand-cream">
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
@@ -356,14 +358,14 @@ export default function DashboardTutorial({ onDone, dismissKey }: DashboardTutor
             {step > 0 && (
               <button
                 onClick={() => setStep(s => s - 1)}
-                className="flex-none rounded-xl border border-ink/10 px-4 py-2.5 text-sm font-semibold text-ink/40 transition-all hover:text-ink/70"
+                className="flex-none rounded-xl border border-ink/10 px-4 py-2.5 text-sm font-semibold text-ink/40 transition-ui hover:text-ink/70"
               >
                 ←
               </button>
             )}
             <button
               onClick={isLast ? finish : () => setStep(s => s + 1)}
-              className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
+              className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition-ui active:scale-[0.98]"
               style={{ background: current.accent }}
             >
               {isLast ? "Let's go →" : "Next →"}

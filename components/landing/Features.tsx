@@ -1,10 +1,12 @@
 "use client";
 
+import { CUE_PALETTE } from "@/lib/cuePalette";
+
 import { motion } from "framer-motion";
 
 const CUE = {
-  hand: "#00D4FF", foot: "#34D399", head: "#FBBF24",
-  elbow: "#F97316", hip: "#A78BFA", shoulder: "#60A5FA", arm: "#F472B6",
+  hand: CUE_PALETTE.hand, foot: CUE_PALETTE.foot, head: CUE_PALETTE.head,
+  elbow: CUE_PALETTE.elbow, hip: CUE_PALETTE.hip, shoulder: CUE_PALETTE.shoulder, arm: CUE_PALETTE.armBoth,
 };
 
 const FEATURES = [
@@ -120,7 +122,7 @@ export default function Features() {
                   </p>
                   <p className="mt-2 text-sm leading-relaxed text-clay/60">{f.desc}</p>
                 </div>
-                <div className="h-0.5 w-8 rounded-full transition-all duration-300 group-hover:w-16" style={{ background: f.accent }} />
+                <div className="h-0.5 w-8 rounded-full transition-ui duration-300 group-hover:w-16" style={{ background: f.accent }} />
               </motion.div>
             ))}
           </div>

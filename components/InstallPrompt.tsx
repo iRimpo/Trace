@@ -63,7 +63,7 @@ export default function InstallPrompt() {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 40 }}
-          className="fixed bottom-4 left-4 right-4 z-[100] mx-auto max-w-md rounded-2xl border border-white/10 bg-[#080808] p-4 shadow-2xl"
+          className="fixed bottom-4 left-4 right-4 z-[100] mx-auto max-w-md rounded-2xl border border-white/10 bg-brand-primary p-4 shadow-2xl"
           style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
         >
           <div className="flex items-start gap-3">

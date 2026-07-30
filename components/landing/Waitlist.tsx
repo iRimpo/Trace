@@ -1,10 +1,12 @@
 "use client";
 
+import { CUE_PALETTE } from "@/lib/cuePalette";
+
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 
-const CUE_COLORS = ["#00D4FF", "#34D399", "#FBBF24", "#F97316", "#A78BFA", "#60A5FA", "#F472B6"];
+const CUE_COLORS = [CUE_PALETTE.hand, CUE_PALETTE.foot, CUE_PALETTE.head, CUE_PALETTE.elbow, CUE_PALETTE.hip, CUE_PALETTE.shoulder, CUE_PALETTE.armBoth];
 
 export default function Waitlist() {
   const router = useRouter();
@@ -50,7 +52,7 @@ export default function Waitlist() {
 
       <section
         id="waitlist"
-        className="relative overflow-hidden bg-[#080808] px-4 py-16 sm:px-6 sm:py-24 lg:px-10 lg:py-32 pb-safe"
+        className="relative overflow-hidden bg-brand-primary px-4 py-16 sm:px-6 sm:py-24 lg:px-10 lg:py-32 pb-safe"
         style={{ minHeight: "auto" }}
       >
         {/* Cue-colored floating dots */}
@@ -97,14 +99,14 @@ export default function Waitlist() {
             </div>
 
             {/* Card */}
-            <div className="rounded-2xl bg-[#f8f4e0] p-5 shadow-2xl sm:rounded-3xl sm:p-8">
+            <div className="rounded-2xl bg-brand-cream p-5 shadow-2xl sm:rounded-3xl sm:p-8">
               <motion.form
                 onSubmit={handleSubmit}
                 className="space-y-5"
               >
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-ink">
-                    Invite code<span className="text-[#F97316]">*</span>
+                    Invite code<span className="text-cue-elbow">*</span>
                   </label>
                   <input
                     type="text"
@@ -112,7 +114,7 @@ export default function Waitlist() {
                     value={code}
                     onChange={e => setCode(e.target.value)}
                     placeholder="Enter your invite code"
-                    className="w-full rounded-xl border border-ink/15 bg-white px-4 py-3 text-sm text-ink placeholder-ink/30 outline-none transition-all focus:border-[#080808] focus:ring-2 focus:ring-[#080808]/10"
+                    className="w-full rounded-xl border border-ink/15 bg-white px-4 py-3 text-sm text-ink placeholder-ink/30 outline-none transition-ui focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10"
                   />
                 </div>
 
@@ -121,7 +123,7 @@ export default function Waitlist() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-xl bg-[#080808] py-3.5 text-sm font-bold text-white shadow-lg transition-all duration-200 hover:bg-[#1a1a1a] active:scale-[0.98] disabled:opacity-50"
+                  className="w-full rounded-xl bg-brand-primary py-3.5 text-sm font-bold text-white shadow-lg transition-ui duration-200 hover:bg-brand-accent active:scale-[0.98] disabled:opacity-50"
                 >
                   {loading ? "Checking..." : "Continue to Sign up →"}
                 </button>

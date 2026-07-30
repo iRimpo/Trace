@@ -1,5 +1,9 @@
 "use client";
 
+import { BRAND } from "@/lib/brandTokens";
+
+import { CUE_PALETTE } from "@/lib/cuePalette";
+
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
@@ -9,7 +13,7 @@ import type { SongAttempt } from "@/app/api/progress/route";
 function scoreColor(s: number): string {
   if (s >= 80) return "#10B981";
   if (s >= 55) return "#EAB308";
-  if (s >= 30) return "#F97316";
+  if (s >= 30) return CUE_PALETTE.elbow;
   return "#EF4444";
 }
 
@@ -73,13 +77,13 @@ export default function ProgressGraph({ attempts }: { attempts: SongAttempt[] })
           <XAxis
             dataKey="date"
             tickFormatter={fmtDate}
-            tick={{ fontSize: 10, fill: "#5c3d1a", opacity: 0.45 }}
+            tick={{ fontSize: 10, fill: BRAND.clay, opacity: 0.45 }}
             axisLine={false} tickLine={false}
           />
           <YAxis
             domain={[0, 100]}
             ticks={[0, 25, 50, 75, 100]}
-            tick={{ fontSize: 10, fill: "#5c3d1a", opacity: 0.45 }}
+            tick={{ fontSize: 10, fill: BRAND.clay, opacity: 0.45 }}
             axisLine={false} tickLine={false}
             tickFormatter={v => `${v}%`}
           />

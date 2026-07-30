@@ -10,7 +10,10 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "deploy": "vercel --prod"
+    "deploy": "vercel --prod",
+    "loop:verify": "loop/verify.sh",
+    "loop:full": "FULL=1 loop/verify.sh",
+    "test:props": "vitest run --config loop/vitest.loop.config.ts"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.32",
@@ -37,6 +40,7 @@
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "fake-indexeddb": "^6.2.5",
+    "fast-check": "^4.9.0",
     "jsdom": "^29.1.1",
     "postcss": "^8",
     "sharp": "^0.35.3",

@@ -595,7 +595,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center bg-black">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-white/40" />
+        <div className="h-8 w-8 animate-spin motion-reduce:animate-pulse rounded-full border-2 border-white/10 border-t-white/40" />
       </div>
     );
   }
@@ -684,7 +684,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
           </span>
         ) : userFrames.length > 0 ? (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white/40 backdrop-blur-xl border border-white/[0.06]">
-            <span className="h-2 w-2 animate-spin rounded-full border border-white/20 border-t-white/50" />
+            <span className="h-2 w-2 animate-spin motion-reduce:animate-pulse rounded-full border border-white/20 border-t-white/50" />
             Analyzing…
           </span>
         ) : null}
@@ -735,7 +735,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
                   if (proVideoRef.current)  proVideoRef.current.currentTime  = worst.t;
                   setCurrentTime(worst.t);
                 }}
-                className="mb-3 flex w-full items-center gap-1.5 rounded-lg bg-red-500/10 px-2.5 py-1.5 text-[10px] font-semibold text-red-400 transition-all hover:bg-red-500/20"
+                className="mb-3 flex w-full items-center gap-1.5 rounded-lg bg-red-500/10 px-2.5 py-1.5 text-[10px] font-semibold text-red-400 transition-ui hover:bg-red-500/20"
               >
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
                 Jump to weakest ({fmt(worst.t)})
@@ -801,7 +801,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
                 </span>
                 <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
                   <div
-                    className="h-full rounded-full transition-all"
+                    className="h-full rounded-full transition-ui"
                     style={{ width: `${item.score}%`, backgroundColor: scoreColor(item.score) }}
                   />
                 </div>
@@ -874,10 +874,10 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
                 setSaving(false);
               }
             }}
-            className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-2.5 text-sm font-semibold text-[#080808] transition-all hover:bg-white/90 disabled:opacity-60"
+            className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-2.5 text-sm font-semibold text-brand-primary transition-ui hover:bg-white/90 disabled:opacity-60"
           >
             {saving ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#080808]/20 border-t-[#080808]" />
+              <div className="h-4 w-4 animate-spin motion-reduce:animate-pulse rounded-full border-2 border-brand-primary/20 border-t-brand-primary" />
             ) : (
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
@@ -893,7 +893,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
           {/* Practice Again */}
           <button
             onClick={onPracticeAgain}
-            className="w-full rounded-xl border border-white/[0.08] py-2.5 text-sm font-semibold text-white/50 transition-all hover:border-white/20 hover:text-white"
+            className="w-full rounded-xl border border-white/[0.08] py-2.5 text-sm font-semibold text-white/50 transition-ui hover:border-white/20 hover:text-white"
           >
             Practice Again
           </button>
@@ -941,7 +941,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
             {/* Play/Pause */}
             <button
               onClick={togglePlay}
-              className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white transition-all hover:bg-white/20"
+              className="touch-target flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white transition-ui hover:bg-white/20"
             >
               {playing
                 ? <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4Zm8 0h4v16h-4V4Z" /></svg>
@@ -963,7 +963,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
                     if (userVideoRef.current) userVideoRef.current.playbackRate = s;
                     if (proVideoRef.current)  proVideoRef.current.playbackRate  = s;
                   }}
-                  className={`rounded-md px-2 py-1 text-[10px] font-bold transition-all ${
+                  className={`rounded-md px-2 py-1 text-[10px] font-bold transition-ui ${
                     speed === s ? "bg-white/10 text-white" : "text-white/25 hover:text-white/50"
                   }`}
                 >
@@ -995,7 +995,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
               <span className="w-7 text-[10px] tabular-nums text-white/20">{overlayOpacity}%</span>
             </div>
             <button onClick={() => setMirrored(m => !m)}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-ui ${
                 mirrored ? "bg-blue-500/10 text-blue-400" : "bg-white/[0.04] text-white/30 hover:bg-white/[0.08]"
               }`}>
               Mirror {mirrored ? "On" : "Off"}

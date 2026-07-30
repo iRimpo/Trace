@@ -17,7 +17,7 @@ export default function Navbar() {
 
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
+      className={`fixed inset-x-0 top-0 z-50 transition-ui duration-300 ${
         scrolled || mobileOpen ? "bg-white/90 backdrop-blur-md shadow-sm" : "bg-transparent"
       }`}
     >
@@ -73,7 +73,7 @@ export default function Navbar() {
         <div className="flex items-center gap-2 md:hidden">
           {!loading && (
             user ? (
-              <a href="/dashboard" className="inline-flex h-8 items-center rounded-full bg-[#080808] px-4 text-xs font-semibold text-white">
+              <a href="/dashboard" className="inline-flex h-8 items-center rounded-full bg-brand-primary px-4 text-xs font-semibold text-white">
                 Dashboard
               </a>
             ) : (
@@ -81,7 +81,7 @@ export default function Navbar() {
                 <a href="/login" className={`inline-flex h-8 items-center rounded-full px-3 text-xs font-medium ${scrolled || mobileOpen ? "text-ink/60" : "text-white/70"}`}>
                   Log in
                 </a>
-                <a href="#waitlist" className="inline-flex h-8 items-center rounded-full bg-[#080808] px-4 text-xs font-semibold text-white">
+                <a href="#waitlist" className="inline-flex h-8 items-center rounded-full bg-brand-primary px-4 text-xs font-semibold text-white">
                   Sign up
                 </a>
               </>
@@ -141,7 +141,7 @@ function NavPill({
     return (
       <a
         href={href}
-        className="inline-flex h-10 items-center rounded-full border border-[#080808] bg-[#080808] px-5 text-sm font-medium text-white transition-all duration-200 hover:bg-[#1a1a1a] hover:border-[#1a1a1a]"
+        className="touch-target inline-flex h-10 items-center rounded-full border border-brand-primary bg-brand-primary px-5 text-sm font-medium text-white transition-ui duration-200 hover:bg-brand-accent hover:border-brand-accent"
       >
         {label}
       </a>
@@ -151,7 +151,7 @@ function NavPill({
   return (
     <a
       href={href}
-      className={`inline-flex h-10 items-center rounded-full border px-5 text-sm font-medium transition-all duration-200 ${
+      className={`inline-flex h-10 items-center rounded-full border px-5 text-sm font-medium transition-ui duration-200 ${
         scrolled
           ? "border-ink/15 bg-white text-ink hover:bg-ink hover:text-white hover:border-ink"
           : "border-white/15 bg-white/8 text-white/70 hover:bg-white/15 hover:text-white backdrop-blur-sm"

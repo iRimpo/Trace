@@ -26,6 +26,24 @@ const config: Config = {
           cream:   "#f8f4e0",
           muted:   "#71717a",
         },
+        /**
+         * Action palette. Duolingo's structure, not its brand: a single
+         * saturated action colour plus a hard-edged darker shade used as the
+         * bottom "chunk" on pressables. The chunk is what makes a button read
+         * as physically pressable at a glance, which is the whole point on a
+         * phone propped across the room.
+         */
+        duo: {
+          green:     "#58CC02",
+          greenDark: "#43A302",
+          blue:      "#1CB0F6",
+          blueDark:  "#1899D6",
+          gold:      "#FFC800",
+          goldDark:  "#E5A600",
+          red:       "#FF4B4B",
+          redDark:   "#E23A3A",
+          edge:      "#E0DCC8",
+        },
         cue: {
           hand:     "#00D4FF",
           foot:     "#34D399",
@@ -66,6 +84,33 @@ const config: Config = {
       spacing: {
         18: "4.5rem",
         22: "5.5rem",
+      },
+      boxShadow: {
+        /**
+         * The pressable "chunk". Solid, not blurred — blur reads as soft, and
+         * soft is the opposite of the affordance. One named shadow per variant
+         * so no component has to inline a hex to colour its own edge.
+         */
+        "chunk-green": "0 4px 0 0 #43A302",
+        "chunk-blue":  "0 4px 0 0 #1899D6",
+        "chunk-gold":  "0 4px 0 0 #E5A600",
+        "chunk-red":   "0 4px 0 0 #E23A3A",
+        "chunk-quiet": "0 4px 0 0 #E0DCC8",
+        "chunk-gold-sm": "0 3px 0 0 #E5A600",
+        /** Resting card lift on cream. */
+        card:          "0 2px 0 0 #E0DCC8",
+      },
+      transitionProperty: {
+        /**
+         * Everything `transition-all` actually wanted, minus the layout
+         * properties. `all` also animates width/height/padding/margin/top, each
+         * of which forces layout and paint on every frame; these all composite.
+         */
+        ui: "background-color, border-color, color, fill, stroke, opacity, box-shadow, transform, filter",
+      },
+      transitionTimingFunction: {
+        /** Stronger than CSS ease-out, which is too weak to feel intentional. */
+        "out-strong": "cubic-bezier(0.23, 1, 0.32, 1)",
       },
       animation: {
         "fade-in":    "fadeIn 0.6s ease-out forwards",

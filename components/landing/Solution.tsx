@@ -52,7 +52,7 @@ export default function Solution() {
 
             {/* Preview */}
             <FadeIn delay={0.3}>
-              <div className="group relative mt-12 aspect-video cursor-pointer overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] transition-all duration-500 hover:border-white/10 hover:bg-white/[0.05]">
+              <div className="group relative mt-12 aspect-video cursor-pointer overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] transition-ui duration-500 hover:border-white/10 hover:bg-white/[0.05]">
                 <div className="flex h-full items-center justify-center">
                   {/* Play button */}
                   <motion.div

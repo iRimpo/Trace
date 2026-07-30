@@ -66,6 +66,32 @@ export class CountGrid {
   }
 
   /**
+   * The tick for an absolute beat index, derived only from that integer.
+   *
+   * Prefer this over `count(tickTime)` whenever the beat index is already
+   * known. Reconstructing a tick time and asking `count()` for it routes the
+   * answer through a second, different arithmetic path — a float divide and a
+   * floor — and the round trip is not exact. At bpm 40.000000000000085 with
+   * beatOneOffset 3.749999999999993, beat -3 reconstructs to a time whose
+   * elapsed/beatDuration is -3.0000000000000004; `Math.floor` reads that as
+   * beat -4 and reports count 5 for a beat that is count 6.
+   *
+   * `count()` is still correct for a live playhead, where flooring continuous
+   * time is exactly what is wanted.
+   */
+  tickAt(beatIndex: number): CountTick | null {
+    if (!this.hasBpm) return null;
+    const count   = ((beatIndex % 8) + 8) % 8 + 1;
+    const measure = Math.floor(beatIndex / 8);
+    return {
+      time: this.beatOneOffset + beatIndex * this._beatDuration,
+      count,
+      measureIndex: measure,
+      accent: accentFor(count),
+    };
+  }
+
+  /**
    * Return the nearest CountTick to the given video time.
    * Useful for snapping movement events to the beat grid.
    */

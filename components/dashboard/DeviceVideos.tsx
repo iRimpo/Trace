@@ -66,7 +66,7 @@ export default function DeviceVideos() {
               disabled={openingKey !== null}
               className="block w-full text-left"
             >
-              <div className="relative flex h-24 w-full items-center justify-center bg-[#080808]">
+              <div className="relative flex h-24 w-full items-center justify-center bg-brand-primary">
                 {meta.thumbnailUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={meta.thumbnailUrl} alt="" className="h-full w-full object-cover opacity-80" />
@@ -74,7 +74,7 @@ export default function DeviceVideos() {
                   <FaPlay className="text-white/30" />
                 )}
                 <span className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
-                  <FaPlay className={`text-white drop-shadow transition-opacity ${openingKey === meta.key ? "animate-pulse opacity-100" : "opacity-0 group-hover:opacity-100"}`} />
+                  <FaPlay className={`text-white drop-shadow transition-opacity ${openingKey === meta.key ? "animate-pulse motion-reduce:animate-none opacity-100" : "opacity-0 group-hover:opacity-100"}`} />
                 </span>
               </div>
               <div className="p-3">

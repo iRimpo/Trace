@@ -1,3 +1,4 @@
+import { BRAND } from "@/lib/brandTokens";
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { Inter, Space_Mono, Outfit, DM_Sans, Plus_Jakarta_Sans, Raleway, Calistoga } from "next/font/google";
@@ -52,7 +53,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#080808",
+  themeColor: BRAND.primary,
 };
 
 export const metadata: Metadata = {

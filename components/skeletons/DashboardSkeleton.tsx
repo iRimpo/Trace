@@ -61,7 +61,7 @@ export function VideoCardSkeleton() {
 
 export default function DashboardSkeleton() {
   return (
-    <div className="mx-auto max-w-5xl animate-in fade-in duration-300">
+    <div className="mx-auto max-w-5xl animate-in motion-reduce:animate-none fade-in duration-300">
       <div className="mb-10">
         <Shimmer className="h-6 w-36 mb-4" />
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 mb-6">

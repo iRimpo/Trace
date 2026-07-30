@@ -50,7 +50,7 @@ export default function BpmInput({
   }, [onBpmChange]);
 
   const pill = (active: boolean) =>
-    `flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold transition-all cursor-pointer select-none ${
+    `flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold transition-ui cursor-pointer select-none ${
       active
         ? "bg-violet-500/15 text-violet-500"
         : isFullscreen
@@ -73,7 +73,7 @@ export default function BpmInput({
       {onDetect && (
         <button onClick={onDetect} disabled={detecting} className={pill(false)}>
           {detecting ? (
-            <div className="h-2.5 w-2.5 animate-spin rounded-full border border-current border-t-transparent" />
+            <div className="h-2.5 w-2.5 animate-spin motion-reduce:animate-pulse rounded-full border border-current border-t-transparent" />
           ) : (
             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" />

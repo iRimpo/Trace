@@ -177,17 +177,20 @@ export function composeCueScript(
       if (dot > SAME_GESTURE_DOT) continue;
     }
 
-    const time = grid.beatOneOffset + beatIndex * beatS;
-    const info = grid.count(time);
-    if (!info) continue;
+    // Derived from the integer beat index, not from a reconstructed tick time.
+    // Asking grid.count() for a time we just built from beatIndex sends the
+    // answer through a float divide and a floor, and that round trip is not
+    // exact: it can report a count one behind the beat the cue is actually on.
+    const tick = grid.tickAt(beatIndex);
+    if (!tick) continue;
 
     const region = regionFor(winner);
     cues.push({
       beatIndex,
-      count:        info.count,
-      measureIndex: info.measureIndex,
-      time,
-      accent:       info.accent,
+      count:        tick.count,
+      measureIndex: tick.measureIndex,
+      time:         tick.time,
+      accent:       tick.accent,
       region,
       label:        labelFor(winner, region),
       motion:       MOTION[winner.type],

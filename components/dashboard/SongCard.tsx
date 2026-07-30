@@ -1,5 +1,7 @@
 "use client";
 
+import { CUE_PALETTE } from "@/lib/cuePalette";
+
 import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,8 +15,8 @@ const REGION_LABELS: Record<string, string> = {
 };
 
 const PART_COLORS: Record<string, string> = {
-  torso: "#A78BFA", leftArm: "#F97316", rightArm: "#00D4FF",
-  leftLeg: "#F472B6", rightLeg: "#34D399",
+  torso: CUE_PALETTE.hip, leftArm: CUE_PALETTE.elbow, rightArm: CUE_PALETTE.hand,
+  leftLeg: CUE_PALETTE.armBoth, rightLeg: CUE_PALETTE.foot,
 };
 
 const REGION_TIPS: Record<string, string> = {
@@ -28,7 +30,7 @@ const REGION_TIPS: Record<string, string> = {
 function scoreColor(s: number): string {
   if (s >= 80) return "#10B981";
   if (s >= 55) return "#EAB308";
-  if (s >= 30) return "#F97316";
+  if (s >= 30) return CUE_PALETTE.elbow;
   return "#EF4444";
 }
 
@@ -110,7 +112,7 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
             />
           ) : thumbnailLoading ? (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="h-4 w-4 animate-pulse rounded bg-ink/15" />
+              <div className="h-4 w-4 animate-pulse motion-reduce:animate-none rounded bg-ink/15" />
             </div>
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-ink/25">
@@ -163,7 +165,7 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
             <div className="border-t border-ink/[0.06] px-5 pb-5 pt-4">
 
               {/* Graph */}
-              <div className="mb-5 rounded-xl bg-[#f8f4e0]/60 px-3 py-2">
+              <div className="mb-5 rounded-xl bg-brand-cream/60 px-3 py-2">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-clay/40">Progress</p>
                 <ProgressGraph attempts={group.attempts} />
               </div>
@@ -228,7 +230,7 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
                       return (
                         <div
                           key={i}
-                          className={`flex shrink-0 flex-col items-center gap-1 rounded-xl px-3 py-2 ${isLatest ? "bg-[#080808]" : "bg-[#f8f4e0]"}`}
+                          className={`flex shrink-0 flex-col items-center gap-1 rounded-xl px-3 py-2 ${isLatest ? "bg-brand-primary" : "bg-brand-cream"}`}
                         >
                           <span className={`text-sm font-black tabular-nums ${isLatest ? "text-white" : ""}`}
                             style={isLatest ? {} : { color }}>
@@ -250,7 +252,7 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
                 <button
                   type="button"
                   onClick={() => setShowPracticeModal(true)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-[#080808] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#1a1a1a] transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-primary px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-accent transition-colors"
                 >
                   Practice Again →
                 </button>
@@ -258,14 +260,14 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
                 <button
                   onClick={handleDelete}
                   disabled={deleting}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-all ${
+                  className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-ui ${
                     confirmDelete
                       ? "bg-red-500 text-white"
                       : "border border-ink/10 text-ink/40 hover:border-red-300 hover:text-red-500"
                   }`}
                 >
                   {deleting ? (
-                    <div className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
+                    <div className="h-3 w-3 animate-spin motion-reduce:animate-pulse rounded-full border border-current border-t-transparent" />
                   ) : (
                     <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
@@ -318,7 +320,7 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
                 </button>
                 <Link
                   href={practiceHref}
-                  className="flex-1 rounded-full bg-[#080808] px-4 py-2 text-center text-xs font-semibold text-white hover:bg-[#1a1a1a]"
+                  className="flex-1 rounded-full bg-brand-primary px-4 py-2 text-center text-xs font-semibold text-white hover:bg-brand-accent"
                 >
                   Upload video
                 </Link>

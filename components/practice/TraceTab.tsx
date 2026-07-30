@@ -93,8 +93,8 @@ function drawProVideo(
 // ── Glass style constants ──────────────────────────────────────────────
 
 const GLASS = "bg-white/90 backdrop-blur-xl border border-ink/10 shadow-sm";
-const GLASS_BTN = "flex items-center justify-center rounded-lg transition-all text-ink/40 hover:text-ink hover:bg-ink/[0.06]";
-const GLASS_PILL = "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all";
+const GLASS_BTN = "flex items-center justify-center rounded-lg transition-ui text-ink/40 hover:text-ink hover:bg-ink/[0.06]";
+const GLASS_PILL = "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-ui";
 
 /**
  * Active-state styles must be written out in full: Tailwind's JIT scans source
@@ -805,7 +805,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
 
           {!webcamReady && !webcamError && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/10 border-t-white/50" />
+              <div className="h-6 w-6 animate-spin motion-reduce:animate-pulse rounded-full border-2 border-white/10 border-t-white/50" />
             </div>
           )}
         </div>
@@ -875,7 +875,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   <button
                     key={i}
                     onClick={() => reacquireResolveRef.current?.(i)}
-                    className="group overflow-hidden rounded-xl border-2 border-transparent bg-ink/5 transition-all hover:border-emerald-500"
+                    className="group overflow-hidden rounded-xl border-2 border-transparent bg-ink/5 transition-ui hover:border-emerald-500"
                   >
                     {p.thumbnail ? (
                       <img src={p.thumbnail} alt={`Dancer ${i + 1}`} className="aspect-[3/4] w-full object-cover" />
@@ -916,7 +916,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
             className="pointer-events-none absolute bottom-20 left-4 z-40"
           >
             <div className="flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5 text-[11px] text-white backdrop-blur">
-              <div className="h-3 w-3 animate-spin rounded-full border border-white/40 border-t-transparent" />
+              <div className="h-3 w-3 animate-spin motion-reduce:animate-pulse rounded-full border border-white/40 border-t-transparent" />
               <span>
                 {scanSource === "feedback" ? "Scanning for feedback" : "Finding counts & cues"}
                 {" "}{scanProgress}%
@@ -966,7 +966,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
           </div>
           {loopSectionActive && (
             <div className="flex items-center gap-1.5 rounded-full bg-amber-500/80 px-3 py-1.5 backdrop-blur">
-              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+              <div className="h-1.5 w-1.5 animate-pulse motion-reduce:animate-none rounded-full bg-white" />
               <span className="text-[10px] font-semibold text-white">{fmt(loopStart ?? 0)} → {fmt(loopEnd ?? 0)}</span>
             </div>
           )}
@@ -978,7 +978,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
           {viewMode === "overlay" && (
             <button onClick={autoAlign} disabled={aligning} className={`h-11 w-11 rounded-lg sm:h-8 sm:w-8 ${GLASS} ${GLASS_BTN} disabled:opacity-40`} title="Auto-align">
               {aligning
-                ? <div className="h-3.5 w-3.5 animate-spin rounded-full border border-white/40 border-t-white" />
+                ? <div className="h-3.5 w-3.5 animate-spin motion-reduce:animate-pulse rounded-full border border-white/40 border-t-white" />
                 : <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" /></svg>
               }
             </button>
@@ -1039,7 +1039,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                       step="0.05"
                       value={feedbackOffset}
                       onChange={e => setFeedbackOffset(parseFloat(e.target.value))}
-                      className="h-0.5 flex-1 cursor-pointer appearance-none rounded-full bg-ink/10 accent-[#080808]"
+                      className="h-0.5 flex-1 cursor-pointer appearance-none rounded-full bg-ink/10 accent-brand-primary"
                     />
                     <button
                       onClick={() => setFeedbackOffset(0)}
@@ -1074,8 +1074,8 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
           {/* Tools circle */}
           <button
             onClick={() => setToolsOpen(o => !o)}
-            className={`flex h-11 w-11 items-center justify-center rounded-full ${GLASS} transition-all ${
-              toolsOpen ? "text-[#080808]" : "text-ink/40 hover:text-ink"
+            className={`flex h-11 w-11 items-center justify-center rounded-full ${GLASS} transition-ui ${
+              toolsOpen ? "text-brand-primary" : "text-ink/40 hover:text-ink"
             }`}
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -1111,7 +1111,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                     <button
                       key={n}
                       onClick={() => handleAlignCount(n)}
-                      className="flex h-8 w-8 items-center justify-center rounded-xl bg-ink/[0.06] text-xs font-bold text-ink/60 transition-all hover:bg-ink/12 hover:text-ink active:scale-95"
+                      className="touch-target flex h-8 w-8 items-center justify-center rounded-xl bg-ink/[0.06] text-xs font-bold text-ink/60 transition-ui hover:bg-ink/12 hover:text-ink active:scale-95"
                     >
                       {n}
                     </button>
@@ -1135,7 +1135,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   const elapsed = Math.round((Date.now() - traceStartTimeRef.current) / 1000);
                   onComplete(elapsed);
                 }}
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-[#080808] text-white shadow-md transition-all hover:bg-[#1a1a1a] active:scale-95"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-primary text-white shadow-md transition-ui hover:bg-brand-accent active:scale-95"
                 title="Ready for Test"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
@@ -1185,7 +1185,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               <div className="flex items-center gap-0.5 rounded-lg bg-ink/[0.06] p-0.5">
                 {(["overlay", "side-by-side"] as ViewMode[]).map(m => (
                   <button key={m} onClick={() => switchMode(m)}
-                    className={`rounded-md px-2 py-1 text-[10px] font-bold transition-all ${viewMode === m ? "bg-white text-ink shadow-sm" : "text-ink/30 hover:text-ink/60"}`}>
+                    className={`rounded-md px-2 py-1 text-[10px] font-bold transition-ui ${viewMode === m ? "bg-white text-ink shadow-sm" : "text-ink/30 hover:text-ink/60"}`}>
                     {m === "overlay" ? "Overlay" : "Side by Side"}
                   </button>
                 ))}
@@ -1214,7 +1214,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 className={glassToggle(feedbackEnabled, "emerald")}
               >
                 {scanProgress !== null && scanSource === "feedback"
-                  ? <span className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
+                  ? <span className="h-3 w-3 animate-spin motion-reduce:animate-pulse rounded-full border border-current border-t-transparent" />
                   : <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" /></svg>
                 }
                 {!countGrid?.hasBpm
@@ -1232,7 +1232,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   <span className="text-[10px] text-ink/40">Opacity</span>
                   <input type="range" min="10" max="90" value={overlayOpacity}
                     onChange={e => setOverlayOpacity(parseInt(e.target.value))}
-                    className="h-0.5 w-16 cursor-pointer appearance-none rounded-full bg-ink/10 accent-[#080808] sm:w-20" />
+                    className="h-0.5 w-16 cursor-pointer appearance-none rounded-full bg-ink/10 accent-brand-primary sm:w-20" />
                   <span className="w-7 text-right text-[10px] tabular-nums text-ink/30">{overlayOpacity}%</span>
                 </div>
               )}
@@ -1323,7 +1323,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               {loopStartPct !== null && loopEndPct !== null && (
                 <div className={`absolute top-0 h-full rounded-full ${loopSectionActive ? "bg-amber-400/40" : "bg-amber-400/20"}`} style={{ left: `${loopStartPct}%`, width: `${loopEndPct - loopStartPct}%` }} />
               )}
-              <div className="pointer-events-none absolute left-0 top-0 h-full rounded-full bg-[#080808]" style={{ width: `${progressPct}%` }} />
+              <div className="pointer-events-none absolute left-0 top-0 h-full rounded-full bg-brand-primary" style={{ width: `${progressPct}%` }} />
               {/* A handle */}
               {loopStartPct !== null && (
                 <div
@@ -1348,7 +1348,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   <div className="flex h-5 items-center rounded-full bg-amber-500 px-1.5 text-[9px] font-bold text-white shadow">B</div>
                 </div>
               )}
-              <div className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#080808] opacity-0 shadow-md transition-opacity group-hover:opacity-100" style={{ left: `${progressPct}%` }} />
+              <div className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-primary opacity-0 shadow-md transition-opacity group-hover:opacity-100" style={{ left: `${progressPct}%` }} />
             </div>
 
             {/* Controls row — wraps because the full set (skip, play, restart,
@@ -1359,7 +1359,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 16.811c0 .864-.933 1.406-1.683.977l-7.108-4.061a1.125 1.125 0 0 1 0-1.954l7.108-4.061A1.125 1.125 0 0 1 21 8.689v8.122ZM11.25 16.811c0 .864-.933 1.406-1.683.977l-7.108-4.061a1.125 1.125 0 0 1 0-1.954l7.108-4.061a1.125 1.125 0 0 1 1.683.977v8.122Z" /></svg>
               </button>
 
-              <button onClick={togglePlay} className="flex h-14 w-14 items-center justify-center rounded-full bg-ink/10 text-ink transition-all hover:bg-ink/18 sm:h-9 sm:w-9">
+              <button onClick={togglePlay} className="flex h-14 w-14 items-center justify-center rounded-full bg-ink/10 text-ink transition-ui hover:bg-ink/18 sm:h-9 sm:w-9">
                 {playing
                   ? <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4Zm8 0h4v16h-4V4Z" /></svg>
                   : <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
@@ -1400,7 +1400,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 {SPEEDS.map(s => (
                   <button key={s}
                     onClick={() => { setSpeed(s); if (proVideoRef.current) proVideoRef.current.playbackRate = s; }}
-                    className={`rounded-md px-1.5 py-1 text-[10px] font-bold transition-all ${speed === s ? "bg-white text-ink shadow-sm" : "text-ink/30 hover:text-ink/60"}`}
+                    className={`rounded-md px-1.5 py-1 text-[10px] font-bold transition-ui ${speed === s ? "bg-white text-ink shadow-sm" : "text-ink/30 hover:text-ink/60"}`}
                   >{s}x</button>
                 ))}
               </div>
@@ -1415,7 +1415,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 </button>
                 <input type="range" min="0" max="1" step="0.05" value={muted ? 0 : volume}
                   onChange={e => { const v = parseFloat(e.target.value); setVolume(v); setMuted(v === 0); if (proVideoRef.current) { proVideoRef.current.volume = v; proVideoRef.current.muted = v === 0; } }}
-                  className="h-0.5 w-16 cursor-pointer appearance-none rounded-full bg-ink/10 accent-[#080808]"
+                  className="h-0.5 w-16 cursor-pointer appearance-none rounded-full bg-ink/10 accent-brand-primary"
                 />
               </div>
             </div>
@@ -1427,7 +1427,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   const elapsed = Math.round((Date.now() - traceStartTimeRef.current) / 1000);
                   onComplete(elapsed);
                 }}
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#080808] py-2.5 text-sm font-semibold text-white active:scale-[0.98] sm:hidden"
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-primary py-2.5 text-sm font-semibold text-white active:scale-[0.98] sm:hidden"
               >
                 Ready to test
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

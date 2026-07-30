@@ -1,5 +1,7 @@
 "use client";
 
+import { CUE_PALETTE } from "@/lib/cuePalette";
+
 import { motion } from "framer-motion";
 
 const TESTIMONIALS = [
@@ -19,7 +21,7 @@ const TESTIMONIALS = [
     handle: "@jkdances",
     role: "Popping & locking",
     avatar: "JK",
-    accent: "#00d4ff",
+    accent: CUE_PALETTE.hand,
   },
   {
     quote:
@@ -28,7 +30,7 @@ const TESTIMONIALS = [
     handle: "@aisha.rhythm",
     role: "Contemporary & afro",
     avatar: "AR",
-    accent: "#34d399",
+    accent: CUE_PALETTE.foot,
   },
 ];
 
