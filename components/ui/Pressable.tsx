@@ -59,8 +59,36 @@ interface Props {
   disabled?:  boolean;
   /** Stretch to the container. Forms want this; toolbars never do. */
   block?:     boolean;
+  /**
+   * In-flight. Disables the button and prepends a spinner, so a submit shows
+   * its own progress instead of the page swapping for one.
+   *
+   * This exists because every call site was hand-rolling `disabled={loading}`
+   * plus the same inline spinner SVG — five copies across three auth pages
+   * alone, which is how they drifted apart in the first place.
+   */
+  loading?:   boolean;
   className?: string;
   ariaLabel?: string;
+}
+
+/**
+ * Rotation is a vestibular trigger, so under reduced motion this pulses rather
+ * than spins. A progress indicator that stops indicating is a worse outcome
+ * than one that changes how it indicates.
+ */
+function Spinner() {
+  return (
+    <svg
+      className="h-4 w-4 animate-spin motion-reduce:animate-pulse"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
+  );
 }
 
 export default function Pressable({
@@ -72,10 +100,12 @@ export default function Pressable({
   size = "md",
   disabled = false,
   block = false,
+  loading = false,
   className = "",
   ariaLabel,
 }: Props) {
   const v = VARIANT[variant];
+  const inert = disabled || loading;
 
   const classes = [
     block ? "flex w-full" : "inline-flex",
@@ -95,14 +125,24 @@ export default function Pressable({
     // Keyboard focus has to survive on both grounds, so the ring is offset off
     // the face rather than tinted to match it.
     "outline-none focus-visible:ring-2 focus-visible:ring-duo-blue focus-visible:ring-offset-2",
-    disabled ? "pointer-events-none opacity-40" : "",
+    // `loading` dims less than `disabled`: the button is still the thing you
+    // just pressed, and fading it to 40% reads as "this stopped working".
+    inert ? "pointer-events-none" : "",
+    disabled ? "opacity-40" : loading ? "opacity-70" : "",
     className,
   ].join(" ");
 
-  if (href && !disabled) {
+  const content = (
+    <>
+      {loading && <Spinner />}
+      {children}
+    </>
+  );
+
+  if (href && !inert) {
     return (
       <Link href={href} className={classes} aria-label={ariaLabel}>
-        {children}
+        {content}
       </Link>
     );
   }
@@ -111,11 +151,12 @@ export default function Pressable({
     <button
       type={type}
       onClick={onClick}
-      disabled={disabled}
+      disabled={inert}
+      aria-busy={loading || undefined}
       aria-label={ariaLabel}
       className={classes}
     >
-      {children}
+      {content}
     </button>
   );
 }

@@ -2,6 +2,7 @@
 
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { track } from "@/lib/posthog";
+import { ErrorState } from "@/components/states/ErrorState";
 
 interface Props {
   children: ReactNode;
@@ -13,6 +14,13 @@ interface State {
   error: Error | null;
 }
 
+/**
+ * The last-resort state. It now renders the same `ErrorState` the dashboard
+ * uses for a failed fetch, rather than a fourth hand-rolled card (zinc borders,
+ * a rose plate, a raw `#e11d48` stroke and a `brand-primary` button that
+ * appears nowhere else). A crash and a failed request should not look like two
+ * different products.
+ */
 export default class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -36,24 +44,13 @@ export default class ErrorBoundary extends Component<Props, State> {
       if (this.props.fallback) return this.props.fallback;
 
       return (
-        <div className="flex min-h-[300px] flex-col items-center justify-center gap-4 rounded-2xl border border-zinc-200 bg-white p-8 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-50">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e11d48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-          </div>
-          <div>
-            <h3 className="font-semibold text-zinc-900">Something went wrong</h3>
-            <p className="mt-1 text-sm text-zinc-500">
-              {this.state.error?.message || "An unexpected error occurred."}
-            </p>
-          </div>
-          <button
-            onClick={() => this.setState({ hasError: false, error: null })}
-            className="rounded-xl bg-brand-primary px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-primary/90"
-          >
-            Try Again
-          </button>
+        <div className="mx-auto flex min-h-[300px] max-w-md items-center">
+          <ErrorState
+            className="w-full"
+            message={this.state.error?.message || "An unexpected error occurred."}
+            retryLabel="Try again"
+            onRetry={() => this.setState({ hasError: false, error: null })}
+          />
         </div>
       );
     }

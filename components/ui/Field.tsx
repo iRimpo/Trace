@@ -23,15 +23,33 @@ interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, "className">
   /** Rendered inside the field's right edge — a reveal toggle, a unit. */
   trailing?: ReactNode;
   error?: string;
+  /**
+   * Extra classes on the input itself. Deliberately narrow: this exists for
+   * fields where the *characters* matter individually — an invite code wants
+   * `font-mono tracking-[0.2em] uppercase` — not as a general escape hatch back
+   * to hand-rolled inputs. The border, radius, padding and states stay owned
+   * here, so `inputClassName` cannot reintroduce the divergence Field removed.
+   */
+  inputClassName?: string;
 }
 
 const Field = forwardRef<HTMLInputElement, Props>(function Field(
-  { label, action, trailing, error, id, ...input },
+  { label, action, trailing, error, inputClassName = "", id, ...input },
   ref,
 ) {
   const generated = useId();
   const fieldId = id ?? generated;
   const errorId = `${fieldId}-error`;
+
+  /**
+   * The error id has to *join* whatever the caller passed, not replace it.
+   * Overwriting it meant a password-requirements list sitting right under the
+   * input was visible but never announced as its description — the caller had
+   * no way to associate it.
+   */
+  const describedBy = [input["aria-describedby"], error ? errorId : null]
+    .filter(Boolean)
+    .join(" ") || undefined;
 
   return (
     <div>
@@ -48,11 +66,12 @@ const Field = forwardRef<HTMLInputElement, Props>(function Field(
           id={fieldId}
           ref={ref}
           aria-invalid={error ? true : undefined}
-          aria-describedby={error ? errorId : undefined}
+          aria-describedby={describedBy}
           className={[
             "w-full rounded-2xl border-2 bg-white px-4 py-3 text-sm font-medium text-ink",
             "placeholder-ink/25 outline-none transition-ui duration-150",
             trailing ? "pr-12" : "",
+            inputClassName,
             // The error border is the state, not a decoration layered on top of
             // one — so it replaces the resting border rather than adding a ring.
             error

@@ -1,13 +1,24 @@
 "use client";
 
-import { CUE_PALETTE } from "@/lib/cuePalette";
-
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { CUE_ORDER, CUE_PALETTE } from "@/lib/cuePalette";
+import Panel from "@/components/ui/Panel";
+import Pressable from "@/components/ui/Pressable";
+import Field from "@/components/ui/Field";
+import Reveal from "./Reveal";
 
-const CUE_COLORS = [CUE_PALETTE.hand, CUE_PALETTE.foot, CUE_PALETTE.head, CUE_PALETTE.elbow, CUE_PALETTE.hip, CUE_PALETTE.shoulder, CUE_PALETTE.armBoth];
-
+/**
+ * The one conversion on the page: invite code → signup.
+ *
+ * The submission itself is untouched — same POST to `/api/activation/validate`,
+ * same `router.push("/signup?code=…")`, same error strings. What changed is
+ * everything around it. This section used to be a near-black slab between two
+ * checkerboard stripes with seven drifting dots behind a hand-rolled form; you
+ * left the cream ground here and came back to it on the login page, which made
+ * the two look like different products. It is paper now, like the page and like
+ * `app/login/page.tsx`, and the card is the same `Panel` the login form uses.
+ */
 export default function Waitlist() {
   const router = useRouter();
   const [code, setCode] = useState("");
@@ -43,102 +54,83 @@ export default function Waitlist() {
   }
 
   return (
-    <>
-      {/* Checkered divider white to dark */}
-      <div className="h-7 w-full" style={{
-        backgroundImage: "repeating-conic-gradient(#ffffff 0% 25%, #080808 0% 50%)",
-        backgroundSize: "20px 20px",
-      }} />
+    <section
+      id="waitlist"
+      className="scroll-mt-20 bg-brand-cream px-4 py-16 sm:px-6 sm:py-24 lg:px-10"
+    >
+      <div className="mx-auto max-w-xl">
+        <Reveal className="text-center">
+          <p className="text-hud font-extrabold uppercase tracking-[0.2em] text-clay/60">
+            Private beta
+          </p>
+          <h2 className="mt-4 text-balance text-title font-extrabold leading-tight tracking-tight text-ink sm:text-display">
+            Start practising.
+          </h2>
+          <p className="mx-auto mt-4 max-w-md text-pretty text-base font-medium leading-relaxed text-clay/80">
+            Trace is invite-only while it is being rehearsed against a real
+            audition deadline. Enter your code to create an account.
+          </p>
 
-      <section
-        id="waitlist"
-        className="relative overflow-hidden bg-brand-primary px-4 py-16 sm:px-6 sm:py-24 lg:px-10 lg:py-32 pb-safe"
-        style={{ minHeight: "auto" }}
-      >
-        {/* Cue-colored floating dots */}
-        <div className="pointer-events-none absolute inset-0">
-          {CUE_COLORS.map((c, i) => (
-            <motion.div
-              key={i}
-              animate={{
-                y: [0, -20 + i * 4, 0],
-                x: [0, (i % 2 ? 8 : -8), 0],
-              }}
-              transition={{ duration: 6 + i, repeat: Infinity, ease: "easeInOut", delay: i * 0.3 }}
-              className="absolute rounded-full"
-              style={{
-                width: 10 + i * 4,
-                height: 10 + i * 4,
-                top: `${10 + i * 12}%`,
-                left: `${5 + i * 13}%`,
-                backgroundColor: c,
-                opacity: 0.15,
-                boxShadow: `0 0 20px ${c}40`,
-              }}
-            />
-          ))}
-        </div>
+          <ul className="mt-6 flex items-center justify-center gap-2" aria-hidden="true">
+            {CUE_ORDER.map(region => (
+              <li
+                key={region}
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: CUE_PALETTE[region] }}
+              />
+            ))}
+          </ul>
+        </Reveal>
 
-        {/* Floating form card */}
-        <div className="relative mx-auto max-w-sm sm:max-w-xl">
-          <motion.div
-            initial={{ opacity: 0, y: 32 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <h2 className="mb-8 text-center font-calistoga text-[clamp(2.5rem,5vw,4rem)] leading-tight text-white">
-              Ready to Actually<br />Improve?
-            </h2>
+        <Reveal delay={0.06} className="mt-8">
+          <Panel tone="paper" radius="2xl" className="p-5 sm:p-8">
+            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+              <Field
+                label="Invite code"
+                name="invite-code"
+                type="text"
+                required
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                value={code}
+                onChange={e => { setCode(e.target.value); if (error) setError(""); }}
+                placeholder="Enter your invite code"
+                error={error || undefined}
+              />
 
-            {/* Cue color dots row */}
-            <div className="mb-6 flex items-center justify-center gap-2">
-              {CUE_COLORS.map((c, i) => (
-                <div key={i} className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: c, boxShadow: `0 0 6px ${c}40` }} />
-              ))}
-            </div>
+              <Pressable type="submit" variant="primary" size="lg" block disabled={loading}>
+                {loading ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin motion-reduce:animate-pulse" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Checking…
+                  </>
+                ) : (
+                  <>
+                    Continue To Sign Up
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </>
+                )}
+              </Pressable>
+            </form>
 
-            {/* Card */}
-            <div className="rounded-2xl bg-brand-cream p-5 shadow-2xl sm:rounded-3xl sm:p-8">
-              <motion.form
-                onSubmit={handleSubmit}
-                className="space-y-5"
+            <p className="mt-5 text-center text-sm font-medium text-clay/70">
+              Already have an account?{" "}
+              <a
+                href="/login"
+                className="font-extrabold text-ink underline decoration-duo-green decoration-2 underline-offset-4"
               >
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-ink">
-                    Invite code<span className="text-cue-elbow">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={code}
-                    onChange={e => setCode(e.target.value)}
-                    placeholder="Enter your invite code"
-                    className="w-full rounded-xl border border-ink/15 bg-white px-4 py-3 text-sm text-ink placeholder-ink/30 outline-none transition-ui focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10"
-                  />
-                </div>
-
-                {error && <p className="text-xs text-red-600">{error}</p>}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full rounded-xl bg-brand-primary py-3.5 text-sm font-bold text-white shadow-lg transition-ui duration-200 hover:bg-brand-accent active:scale-[0.98] disabled:opacity-50"
-                >
-                  {loading ? "Checking..." : "Continue to Sign up →"}
-                </button>
-
-                <p className="text-center text-xs text-clay/40">
-                  Private beta. Enter your invite code to create an account.
-                </p>
-              </motion.form>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Checkered bottom divider */}
-      <div className="h-7 w-full checkered-dark" />
-    </>
+                Log in
+              </a>
+            </p>
+          </Panel>
+        </Reveal>
+      </div>
+    </section>
   );
 }

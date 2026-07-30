@@ -1,89 +1,56 @@
-"use client";
-
 import { CUE_PALETTE } from "@/lib/cuePalette";
+import Panel from "@/components/ui/Panel";
+import Pressable from "@/components/ui/Pressable";
+import Reveal from "./Reveal";
 
-import { motion } from "framer-motion";
+/**
+ * Three steps, in the order a dancer actually does them.
+ *
+ * The previous version was a headline ("Where Every Move Tells a Story") over a
+ * fan of five tilted cards that overlapped each other on desktop and collapsed
+ * into an unrelated 2-column grid on mobile — two layouts, neither of which
+ * explained the sequence. Steps are ordinal, so they get a numbered column that
+ * reads the same on both.
+ */
 
-const CARDS = [
+const STEPS = [
   {
-    title: "Ghost Mirror",
-    desc: "Reference dancer overlaid on your feed",
-    accent: CUE_PALETTE.shoulder,
-    rotate: -8,
+    n: "01",
+    title: "Add the clip you're learning",
+    body:
+      "Pick the video off your phone. It goes into the browser's own storage on this device — there is no upload and no waiting.",
+    color: CUE_PALETTE.shoulder,
     icon: (
-      <svg width="40" height="60" viewBox="0 0 40 60" fill="none">
-        <circle cx="20" cy="8" r="6" fill={CUE_PALETTE.head} opacity="0.9"/>
-        <rect x="13" y="16" width="14" height="20" rx="4" fill={CUE_PALETTE.hip} opacity="0.7"/>
-        <rect x="4" y="18" width="8" height="16" rx="4" fill={CUE_PALETTE.elbow} opacity="0.5"/>
-        <rect x="28" y="18" width="8" height="16" rx="4" fill={CUE_PALETTE.elbow} opacity="0.5"/>
-        <rect x="9" y="38" width="9" height="18" rx="4" fill={CUE_PALETTE.foot} opacity="0.6"/>
-        <rect x="22" y="38" width="9" height="18" rx="4" fill={CUE_PALETTE.foot} opacity="0.6"/>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V4m0 0L7.5 8.5M12 4l4.5 4.5" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3" />
       </svg>
     ),
   },
   {
-    title: "Beat Sync",
-    desc: "Cues fire exactly on the count",
-    accent: "#f43f5e",
-    rotate: 5,
+    n: "02",
+    title: "Prop the phone and dance",
+    body:
+      "The reference dancer is drawn over your camera feed. Drag and pinch to line them up with your body, then run it. Everything on screen is sized to be read from across the room.",
+    color: CUE_PALETTE.hip,
     icon: (
-      <svg width="56" height="36" viewBox="0 0 56 36" fill="none">
-        {[6,12,8,20,14,24,10,18,16,8,14,12].map((h,i)=>(
-          <rect
-            key={i}
-            x={i*4+2}
-            y={(36-h*1.2)/2}
-            width="3"
-            height={h*1.2}
-            rx="1.5"
-            fill="#f43f5e"
-            opacity={0.4+i*0.04}
-          />
-        ))}
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+        <rect x="6" y="2.5" width="12" height="19" rx="3" />
+        <path strokeLinecap="round" d="M10.5 5.5h3" />
       </svg>
     ),
   },
   {
-    title: "7 Cue Colors",
-    desc: "Every body region has its own color",
-    accent: "#0891b2",
-    rotate: -4,
+    n: "03",
+    title: "See which joint was late",
+    body:
+      "Trace detects the tempo, lays an eight-count over the clip, and lights up the body region that missed it. One cue per count, so there is exactly one thing to fix.",
+    color: CUE_PALETTE.foot,
     icon: (
-      <div className="flex flex-wrap gap-2 p-1">
-        {[CUE_PALETTE.hand,CUE_PALETTE.foot,CUE_PALETTE.head,CUE_PALETTE.elbow,CUE_PALETTE.hip,CUE_PALETTE.shoulder,CUE_PALETTE.armBoth].map((c,i)=>(
-          <div key={i} className="h-6 w-6 rounded-full" style={{background:c}}/>
-        ))}
-      </div>
-    ),
-  },
-  {
-    title: "60 FPS",
-    desc: "Real-time analysis, zero lag",
-    accent: "#059669",
-    rotate: 7,
-    icon: (
-      <div className="font-calistoga text-5xl font-bold text-emerald-500 leading-none">60</div>
-    ),
-  },
-  {
-    title: "Progress",
-    desc: "Every session logged automatically",
-    accent: "#f59e0b",
-    rotate: -6,
-    icon: (
-      <svg width="56" height="40" viewBox="0 0 56 40" fill="none">
-        {[10,16,12,22,18,28,24,32].map((h,i)=>(
-          <rect
-            key={i}
-            x={i*6+2}
-            y={40-h}
-            width="5"
-            height={h}
-            rx="2.5"
-            fill="#f59e0b"
-            opacity={0.4+i*0.07}
-          />
-        ))}
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+        <circle cx="12" cy="12" r="3" />
+        <circle cx="12" cy="12" r="8.5" />
+        <path strokeLinecap="round" d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3" />
       </svg>
     ),
   },
@@ -91,107 +58,63 @@ const CARDS = [
 
 export default function HowItWorks() {
   return (
-    <>
-      {/* Checkered stripe transitioning from white to cream */}
-      <div className="h-7 w-full checkered-brown" />
+    <section
+      id="how-it-works"
+      className="scroll-mt-20 bg-brand-cream px-4 py-16 sm:px-6 sm:py-24 lg:px-10"
+    >
+      <div className="mx-auto max-w-5xl">
+        <Reveal>
+          <p className="text-hud font-extrabold uppercase tracking-[0.2em] text-clay/60">
+            How it works
+          </p>
+          <h2 className="mt-4 max-w-2xl text-balance text-title font-extrabold leading-tight tracking-tight text-ink sm:text-display">
+            Three steps, then you are dancing.
+          </h2>
+        </Reveal>
 
-      {/* Story section */}
-      <section id="how-it-works" className="bg-brand-cream py-16 px-4 sm:py-28 sm:px-6 lg:px-10 relative overflow-hidden">
-        {/* Floating decorative joint dots — CSS-only animation */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="animate-float-slow motion-reduce:animate-none absolute top-20 left-12 h-10 w-10 rounded-full bg-cue-shoulder/20 border-2 border-cue-shoulder/30" />
-          <div className="animate-float-reverse motion-reduce:animate-none absolute top-40 right-16 h-7 w-7 rounded-full bg-cue-arm/20 border-2 border-cue-arm/30" />
-          <div className="animate-float-slow motion-reduce:animate-none absolute bottom-32 left-24 h-5 w-5 rounded-full bg-cue-hand/20 border-2 border-cue-hand/30" />
-          <div className="animate-float-reverse motion-reduce:animate-none absolute bottom-24 right-20 h-8 w-8 rounded-full bg-cue-foot/20 border-2 border-cue-foot/30" />
-        </div>
+        <ol className="mt-10 flex flex-col gap-3">
+          {STEPS.map((step, i) => (
+            <li key={step.n}>
+              <Reveal delay={i * 0.06}>
+                <Panel tone="paper" radius="2xl" className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:gap-6 sm:p-7">
+                  <div className="flex shrink-0 items-center gap-4">
+                    {/* The tile carries the region colour the overlay would use
+                        for this step, so the legend in the hero and the steps
+                        here are the same vocabulary. */}
+                    <span
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 border-duo-edge"
+                      style={{ color: step.color }}
+                    >
+                      {step.icon}
+                    </span>
+                    <span className="text-hud font-extrabold uppercase tracking-[0.2em] text-clay/50 tabular-nums sm:hidden">
+                      Step {step.n}
+                    </span>
+                  </div>
 
-        <div className="relative mx-auto max-w-3xl text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 32 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <h2 className="font-calistoga text-[clamp(2.8rem,6vw,5rem)] leading-[1.1] text-ink">
-              Where Every Move<br />Tells a Story
-            </h2>
-            <p className="mt-6 text-lg leading-relaxed text-clay/70 max-w-xl mx-auto">
-              Trace overlays AI-guided cues directly on your reference video — every joint
-              color-coded and beat-synced, so you always know exactly where to move
-              and exactly when.
-            </p>
-            <a
-              href="#features"
-              className="mt-8 inline-flex h-12 items-center gap-2 rounded-full border-2 border-ink/20 bg-transparent px-8 text-sm font-semibold text-ink transition-ui duration-200 hover:bg-ink hover:text-brand-cream"
-            >
-              See the features
-            </a>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Tilted card gallery — scrollable on mobile, overlapping on desktop */}
-      <section className="bg-brand-cream pb-16 sm:pb-28 overflow-hidden">
-        {/* Mobile: vertical 2-column grid */}
-        <div className="grid grid-cols-2 gap-3 px-4 pb-6 md:hidden">
-          {CARDS.map((card, i) => (
-            <motion.div
-              key={card.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] }}
-              className="w-full"
-            >
-              <div
-                className="rounded-2xl border-2 bg-white p-4 shadow-lg flex flex-col gap-3"
-                style={{ borderColor: `${card.accent}35` }}
-              >
-                <div className="flex h-14 items-center justify-center">{card.icon}</div>
-                <div>
-                  <p className="font-calistoga text-base text-ink leading-tight">{card.title}</p>
-                  <p className="mt-1 text-[11px] text-clay/60 leading-snug">{card.desc}</p>
-                </div>
-                <div className="h-2 w-2 rounded-full" style={{ background: card.accent }} />
-              </div>
-            </motion.div>
+                  <div className="min-w-0 flex-1">
+                    <p className="hidden text-hud font-extrabold uppercase tracking-[0.2em] text-clay/50 tabular-nums sm:block">
+                      Step {step.n}
+                    </p>
+                    <h3 className="mt-0 text-xl font-extrabold tracking-tight text-ink sm:mt-1.5 sm:text-2xl">
+                      {step.title}
+                    </h3>
+                    <p className="mt-2 text-pretty text-base font-medium leading-relaxed text-clay/80">
+                      {step.body}
+                    </p>
+                  </div>
+                </Panel>
+              </Reveal>
+            </li>
           ))}
-        </div>
+        </ol>
 
-        {/* Desktop: overlapping tilted cards */}
-        <div
-          className="relative mx-auto hidden items-center justify-center md:flex"
-          style={{ height: 320, maxWidth: 900 }}
-        >
-          {CARDS.map((card, i) => (
-            <motion.div
-              key={card.title}
-              initial={{ opacity: 0, y: 40, rotate: card.rotate }}
-              whileInView={{ opacity: 1, y: 0, rotate: card.rotate }}
-              viewport={{ once: true, margin: "-20px" }}
-              transition={{ duration: 0.55, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-              whileHover={{ y: -12, rotate: 0, scale: 1.05, zIndex: 20, transition: { type: "spring", stiffness: 320, damping: 22 } }}
-              className="absolute cursor-default"
-              style={{
-                left: `${8 + i * 17}%`,
-                zIndex: i + 1,
-              }}
-            >
-              <div
-                className="w-44 rounded-2xl border-2 bg-white p-5 shadow-xl flex flex-col gap-3"
-                style={{ borderColor: `${card.accent}35` }}
-              >
-                <div className="flex h-16 items-center justify-center">{card.icon}</div>
-                <div>
-                  <p className="font-calistoga text-lg text-ink leading-tight">{card.title}</p>
-                  <p className="mt-1 text-xs text-clay/60 leading-snug">{card.desc}</p>
-                </div>
-                <div className="h-2 w-2 rounded-full" style={{ background: card.accent }} />
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-    </>
+        <Reveal delay={0.1} className="mt-8">
+          <Pressable href="#features" variant="quiet" size="lg">
+            See What It Tracks
+          </Pressable>
+        </Reveal>
+      </div>
+    </section>
   );
 }

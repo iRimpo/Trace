@@ -9,7 +9,10 @@ import { createPracticeSession } from "@/lib/uploadRecording";
 import { storeRecordingSession, loadVideoSession } from "@/lib/sessionVideoStorage";
 import { useAuth } from "@/context/AuthContext";
 import type { CalibrationData } from "@/components/practice/CalibrationModal";
-import { TOP_STACK } from "@/components/practice/chrome";
+import { TOP_STACK, BOTTOM_SAFE } from "@/components/practice/chrome";
+import Panel from "@/components/ui/Panel";
+import Pressable from "@/components/ui/Pressable";
+import TogglePill from "@/components/ui/TogglePill";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -50,6 +53,13 @@ function drawRefVideo(
   }
   ctx.restore();
 }
+
+/*
+ * Ground: the stage, same as `TraceTab` — see `docs/DESIGN_SYSTEM.md` §1. This
+ * tab was still black glass with 10px labels and an indigo accent that belongs
+ * to no token. `Panel tone="stage"` carries the fill, the blur and the shadow;
+ * `text-hud` is the 12px floor for anything read from dancing distance.
+ */
 
 // ── Props ───────────────────────────────────────────────────────────────
 
@@ -395,39 +405,51 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
           />
         )}
 
-        {/* Floating header badge */}
-        <div className="absolute left-4 z-10 rounded-xl bg-black/50 px-4 py-2.5 backdrop-blur-xl border border-white/[0.06]" style={{ top: TOP_STACK }}>
-          <h2 className="text-sm font-bold text-white">Recording Complete!</h2>
-          <p className="mt-0.5 text-[11px] text-white/40">Review your take, then analyze.</p>
+        {/* Floating header badge. TOP_STACK owns the offset — see §5 of the
+            design contract; this used to be a bare `top-3`. */}
+        <div className="absolute left-3 right-3 z-10 sm:right-auto sm:max-w-sm" style={{ top: TOP_STACK }}>
+          <Panel tone="stage" className="px-4 py-3">
+            <h2 className="text-hud-lg font-extrabold text-stage-text">Take recorded</h2>
+            <p className="mt-1 text-hud font-bold text-stage-text/70">Watch it back, then analyse.</p>
+          </Panel>
         </div>
 
         {saveError && (
-          /* Sits below the "Recording Complete!" badge, which is anchored to
-             TOP_STACK — the +4rem keeps the original 16px→80px relationship. */
-          <div className="absolute left-4 right-4 z-10" style={{ top: `calc(${TOP_STACK} + 4rem)` }}>
-            <p className="rounded-lg bg-red-500/20 px-3 py-2 text-xs font-medium text-red-400 backdrop-blur-xl border border-red-500/20">{saveError}</p>
+          /* Sits below the "Take recorded" badge, which is anchored to
+             TOP_STACK — the +4.5rem keeps the badge/banner relationship. */
+          <div className="absolute left-3 right-3 z-10" style={{ top: `calc(${TOP_STACK} + 4.5rem)` }}>
+            <p className="rounded-xl border border-duo-red/40 bg-duo-red/20 px-3.5 py-2.5 text-hud font-bold text-stage-text backdrop-blur-xl">
+              {saveError}
+            </p>
           </div>
         )}
 
-        {/* Floating action bar */}
-        <div className="absolute inset-x-0 bottom-0 z-10 flex items-center gap-2 p-4 bg-gradient-to-t from-black/80 to-transparent">
-          <button onClick={handleReRecord} disabled={saving}
-            className="flex items-center gap-1.5 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white/70 backdrop-blur-xl border border-white/[0.06] transition-ui hover:bg-white/20 disabled:opacity-40">
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        {/* Floating action bar. One green "go" per screen — Analyse is it. */}
+        <div
+          className="absolute inset-x-0 bottom-0 z-10 flex items-center gap-2 bg-gradient-to-t from-black/85 to-transparent p-3"
+          style={{ paddingBottom: `calc(0.75rem + ${BOTTOM_SAFE})` }}
+        >
+          <Pressable variant="stage" size="md" onClick={handleReRecord} disabled={saving}>
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" />
             </svg>
             Re-record
-          </button>
-          <button onClick={handleAnalyze} disabled={saving}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-500/90 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-xl border border-white/[0.06] transition-ui hover:bg-indigo-500 disabled:opacity-60">
+          </Pressable>
+          <Pressable variant="primary" size="lg" onClick={handleAnalyze} disabled={saving} className="flex-1">
             {saving ? (
-              <><div className="h-4 w-4 animate-spin motion-reduce:animate-pulse rounded-full border-2 border-white/20 border-t-white" />Saving…</>
+              <>
+                <span className="h-4 w-4 animate-spin motion-reduce:animate-pulse rounded-full border-2 border-white/30 border-t-white" />
+                Saving…
+              </>
             ) : (
-              <>Analyze<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-              </svg></>
+              <>
+                Analyse my run
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                </svg>
+              </>
             )}
-          </button>
+          </Pressable>
         </div>
       </motion.div>
     );
@@ -440,14 +462,21 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
   const isRecording = testState === "recording";
   const isGo        = countdownNum === 0;
 
+  // "How much time is left" is the second thing the HUD has to answer, so it is
+  // computed rather than left for the dancer to subtract from a `x / y` pair
+  // across the room.
+  const recTotal     = refDurationRef.current;
+  const recRemaining = recTotal > 0 ? Math.max(0, Math.ceil(recTotal - elapsedSec)) : null;
+  const recPct       = recTotal > 0 ? Math.min(100, (elapsedSec / recTotal) * 100) : 0;
+
   return (
     <div className="relative h-full w-full overflow-hidden bg-black">
 
       {/* Webcam base — fills entire container */}
       <div className="absolute inset-0">
         {webcamError ? (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-xs text-white/40">{webcamError}</p>
+          <div className="absolute inset-0 flex items-center justify-center px-6">
+            <p className="hud-text text-hud-lg font-bold text-stage-text/80">{webcamError}</p>
           </div>
         ) : (
           <video
@@ -495,9 +524,9 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 1.25 }}
                 transition={{ duration: 0.12, ease: "easeOut" }}
-                className={`select-none font-bold ${
-                  isGo ? "text-6xl text-green-400 drop-shadow-lg"
-                       : "text-[120px] leading-none text-white drop-shadow-2xl"
+                className={`hud-text select-none font-black tabular-nums tracking-tight ${
+                  isGo ? "text-7xl text-duo-green sm:text-8xl"
+                       : "text-[9rem] leading-none text-stage-text sm:text-[11rem]"
                 }`}
               >
                 {isGo ? "GO!" : countdownNum}
@@ -517,58 +546,83 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
             edge glow reads instantly from across a room, and it costs no
             screen space because it lives in the margin the video letterboxes
             into anyway. Non-interactive, so it never eats a tap.
+
+            `motion-reduce:animate-pulse`, not `animate-none`: the pulse is an
+            opacity change, which is not a vestibular trigger, and an indicator
+            that stops indicating is worse than one that pulses (contract §4.3).
           */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 z-10 animate-pulse motion-reduce:animate-none"
-            style={{ boxShadow: "inset 0 0 0 4px rgb(239 68 68 / 0.9), inset 0 0 40px rgb(239 68 68 / 0.35)" }}
+            className="pointer-events-none absolute inset-0 z-10 animate-pulse motion-reduce:animate-pulse ring-[6px] ring-inset ring-duo-red"
           />
-          <div
-            className="absolute left-4 z-10 flex items-center gap-2.5 rounded-xl bg-red-600 px-3.5 py-2 shadow-lg"
-            style={{ top: TOP_STACK }}
-          >
-            <div className="h-3 w-3 animate-pulse rounded-full bg-white motion-reduce:animate-none" />
-            <span className="text-sm font-bold tracking-wide text-white">REC</span>
-            <span className="font-mono text-sm font-semibold tabular-nums text-white/85">
-              {fmt(elapsedSec)} / {fmt(refDurationRef.current)}
-            </span>
+
+          {/*
+            The two facts that matter while dancing, in the order you need them:
+            *you are recording*, and *how long is left*. Both are now set at a
+            size you can resolve from across a room instead of a 14px `0:04 /
+            0:37` pair. `role="timer"` + `aria-live="off"` keeps a screen reader
+            from announcing every tick.
+          */}
+          <div className="pointer-events-none absolute inset-x-3 z-20 flex justify-center" style={{ top: TOP_STACK }}>
+            <div className="flex w-full max-w-md flex-col gap-2 rounded-2xl bg-duo-red px-4 py-3 shadow-stage">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="flex items-center gap-2">
+                  <span className="h-3.5 w-3.5 animate-pulse motion-reduce:animate-pulse rounded-full bg-white" />
+                  <span className="text-hud-lg font-black tracking-[0.18em] text-white">REC</span>
+                </span>
+                <span
+                  role="timer"
+                  aria-live="off"
+                  className="font-mono text-4xl font-black leading-none tabular-nums text-white sm:text-5xl"
+                >
+                  {recRemaining !== null ? fmt(recRemaining) : fmt(elapsedSec)}
+                </span>
+                <span className="text-hud font-extrabold uppercase tracking-widest text-white/75">
+                  {recRemaining !== null ? "left" : "elapsed"}
+                </span>
+              </div>
+              {/* Elapsed share of the take — width is the only thing that moves,
+                  and it is a static bar, not an animation. */}
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/30">
+                <div className="h-full rounded-full bg-white" style={{ width: `${recPct}%` }} />
+              </div>
+            </div>
           </div>
-          <div className="absolute inset-x-0 z-10 flex justify-center" style={{ bottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}>
-            <button
-              onClick={() => stopTriggerRef.current?.()}
-              className="flex items-center gap-2 rounded-xl bg-black/50 px-6 py-3 text-sm font-semibold text-white backdrop-blur-xl border border-white/[0.06] transition-ui hover:bg-white/20"
-            >
-              <div className="h-3 w-3 rounded-sm bg-white" />
-              Stop Recording
-            </button>
+
+          <div className="absolute inset-x-0 z-20 flex justify-center px-3" style={{ bottom: `calc(1rem + ${BOTTOM_SAFE})` }}>
+            <Pressable variant="danger" size="lg" onClick={() => stopTriggerRef.current?.()}>
+              <span className="h-3.5 w-3.5 rounded-[3px] bg-white" />
+              Stop recording
+            </Pressable>
           </div>
         </>
       )}
 
-      {/* PREVIEW badge (framing) */}
+      {/* PREVIEW badge + framing instruction (framing).
+          Both anchored off TOP_STACK; the +2.5rem preserves the badge → card
+          gap. Never a hardcoded `top-*` — see docs/HANDOFF.md §4. */}
       {testState === "framing" && (
-        <div className="absolute left-3 z-20 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur-xl border border-white/[0.06]" style={{ top: TOP_STACK }}>
-          <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-          <span className="text-[10px] font-semibold tracking-wide text-white/70">PREVIEW</span>
+        <div className="absolute left-3 z-20 flex items-center gap-1.5 rounded-full bg-duo-blue px-3 py-1.5 shadow-stage" style={{ top: TOP_STACK }}>
+          <span className="h-2 w-2 rounded-full bg-white" />
+          <span className="text-hud font-extrabold tracking-widest text-white">NOT RECORDING</span>
         </div>
       )}
 
-      {/* Framing instruction — floating badge top-left. Stacked below the
-          PREVIEW badge; the +2rem preserves the original 12px→44px gap now
-          that both are anchored to TOP_STACK. */}
       {testState === "framing" && (
-        <div className="absolute left-3 z-20 max-w-xs rounded-xl bg-black/50 px-3.5 py-2 backdrop-blur-xl border border-white/[0.06]" style={{ top: `calc(${TOP_STACK} + 2rem)` }}>
-          <h2 className="text-xs font-bold text-white">Position yourself</h2>
-          <p className="mt-0.5 text-[10px] leading-relaxed text-white/40">
-            Drag the reference overlay to align with your body. Scrub to your starting frame, then press &ldquo;I&apos;m Ready&rdquo;.
-          </p>
+        <div className="absolute left-3 right-3 z-20 sm:right-auto sm:max-w-xs" style={{ top: `calc(${TOP_STACK} + 2.5rem)` }}>
+          <Panel tone="stage" className="px-4 py-3">
+            <h2 className="text-hud-lg font-extrabold text-stage-text">Position yourself</h2>
+            <p className="mt-1 text-hud font-bold leading-relaxed text-stage-text/70">
+              Drag the ghost until it lands on your body, scrub to your starting frame, then hit Start recording.
+            </p>
+          </Panel>
         </div>
       )}
 
       {/* Webcam loading */}
       {!webcamReady && !webcamError && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60">
-          <div className="h-6 w-6 animate-spin motion-reduce:animate-pulse rounded-full border-2 border-white/10 border-t-white/50" />
+          <div className="h-8 w-8 animate-spin motion-reduce:animate-pulse rounded-full border-2 border-white/10 border-t-white/50" />
         </div>
       )}
 
@@ -587,85 +641,119 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
         }}
       />
 
-      {/* Framing controls — floating glassmorphic bar at bottom */}
+      {/* Framing controls — floating stage panel at the bottom edge */}
       {testState === "framing" && (
-        <div className="absolute inset-x-0 bottom-0 z-20 p-3">
-          <div className="rounded-2xl bg-black/50 backdrop-blur-xl border border-white/[0.06] px-5 py-4">
+        <div
+          className="absolute inset-x-0 bottom-0 z-20 px-2 pt-2"
+          style={{ paddingBottom: BOTTOM_SAFE }}
+        >
+          <Panel tone="stage" radius="2xl" className="px-3 py-3 sm:px-4">
 
-            {/* Opacity + mirror */}
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-medium text-white/30">Opacity</span>
+            {/*
+              One scrolling row rather than `flex-wrap`. The full set needs more
+              width than a 320px phone has, and wrapping made the panel's height
+              change as controls appeared, shoving the Start button around under
+              the thumb. Same fix as TraceTab's transport row.
+            */}
+            <div className="scrollbar-hide -mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1">
+              <TogglePill active={mirrored} onClick={() => setMirrored(m => !m)} accent="blue" tone="stage">
+                Mirror {mirrored ? "on" : "off"}
+              </TogglePill>
+
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="text-hud font-bold text-stage-text/70">Ghost</span>
                 <input type="range" min="10" max="90" value={overlayOpacity}
                   onChange={e => setOverlayOpacity(parseInt(e.target.value))}
-                  className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-white/[0.06] accent-indigo-500" />
-                <span className="w-7 text-[10px] tabular-nums text-white/20">{overlayOpacity}%</span>
+                  aria-label="Reference overlay opacity"
+                  className="slider slider-stage w-24" />
+                <span className="w-10 text-right text-hud tabular-nums text-stage-text/70">{overlayOpacity}%</span>
               </div>
-              <button onClick={() => setMirrored(m => !m)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-ui ${
-                  mirrored ? "bg-indigo-500/20 text-indigo-400" : "bg-white/[0.04] text-white/30 hover:bg-white/[0.08]"
-                }`}>
-                Mirror {mirrored ? "On" : "Off"}
-              </button>
+
+              <TogglePill
+                active={framingExpanded}
+                onClick={() => setFramingExpanded(x => !x)}
+                accent="violet"
+                tone="stage"
+                icon={
+                  <svg className={`h-3.5 w-3.5 transition-transform duration-150 ease-out-strong motion-reduce:transition-none ${framingExpanded ? "rotate-90" : ""}`}
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  </svg>
+                }
+              >
+                Fine-tune
+              </TogglePill>
             </div>
 
             {/* Fine-tune framing (collapsible) */}
-            <div className="mt-3 border-t border-white/[0.06]">
-              <button onClick={() => setFramingExpanded(x => !x)}
-                className="mt-2 flex w-full items-center gap-1.5 text-[10px] font-semibold text-white/30 transition-colors hover:text-white/50">
-                <svg className={`h-3 w-3 transition-transform ${framingExpanded ? "rotate-90" : ""}`}
-                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                </svg>
-                Fine-tune framing
-              </button>
+            <AnimatePresence initial={false}>
               {framingExpanded && (
-                <div className="mt-2 flex flex-col gap-2">
-                  <SliderRow label="X offset" min={-300} max={300} step={1}
-                    value={proOffsetX} onChange={v => setProOffsetX(Math.round(v))}
-                    display={`${proOffsetX > 0 ? "+" : ""}${proOffsetX}px`} />
-                  <SliderRow label="Y offset" min={-300} max={300} step={1}
-                    value={proOffsetY} onChange={v => setProOffsetY(Math.round(v))}
-                    display={`${proOffsetY > 0 ? "+" : ""}${proOffsetY}px`} />
-                  <SliderRow label="Zoom" min={0.3} max={3.0} step={0.05}
-                    value={proZoom} onChange={setProZoom}
-                    display={`${proZoom.toFixed(2)}×`} />
-                  <button onClick={() => { setProOffsetX(0); setProOffsetY(0); setProZoom(1.0); }}
-                    className="self-start rounded-lg bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-white/30 hover:bg-white/[0.08]">
-                    Reset
-                  </button>
-                </div>
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-2 flex flex-col gap-1.5 rounded-2xl bg-white/[0.07] p-3">
+                    <SliderRow label="X offset" min={-300} max={300} step={1}
+                      value={proOffsetX} onChange={v => setProOffsetX(Math.round(v))}
+                      display={`${proOffsetX > 0 ? "+" : ""}${proOffsetX}px`} />
+                    <SliderRow label="Y offset" min={-300} max={300} step={1}
+                      value={proOffsetY} onChange={v => setProOffsetY(Math.round(v))}
+                      display={`${proOffsetY > 0 ? "+" : ""}${proOffsetY}px`} />
+                    <SliderRow label="Zoom" min={0.3} max={3.0} step={0.05}
+                      value={proZoom} onChange={setProZoom}
+                      display={`${proZoom.toFixed(2)}×`} />
+                    <Pressable
+                      variant="stage"
+                      size="sm"
+                      className="mt-1 self-start"
+                      onClick={() => { setProOffsetX(0); setProOffsetY(0); setProZoom(1.0); }}
+                    >
+                      Reset framing
+                    </Pressable>
+                  </div>
+                </motion.div>
               )}
-            </div>
+            </AnimatePresence>
 
             {/* Start frame scrubber */}
-            <div className="mt-3 flex items-center gap-3 border-t border-white/[0.06] pt-3">
-              <span className="text-[10px] font-medium text-white/40">Start frame</span>
+            <div className="mt-2 flex items-center gap-3 border-t border-white/10 pt-3">
+              <span className="shrink-0 text-hud font-bold text-stage-text/70">Start at</span>
               <input type="range" min={0} max={refDuration || 1} step={0.033} value={refTime}
                 onChange={e => {
                   const t = parseFloat(e.target.value);
                   setRefTime(t);
                   if (proVideoRef.current) proVideoRef.current.currentTime = t;
                 }}
-                className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-white/[0.08] accent-indigo-500" />
-              <span className="w-10 text-right font-mono text-[10px] text-white/30">{fmt(refTime)}</span>
+                aria-label="Reference start frame"
+                className="slider slider-stage flex-1" />
+              <span className="w-11 shrink-0 text-right font-mono text-hud tabular-nums text-stage-text/80">{fmt(refTime)}</span>
             </div>
 
-            {/* Ready button */}
-            <div className="mt-4 flex justify-end">
-              <button onClick={() => {
+            {/* The one green "go" on this screen. Full width — it is the only
+                thing you reach for from across the room. */}
+            <Pressable
+              block
+              variant="primary"
+              size="lg"
+              className="mt-3"
+              disabled={!webcamReady}
+              onClick={() => {
                 // Warm up audio inside user gesture so browser allows future play() calls
                 proVideoRef.current?.play().then(() => proVideoRef.current?.pause()).catch(() => {});
                 setTestState("countdown");
-              }} disabled={!webcamReady}
-                className="flex items-center gap-2 rounded-xl bg-indigo-500/90 px-5 py-2.5 text-sm font-semibold text-white transition-ui hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40">
-                I&apos;m Ready
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              }}
+            >
+              {webcamReady ? "Start recording" : "Waiting for camera…"}
+              {webcamReady && (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                 </svg>
-              </button>
-            </div>
-          </div>
+              )}
+            </Pressable>
+          </Panel>
         </div>
       )}
     </div>
@@ -681,12 +769,13 @@ function SliderRow({
   value: number; onChange: (v: number) => void; display: string;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="w-16 text-[10px] font-medium text-white/30">{label}</span>
+    <div className="flex items-center gap-2.5">
+      <span className="w-16 shrink-0 text-hud font-bold text-stage-text/70">{label}</span>
       <input type="range" min={min} max={max} step={step} value={value}
         onChange={e => onChange(parseFloat(e.target.value))}
-        className="h-1 w-28 cursor-pointer appearance-none rounded-full bg-white/[0.06] accent-indigo-500" />
-      <span className="w-12 text-[10px] tabular-nums text-white/20">{display}</span>
+        aria-label={label}
+        className="slider slider-stage min-w-0 flex-1" />
+      <span className="w-14 shrink-0 text-right text-hud tabular-nums text-stage-text/70">{display}</span>
     </div>
   );
 }

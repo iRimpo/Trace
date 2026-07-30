@@ -1,56 +1,87 @@
 "use client";
 
-import { CUE_PALETTE } from "@/lib/cuePalette";
-
-import { useState } from "react";
-import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { useId, useState } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import Panel from "@/components/ui/Panel";
+import Pressable from "@/components/ui/Pressable";
 import ProgressGraph from "./ProgressGraph";
+import { BAND_FILL, BAND_LABEL, BAND_SOFT, scoreBand } from "./score";
 import { useSignedUrl } from "@/lib/useSignedUrl";
 import type { SongGroup } from "@/app/api/progress/route";
 
-const REGION_LABELS: Record<string, string> = {
-  leftArm: "Left Arm", rightArm: "Right Arm",
-  leftLeg: "Left Leg", rightLeg: "Right Leg", torso: "Core",
-};
+/**
+ * The centre of the dashboard.
+ *
+ * A song card has to answer three questions from across a room: *what did I
+ * practise*, *how did it go*, *what do I do next*. The old card answered none
+ * of them at a glance — the score was a 14px number inside a 44px ring, the
+ * meta line was 11px at `clay/40`, "Best" was a 10px label stacked over a 14px
+ * number, and the only action was buried two taps deep behind an accordion and
+ * a modal that said "Upload a new video to practice this routine" before
+ * linking to the page that says exactly that.
+ *
+ * Now: the score is the biggest thing on the card, the change since last time
+ * sits next to it as a signed number, a meter shows latest against best, and
+ * "Practise again" is a full-width green pressable that is always visible and
+ * goes straight to the upload page. Everything else — the trend, what to work
+ * on, the per-region breakdown, delete — is behind the disclosure, because it
+ * is what you read *after* you have decided to look closer.
+ */
 
-const PART_COLORS: Record<string, string> = {
-  torso: CUE_PALETTE.hip, leftArm: CUE_PALETTE.elbow, rightArm: CUE_PALETTE.hand,
-  leftLeg: CUE_PALETTE.armBoth, rightLeg: CUE_PALETTE.foot,
+const REGION_LABELS: Record<string, string> = {
+  leftArm: "Left arm", rightArm: "Right arm",
+  leftLeg: "Left leg", rightLeg: "Right leg", torso: "Core",
 };
 
 const REGION_TIPS: Record<string, string> = {
-  leftArm: "Extend further on moves",
+  leftArm:  "Extend further on moves",
   rightArm: "Extend further on moves",
-  leftLeg: "Drive from the hip for cleaner lines",
+  leftLeg:  "Drive from the hip for cleaner lines",
   rightLeg: "Drive from the hip for cleaner lines",
-  torso: "Engage core for sharper hits",
+  torso:    "Engage core for sharper hits",
 };
 
-function scoreColor(s: number): string {
-  if (s >= 80) return "#10B981";
-  if (s >= 55) return "#EAB308";
-  if (s >= 30) return CUE_PALETTE.elbow;
-  return "#EF4444";
-}
+const REGION_ORDER = Object.keys(REGION_LABELS);
 
-function ScoreBar({ label, value, color }: { label: string; value: number; color: string }) {
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
+
+/* ── Bars ─────────────────────────────────────────────────────────────────
+   Every bar prints its own number. The bar is the glance and the number is
+   the fact, so nothing is only legible because a transform landed. */
+
+function Meter({ value, className = "" }: { value: number; className?: string }) {
+  const reduce = useReducedMotion();
   return (
-    <div className="flex items-center gap-2.5">
-      <span className="w-20 shrink-0 text-xs text-clay/60">{label}</span>
-      <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-ink/[0.08]">
-        <motion.div
-          className="absolute left-0 top-0 h-full rounded-full"
-          style={{ backgroundColor: color }}
-          initial={{ width: 0 }}
-          animate={{ width: `${value}%` }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-        />
-      </div>
-      <span className="w-8 text-right text-xs font-bold tabular-nums" style={{ color }}>{value}%</span>
+    <div className={`relative overflow-hidden rounded-full bg-ink/[0.07] ${className}`}>
+      <motion.div
+        className={`absolute inset-y-0 left-0 w-full origin-left rounded-full ${BAND_FILL[scoreBand(value)]}`}
+        initial={reduce ? false : { scaleX: 0 }}
+        animate={{ scaleX: Math.max(value, 0) / 100 }}
+        transition={{ duration: 0.44, ease: EASE_OUT }}
+      />
     </div>
   );
 }
+
+function RegionRow({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="w-20 shrink-0 text-xs font-bold text-clay">{label}</span>
+      <Meter value={value} className="h-2.5 flex-1" />
+      <span className="w-10 shrink-0 text-right text-sm font-extrabold tabular-nums text-ink">
+        {value}%
+      </span>
+    </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-hud uppercase tracking-[0.18em] text-clay/60">{children}</p>
+  );
+}
+
+/* ── Card ─────────────────────────────────────────────────────────────── */
 
 interface SongCardProps {
   group: SongGroup;
@@ -61,20 +92,34 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [showPracticeModal, setShowPracticeModal] = useState(false);
+  const reduce = useReducedMotion();
+  const bodyId = useId();
 
-  const latestRegions = group.attempts[group.attempts.length - 1]?.regions;
-  const allRegionKeys = Object.keys(REGION_LABELS);
+  const attempts = group.attempts;
+  const latestRegions = attempts[attempts.length - 1]?.regions;
   const regionRows = latestRegions
-    ? allRegionKeys.filter(k => latestRegions[k] !== undefined)
+    ? REGION_ORDER.filter(k => latestRegions[k] !== undefined)
     : [];
 
   const practiceHref = `/practice?song=${encodeURIComponent(group.title)}`;
-  const borderColor = scoreColor(group.latest);
-  const sessionIds = group.attempts.map(a => a.id).filter(Boolean);
-  const totalTraceSeconds = group.attempts.reduce((sum, a) => sum + (a.traceTime ?? 0), 0);
+  const sessionIds = attempts.map(a => a.id).filter(Boolean);
+  const totalTraceSeconds = attempts.reduce((sum, a) => sum + (a.traceTime ?? 0), 0);
   const totalTraceMinutes = Math.round(totalTraceSeconds / 60);
-  const { url: thumbnailSignedUrl, loading: thumbnailLoading } = useSignedUrl(group.thumbnailUrl ?? undefined);
+  const { url: thumbnailSignedUrl, loading: thumbnailLoading } =
+    useSignedUrl(group.thumbnailUrl ?? undefined);
+
+  const band = scoreBand(group.latest);
+  const previous = attempts.length > 1 ? attempts[attempts.length - 2].score : null;
+  const delta = previous === null ? null : group.latest - previous;
+
+  const needWork = latestRegions
+    ? REGION_ORDER
+        .filter(k => latestRegions[k] !== undefined)
+        .map(k => ({ key: k, value: latestRegions[k]! }))
+        .sort((a, b) => a.value - b.value)
+        .filter(r => r.value < 70)
+        .slice(0, 3)
+    : [];
 
   async function handleDelete() {
     if (!confirmDelete) { setConfirmDelete(true); return; }
@@ -93,242 +138,194 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
   }
 
   return (
-    <div
-      className="rounded-2xl border border-ink/[0.08] bg-white overflow-hidden shadow-sm"
-      style={{ borderLeftWidth: 4, borderLeftColor: borderColor }}
-    >
-      {/* ── Header ──────────────────────────────────────── */}
+    <Panel tone="paper" radius="2xl" className="overflow-hidden">
+      {/* ── Header — the disclosure ─────────────────────────────────────
+          The whole strip is the target, so there is no 16px chevron to hit.
+          `aria-expanded` + `aria-controls` rather than a rotating glyph alone. */}
       <button
+        type="button"
         onClick={() => setOpen(o => !o)}
-        className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-ink/[0.02] transition-colors"
+        aria-expanded={open}
+        aria-controls={bodyId}
+        className="flex w-full items-center gap-3 px-4 pt-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-duo-blue sm:px-5"
       >
-        {/* Thumbnail or placeholder */}
-        <div className="relative h-11 w-[52px] shrink-0 overflow-hidden rounded-lg bg-ink/[0.06]">
+        {/* Thumbnail */}
+        <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-xl border-2 border-duo-edge bg-brand-cream">
           {thumbnailSignedUrl ? (
-            <img
-              src={thumbnailSignedUrl}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : thumbnailLoading ? (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="h-4 w-4 animate-pulse motion-reduce:animate-none rounded bg-ink/15" />
-            </div>
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={thumbnailSignedUrl} alt="" className="h-full w-full object-cover" />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-ink/25">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
-              </svg>
+              {thumbnailLoading ? (
+                <div className="h-4 w-8 rounded bg-ink/10 animate-pulse motion-reduce:animate-pulse" />
+              ) : (
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
+                </svg>
+              )}
             </div>
           )}
         </div>
-        {/* Score ring */}
-        <div
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 text-sm font-black tabular-nums"
-          style={{ borderColor, color: borderColor }}
-        >
-          {group.latest}
-        </div>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold text-ink">{group.title}</p>
-          <p className="text-[11px] text-clay/40">
-            {group.attempts.length} attempt{group.attempts.length !== 1 ? "s" : ""} · Avg {group.avg}%
-            {totalTraceMinutes > 0 && ` · ${totalTraceMinutes} min in Trace`}
+          <p className="truncate text-base font-extrabold tracking-tight text-ink sm:text-lg">
+            {group.title}
+          </p>
+          <p className="mt-0.5 truncate text-xs font-semibold text-clay/70">
+            {attempts.length} attempt{attempts.length !== 1 ? "s" : ""} · avg {group.avg}%
+            {totalTraceMinutes > 0 && ` · ${totalTraceMinutes} min`}
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-4">
-          <div className="text-right">
-            <p className="text-[10px] font-medium text-clay/40">Best</p>
-            <p className="text-sm font-bold tabular-nums" style={{ color: scoreColor(group.best) }}>{group.best}%</p>
-          </div>
-          <svg
-            className={`h-4 w-4 shrink-0 text-clay/30 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-          </svg>
+        {/* The score is the element, not a badge next to the title. */}
+        <div className="shrink-0 text-right">
+          <p className="text-3xl font-extrabold leading-none tabular-nums text-ink sm:text-4xl">
+            {group.latest}
+            <span className="text-base text-clay/50">%</span>
+          </p>
+          {delta !== null && (
+            <p
+              className={`mt-1 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-hud tabular-nums ${
+                delta > 0 ? "bg-duo-green/12 text-ink"
+                : delta < 0 ? "bg-duo-red/12 text-ink"
+                : "bg-ink/[0.06] text-clay/70"
+              }`}
+            >
+              {delta > 0 ? "▲" : delta < 0 ? "▼" : "="}
+              {delta > 0 ? `+${delta}` : delta < 0 ? delta : "0"}
+              <span className="sr-only"> points versus previous attempt</span>
+            </p>
+          )}
         </div>
+
+        <svg
+          className={`h-5 w-5 shrink-0 text-clay/40 transition-transform duration-200 ease-out-strong motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+        </svg>
       </button>
 
-      {/* ── Expanded body ───────────────────────────────── */}
-      <AnimatePresence>
+      {/* ── Latest against best ─────────────────────────────────────────── */}
+      <div className="px-4 pt-3 sm:px-5">
+        <Meter value={group.latest} className="h-3" />
+        <div className="mt-1.5 flex items-center justify-between text-hud">
+          <span className={`rounded-full px-1.5 py-0.5 text-ink/80 ${BAND_SOFT[band]}`}>
+            {BAND_LABEL[band]}
+          </span>
+          <span className="tabular-nums text-clay/70">Best {group.best}%</span>
+        </div>
+      </div>
+
+      {/* ── The one obvious action ──────────────────────────────────────── */}
+      <div className="px-4 pb-4 pt-3.5 sm:px-5">
+        <Pressable href={practiceHref} variant="primary" size="md" block>
+          Practise again
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+          </svg>
+        </Pressable>
+      </div>
+
+      {/* ── Disclosure body ─────────────────────────────────────────────── */}
+      <AnimatePresence initial={false}>
         {open && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
+            id={bodyId}
+            key="body"
+            initial={reduce ? false : { height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: "easeInOut" }}
+            exit={reduce ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: EASE_OUT }}
             className="overflow-hidden"
           >
-            <div className="border-t border-ink/[0.06] px-5 pb-5 pt-4">
+            <div className="space-y-5 border-t-2 border-duo-edge px-4 pb-5 pt-4 sm:px-5">
 
-              {/* Graph */}
-              <div className="mb-5 rounded-xl bg-brand-cream/60 px-3 py-2">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-clay/40">Progress</p>
-                <ProgressGraph attempts={group.attempts} />
+              {/* What to do next comes first — it is the only section that
+                  tells the user what to change tomorrow. */}
+              {latestRegions && (
+                <div>
+                  <SectionLabel>Work on next</SectionLabel>
+                  {needWork.length === 0 ? (
+                    <p className="mt-2 text-sm font-semibold text-ink">
+                      Every region is above 70%. Try it at full speed.
+                    </p>
+                  ) : (
+                    <ul className="mt-2 space-y-2">
+                      {needWork.map(({ key, value }) => (
+                        <li
+                          key={key}
+                          className={`flex items-center gap-3 rounded-xl px-3 py-2.5 ${BAND_SOFT[scoreBand(value)]}`}
+                        >
+                          <span className="text-lg font-extrabold tabular-nums leading-none text-ink">
+                            {value}%
+                          </span>
+                          <span className="min-w-0 flex-1 text-xs font-medium text-clay">
+                            <span className="font-extrabold text-ink">{REGION_LABELS[key]}</span>
+                            {" — "}
+                            {REGION_TIPS[key] ?? "Keep practising"}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              {/* Trend */}
+              <div>
+                <SectionLabel>Progress</SectionLabel>
+                <div className="mt-2">
+                  <ProgressGraph attempts={attempts} />
+                </div>
               </div>
 
-              {/* Body part bars */}
+              {/* Full breakdown */}
               {regionRows.length > 0 && (
-                <div className="mb-5">
-                  <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-clay/40">Body Parts (latest)</p>
-                  <div className="flex flex-col gap-2.5">
+                <div>
+                  <SectionLabel>Latest by body part</SectionLabel>
+                  <div className="mt-2.5 flex flex-col gap-2.5">
                     {regionRows.map(k => (
-                      <ScoreBar
-                        key={k}
-                        label={REGION_LABELS[k]}
-                        value={latestRegions![k]}
-                        color={PART_COLORS[k] ?? scoreColor(latestRegions![k])}
-                      />
+                      <RegionRow key={k} label={REGION_LABELS[k]} value={latestRegions![k]} />
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Focus areas (need more activation) */}
-              {latestRegions && (() => {
-                const sorted = allRegionKeys
-                  .filter(k => latestRegions[k] !== undefined)
-                  .map(k => ({ key: k, value: latestRegions[k]! }))
-                  .sort((a, b) => a.value - b.value);
-                const needWork = sorted.filter(r => r.value < 70).slice(0, 3);
-                if (needWork.length === 0) {
-                  return (
-                    <div className="mb-5">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-clay/40">Focus areas</p>
-                      <p className="mt-1 text-xs text-clay/60">All regions 70%+</p>
-                    </div>
-                  );
-                }
-                return (
-                  <div className="mb-5">
-                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-clay/40">Focus areas</p>
-                    <ul className="flex flex-col gap-1.5">
-                      {needWork.map(({ key, value }) => (
-                        <li key={key} className="text-xs text-clay/80">
-                          <span className="font-medium">{REGION_LABELS[key]}</span>
-                          <span className="tabular-nums" style={{ color: scoreColor(value) }}> {value}%</span>
-                          {" — "}
-                          <span className="text-clay/70">{REGION_TIPS[key] ?? "Keep practicing"}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })()}
-
-              {/* Attempt history */}
-              {group.attempts.length > 1 && (
-                <div className="mb-5">
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-clay/40">History</p>
-                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                    {group.attempts.map((a, i) => {
-                      const color = scoreColor(a.score);
-                      const isLatest = i === group.attempts.length - 1;
-                      return (
-                        <div
-                          key={i}
-                          className={`flex shrink-0 flex-col items-center gap-1 rounded-xl px-3 py-2 ${isLatest ? "bg-brand-primary" : "bg-brand-cream"}`}
-                        >
-                          <span className={`text-sm font-black tabular-nums ${isLatest ? "text-white" : ""}`}
-                            style={isLatest ? {} : { color }}>
-                            {a.score}%
-                          </span>
-                          <span className={`text-[10px] ${isLatest ? "text-white/50" : "text-clay/40"}`}>
-                            {new Date(a.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                          </span>
-                          {isLatest && <span className="text-[9px] font-bold text-white/40">LATEST</span>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowPracticeModal(true)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-primary px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-accent transition-colors"
-                >
-                  Practice Again →
-                </button>
-
-                <button
+              {/* Destructive, last, and two-step. `danger` only appears on the
+                  second press, so the resting card never shows a red button. */}
+              <div className="flex flex-wrap items-center gap-2 border-t-2 border-duo-edge pt-4">
+                <Pressable
+                  variant={confirmDelete ? "danger" : "quiet"}
+                  size="sm"
                   onClick={handleDelete}
                   disabled={deleting}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-ui ${
-                    confirmDelete
-                      ? "bg-red-500 text-white"
-                      : "border border-ink/10 text-ink/40 hover:border-red-300 hover:text-red-500"
-                  }`}
                 >
                   {deleting ? (
-                    <div className="h-3 w-3 animate-spin motion-reduce:animate-pulse rounded-full border border-current border-t-transparent" />
+                    <svg className="h-3.5 w-3.5 animate-spin motion-reduce:animate-pulse" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
                   ) : (
-                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M8 6V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6m3 0v13.5A1.5 1.5 0 0 1 17.5 21h-11A1.5 1.5 0 0 1 5 19.5V6" />
                     </svg>
                   )}
-                  {confirmDelete ? "Confirm Delete" : "Delete"}
-                </button>
-              </div>
+                  {confirmDelete
+                    ? `Delete ${sessionIds.length} session${sessionIds.length !== 1 ? "s" : ""}`
+                    : "Delete"}
+                </Pressable>
 
-              {confirmDelete && !deleting && (
-                <button
-                  onClick={() => setConfirmDelete(false)}
-                  className="mt-2 text-[11px] text-clay/40 underline"
-                >
-                  Cancel
-                </button>
-              )}
+                {confirmDelete && !deleting && (
+                  <Pressable variant="quiet" size="sm" onClick={() => setConfirmDelete(false)}>
+                    Keep
+                  </Pressable>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Practice Again modal */}
-      <AnimatePresence>
-        {showPracticeModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
-            onClick={() => setShowPracticeModal(false)}
-          >
-            <motion.div
-              initial={{ y: 24, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 24, opacity: 0 }}
-              transition={{ ease: "backOut", duration: 0.25 }}
-              onClick={e => e.stopPropagation()}
-              className="w-full max-w-sm rounded-2xl border border-ink/10 bg-white p-5 shadow-xl"
-            >
-              <h3 className="font-semibold text-ink">Practice {group.title} again</h3>
-              <p className="mt-2 text-sm text-clay/70">Upload a new video to practice this routine.</p>
-              <div className="mt-5 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowPracticeModal(false)}
-                  className="flex-1 rounded-full border border-ink/15 px-4 py-2 text-xs font-semibold text-clay/70 hover:bg-ink/[0.05]"
-                >
-                  Cancel
-                </button>
-                <Link
-                  href={practiceHref}
-                  className="flex-1 rounded-full bg-brand-primary px-4 py-2 text-center text-xs font-semibold text-white hover:bg-brand-accent"
-                >
-                  Upload video
-                </Link>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    </Panel>
   );
 }

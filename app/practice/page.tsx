@@ -3,19 +3,47 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { FaArrowLeft, FaUpload, FaFilm, FaArrowRight, FaCheckCircle, FaExclamationCircle, FaTimes } from "react-icons/fa";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { track } from "@/lib/posthog";
 import { track as trackProduct } from "@/lib/analytics";
 import { storeVideoSession } from "@/lib/sessionVideoStorage";
 import { fileIdentity, identityKey } from "@/lib/videoIdentity";
 import { putVideo, idbAvailable } from "@/lib/videoStore";
+import Panel from "@/components/ui/Panel";
+import Pressable from "@/components/ui/Pressable";
+import IconButton from "@/components/ui/IconButton";
+import Field from "@/components/ui/Field";
+import { LoadingState } from "@/components/states/LoadingState";
+import { ErrorState } from "@/components/states/ErrorState";
+import { SuccessState } from "@/components/states/SuccessState";
+
+/**
+ * The moment a session begins.
+ *
+ * This page is the bridge between the dashboard and the practice stage and it
+ * belonged to neither: it drew its own header, its own input, its own pill
+ * buttons, its own two-ring spinner and its own success mark, in `react-icons`
+ * glyphs that appear nowhere else in the app. Seven Font Awesome icons were
+ * carrying about 40 pixels of artwork.
+ *
+ * It is now unambiguously paper: `Panel` cards on cream, `Field` for the one
+ * input, `Pressable` for the one commit, solid `shadow-card` edges, and the
+ * same loading / error / success vocabulary as the dashboard. Single-purpose
+ * and confident — one name, one file, one green button.
+ *
+ * The data layer is untouched: identical validation, identical content-hash
+ * identity, identical IndexedDB write, identical session handoff, identical
+ * PostHog events.
+ */
 
 type UploadState = "idle" | "uploading" | "success" | "error";
 
 const MAX_FILE_SIZE = 200 * 1024 * 1024;
 const ACCEPTED_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
+const MIN_NAME = 3;
+
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
 /** Captures a 160×90 JPEG frame from the first available frame of the video. Returns null on any failure. */
 async function captureVideoThumbnail(file: File): Promise<string | null> {
@@ -66,9 +94,57 @@ function getVideoDuration(file: File): Promise<number | null> {
   });
 }
 
+/* ── Icons ───────────────────────────────────────────────────────────────
+   Inline, stroked, 2.5 weight — the same hand as the rest of the app. */
+
+function ArrowLeft() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+    </svg>
+  );
+}
+
+function ArrowRight() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+    </svg>
+  );
+}
+
+function UploadGlyph({ className = "h-7 w-7" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V4.5m0 0L7.5 9M12 4.5 16.5 9" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.5 15.5v3A2.5 2.5 0 0 0 6 21h12a2.5 2.5 0 0 0 2.5-2.5v-3" />
+    </svg>
+  );
+}
+
+function FilmGlyph() {
+  return (
+    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+      <rect x="2.5" y="4.5" width="19" height="15" rx="2.5" />
+      <path strokeLinecap="round" d="M7 4.5v15M17 4.5v15M2.5 12h19" />
+    </svg>
+  );
+}
+
+function CloseGlyph() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
+      <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
+    </svg>
+  );
+}
+
+/* ── Page ─────────────────────────────────────────────────────────────── */
+
 export default function PracticePage() {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const reduce = useReducedMotion();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [uploadState, setUploadState] = useState<UploadState>("idle");
@@ -150,223 +226,265 @@ export default function PracticePage() {
     setSelectedFile(null);
     setSongName("");
     setThumbnailUrl(null);
+    setVideoDuration(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, []);
+
+  const clearFile = useCallback(() => {
+    setSelectedFile(null);
+    setVideoDuration(null);
+    setThumbnailUrl(null);
+    setError("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, []);
 
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-brand-cream">
-        <div className="relative h-10 w-10">
-          <div className="absolute inset-0 rounded-full border-2 border-ink/10" />
-          <motion.div className="absolute inset-0 rounded-full border-2 border-transparent border-t-ink"
-            animate={{ rotate: 360 }} transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }} />
-        </div>
+        <LoadingState message="Checking your session…" />
       </div>
     );
   }
 
   if (!user) return null;
 
-  const canUpload = !!selectedFile && !error && songName.trim().length >= 3;
+  const nameShort   = songName.trim().length < MIN_NAME;
+  const nameTouched = songName.length > 0;
+  const canUpload   = !!selectedFile && !error && !nameShort;
+  const busy        = uploadState === "uploading" || uploadState === "success";
 
   return (
     <div className="min-h-screen bg-brand-cream">
-      {/* Header */}
-      <header className="border-b border-ink/[0.08] bg-brand-cream">
-        <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-6">
-          <Link href="/dashboard"
-            className="flex items-center gap-2 text-sm text-ink/40 hover:text-ink transition-colors">
-            <FaArrowLeft className="h-3.5 w-3.5" />
+      {/* Same header geometry as the dashboard shell — 64px, a 2px cream-edge
+          rule, the mark on the right — so crossing between them does not feel
+          like crossing between apps. */}
+      <header className="border-b-2 border-duo-edge bg-brand-cream">
+        <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4 sm:px-6">
+          <Pressable href="/dashboard" variant="quiet" size="sm">
+            <ArrowLeft />
             Dashboard
-          </Link>
-          <Link href="/" className="flex items-center">
-            <img src="/trace_logo.svg" width="32" height="32" alt="Trace" className="rounded-full" />
+          </Pressable>
+          <Link href="/" aria-label="Trace home" className="flex items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/trace_logo.svg" width="34" height="34" alt="" className="rounded-full" />
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-6 py-10 sm:py-14">
-        {/* Title */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
-          className="text-center">
-          <span className="font-mono text-xs font-bold tracking-widest text-ink/30 uppercase">New Session</span>
-          <h1 className="mt-2 font-bold text-3xl tracking-tight text-ink sm:text-4xl">
+      <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
+        <motion.div
+          // Offset only. Nothing on this page is hidden behind an animation.
+          initial={{ y: 10 }}
+          animate={{ y: 0 }}
+          transition={{ duration: 0.28, ease: EASE_OUT }}
+        >
+          <p className="text-hud uppercase tracking-[0.2em] text-clay/60">New session</p>
+          <h1 className="mt-1.5 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
             Upload your dance video
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-clay/50">
-            Upload a reference video and we&apos;ll help you master every move.
+          <p className="mt-2 text-sm font-medium leading-relaxed text-clay/80">
+            Trace overlays it on your camera so you can match every move.
           </p>
-        </motion.div>
 
-        {/* Card */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
-          className="mt-8 rounded-3xl border border-ink/[0.08] bg-white p-6 shadow-sm sm:p-8">
-
-          {/* Song or trend name (required) */}
-          <div className="mb-6">
-            <label className="mb-1.5 block text-xs font-semibold text-ink/40 uppercase tracking-widest">
-              Song or Trend Name
-            </label>
-            <input type="text" value={songName} onChange={(e) => setSongName(e.target.value)}
-              placeholder="e.g., APT - Rose & Bruno Mars"
+          <Panel tone="paper" radius="2xl" className="mt-6 p-5 sm:p-7">
+            {/* ── Name ─────────────────────────────────────────────────── */}
+            <Field
+              label="Song or trend name"
+              value={songName}
+              onChange={(e) => setSongName(e.target.value)}
+              placeholder="e.g. APT — Rosé and Bruno Mars"
               maxLength={100}
-              className="w-full rounded-xl border border-ink/10 bg-brand-cream/60 px-4 py-3 text-sm text-ink placeholder:text-ink/25 outline-none transition-ui focus:border-brand-primary/30 focus:ring-2 focus:ring-brand-primary/[0.08]" />
-            <div className="mt-1 flex items-center justify-between">
-              <p className="text-[11px] text-ink/25">Required · Min. 3 characters</p>
-              <AnimatePresence>
-                {songName.length > 0 && (
-                  <motion.span
-                    key={songName.trim().length >= 3 ? "ok" : "need"}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className={`text-[11px] font-medium ${songName.trim().length >= 3 ? "text-emerald-600" : "text-amber-500"}`}
-                  >
-                    {songName.trim().length >= 3
-                      ? "✓ Good to go"
-                      : `${3 - songName.trim().length} more char${3 - songName.trim().length === 1 ? "" : "s"} needed`}
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
+              disabled={busy}
+              autoComplete="off"
+              action={
+                <span className="text-hud text-clay/60">
+                  {!nameTouched
+                    ? "Required"
+                    : nameShort
+                      ? `${MIN_NAME - songName.trim().length} more character${MIN_NAME - songName.trim().length === 1 ? "" : "s"}`
+                      : "Looks good"}
+                </span>
+              }
+            />
 
-          <AnimatePresence mode="wait">
-            {/* ── File Upload ── */}
-            {uploadState !== "uploading" && uploadState !== "success" && (
-              <motion.div key="file-mode" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                {!selectedFile ? (
-                  <div
+            <div className="mt-5">
+              {/* ── Pick a file ────────────────────────────────────────── */}
+              {!busy && !selectedFile && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="video/mp4,video/quicktime,video/webm"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }}
+                    className="hidden"
+                  />
+                  {/*
+                    A real <button>, not a div with onClick. The drop zone was
+                    the primary control on this page and it could not be
+                    reached, focused or activated from a keyboard at all.
+                  */}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
                     onDrop={handleDrop}
                     onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                     onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`group cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-ui duration-200 sm:p-12 ${
+                    className={[
+                      "flex w-full flex-col items-center rounded-2xl border-2 border-dashed px-6 py-10 text-center sm:py-14",
+                      "transition-[border-color,background-color,transform] duration-150 ease-out-strong",
+                      "active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100",
+                      "outline-none focus-visible:ring-2 focus-visible:ring-duo-blue focus-visible:ring-offset-2",
                       dragActive
-                        ? "border-brand-primary bg-brand-primary/5"
-                        : "border-ink/10 hover:border-brand-primary/30 hover:bg-brand-primary/3"
-                    }`}
+                        ? "border-duo-blue bg-duo-blue/[0.07]"
+                        : "border-duo-edge bg-brand-cream/50 [@media(hover:hover)and(pointer:fine)]:hover:border-duo-blue",
+                    ].join(" ")}
                   >
-                    <input ref={fileInputRef} type="file" accept="video/mp4,video/quicktime,video/webm"
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }} className="hidden" />
-                    <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-2xl transition-colors ${
-                      dragActive ? "bg-brand-primary/15" : "bg-brand-primary/[0.06] group-hover:bg-brand-primary/12"
-                    }`}>
-                      <FaUpload className={`text-xl transition-colors ${dragActive ? "text-brand-primary" : "text-ink/30 group-hover:text-brand-primary"}`} />
-                    </div>
-                    <p className="mt-4 text-sm font-semibold text-ink">
-                      <span className="hidden sm:inline">Drag &amp; drop your video here</span>
-                      <span className="sm:hidden">Tap to select a video</span>
-                    </p>
-                    <p className="mt-1 text-xs text-ink/30">
-                      <span className="hidden sm:inline">or click to browse</span>
-                      <span className="sm:hidden">MP4, MOV, or WebM</span>
-                    </p>
-                    <div className="mt-4 flex items-center justify-center gap-2">
-                      {["MP4", "MOV", "WebM"].map((f) => (
-                        <span key={f} className="rounded-full bg-brand-primary/[0.06] px-3 py-1 text-[10px] font-bold text-ink/50">{f}</span>
-                      ))}
-                      <span className="text-[10px] text-ink/20">Max 200MB</span>
-                    </div>
-                  </div>
-                ) : (
-                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                    className="rounded-2xl border border-brand-primary/12 bg-brand-primary/5 p-5">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-brand-primary/10">
-                        <FaFilm className="text-ink text-lg" />
-                      </div>
-                      <div className="flex-1 overflow-hidden">
-                        <p className="truncate text-sm font-semibold text-ink">{selectedFile.name}</p>
-                        <p className="mt-0.5 text-xs text-ink/30">{formatFileSize(selectedFile.size)}</p>
-                      </div>
-                      <button onClick={() => { setSelectedFile(null); setVideoDuration(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
-                        className="rounded-lg p-1.5 text-ink/20 hover:bg-ink/5 hover:text-ink/50 transition-colors">
-                        <FaTimes className="h-4 w-4" />
-                      </button>
-                    </div>
-                    {videoDuration !== null && videoDuration > 60 && (
-                      <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-500/10 px-3 py-2.5">
-                        <FaExclamationCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-500" />
-                        <p className="text-xs leading-relaxed text-amber-700">
-                          Long video ({Math.round(videoDuration / 60)}+ min) — dancers learn best in
-                          sections. You&apos;ll pick the exact part to learn before practicing, and
-                          shorter sections scan much faster.
-                        </p>
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </motion.div>
-            )}
-
-            {/* ── Uploading ── */}
-            {uploadState === "uploading" && (
-              <motion.div key="uploading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-8 text-center">
-                <div className="relative mx-auto h-16 w-16">
-                  <div className="absolute inset-0 rounded-full border-2 border-ink/10" />
-                  <motion.div className="absolute inset-0 rounded-full border-2 border-transparent border-t-brand-primary"
-                    animate={{ rotate: 360 }} transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }} />
-                  <motion.div className="absolute inset-2 rounded-full border-2 border-transparent border-t-cue-hand"
-                    animate={{ rotate: -360 }} transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }} />
-                </div>
-                <p className="mt-5 text-sm font-semibold text-ink">Preparing your session...</p>
-                <div className="mx-auto mt-4 h-1.5 max-w-xs overflow-hidden rounded-full bg-ink/[0.08]">
-                  <motion.div className="h-full rounded-full bg-brand-primary"
-                    style={{ width: `${Math.min(progress, 100)}%` }} transition={{ duration: 0.3 }} />
-                </div>
-                <p className="mt-2 text-xs text-ink/30">{Math.round(progress)}%</p>
-              </motion.div>
-            )}
-
-            {/* ── Success ── */}
-            {uploadState === "success" && (
-              <motion.div key="success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                transition={{ ease: "backOut" }} className="py-8 text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-cue-foot/15">
-                  <FaCheckCircle className="text-cue-foot text-3xl" />
-                </div>
-                <p className="mt-4 text-sm font-semibold text-ink">Video ready!</p>
-                <p className="mt-1 text-xs text-ink/30">Redirecting to your session...</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Error */}
-          {error && (
-            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-              className="mt-4 flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-              <FaExclamationCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-400" />
-              <p className="text-xs leading-relaxed text-red-500">{error}</p>
-            </motion.div>
-          )}
-
-          {/* Actions */}
-          {uploadState !== "uploading" && uploadState !== "success" && (
-            <div className="mt-6 flex items-center gap-3">
-              {uploadState === "error" && (
-                <button onClick={resetUpload}
-                  className="rounded-full border border-ink/10 px-5 py-3 text-sm font-medium text-ink/50 hover:border-ink/20 hover:text-ink transition-ui">
-                  Reset
-                </button>
+                    <span className={`flex h-16 w-16 items-center justify-center rounded-2xl ${dragActive ? "bg-duo-blue text-white" : "bg-ink/[0.06] text-ink/60"}`}>
+                      <UploadGlyph />
+                    </span>
+                    <span className="mt-4 text-lg font-extrabold tracking-tight text-ink">
+                      <span className="hidden sm:inline">Drop your video here</span>
+                      <span className="sm:hidden">Choose a video</span>
+                    </span>
+                    <span className="mt-1 text-sm font-medium text-clay/70">
+                      <span className="hidden sm:inline">or click to browse · </span>
+                      MP4, MOV or WebM · up to 200MB
+                    </span>
+                  </button>
+                </>
               )}
-              <button onClick={handleUpload} disabled={!canUpload}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold transition-ui duration-200 ${
-                  canUpload
-                    ? "bg-brand-primary text-white shadow-lg hover:bg-brand-accent active:scale-[0.98]"
-                    : "cursor-not-allowed bg-ink/[0.08] text-ink/25"
-                }`}>
-                {uploadState === "error" ? "Retry" : "Start Session"}
-                {canUpload && <FaArrowRight className="text-xs" />}
-              </button>
-            </div>
-          )}
-        </motion.div>
 
-        <p className="mt-6 text-center text-xs leading-relaxed text-ink/20">
-          Supported: MP4, MOV, WebM · Max 200MB · Session-only (not stored permanently)
-        </p>
+              {/* ── Chosen ─────────────────────────────────────────────── */}
+              {!busy && selectedFile && (
+                <div className="rounded-2xl border-2 border-duo-edge p-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-duo-green/10 text-duo-green">
+                      <FilmGlyph />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-extrabold tracking-tight text-ink">
+                        {selectedFile.name}
+                      </p>
+                      <p className="mt-0.5 text-hud text-clay/60">
+                        {formatFileSize(selectedFile.size)}
+                        {videoDuration !== null && ` · ${Math.max(1, Math.round(videoDuration))}s`}
+                      </p>
+                    </div>
+                    <IconButton
+                      aria-label="Remove this video"
+                      title="Remove"
+                      visual="md"
+                      round={false}
+                      onClick={clearFile}
+                    >
+                      <CloseGlyph />
+                    </IconButton>
+                  </div>
+
+                  {videoDuration !== null && videoDuration > 60 && (
+                    <p className="mt-3 rounded-xl bg-duo-gold/15 px-3 py-2.5 text-xs font-medium leading-relaxed text-ink/80">
+                      <span className="font-extrabold">Long video.</span> Dancers learn in
+                      sections — you&apos;ll pick the exact part to learn before practising,
+                      and shorter sections scan much faster.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* ── Working ────────────────────────────────────────────── */}
+              {uploadState === "uploading" && (
+                <div className="py-6" role="status" aria-live="polite">
+                  <p className="text-center text-lg font-extrabold tracking-tight text-ink">
+                    Preparing your session
+                  </p>
+                  <p className="mt-1 text-center text-sm font-medium text-clay/70">
+                    Fingerprinting the file so it opens instantly next time.
+                  </p>
+                  {/* Transform, not width — a width transition relayouts every
+                      frame of the one moment the user is watching. */}
+                  <div className="mx-auto mt-5 h-3 max-w-xs overflow-hidden rounded-full bg-ink/[0.08]">
+                    <motion.div
+                      className="h-full w-full origin-left rounded-full bg-duo-green"
+                      initial={reduce ? false : { scaleX: 0 }}
+                      animate={{ scaleX: Math.min(progress, 100) / 100 }}
+                      transition={{ duration: 0.3, ease: EASE_OUT }}
+                    />
+                  </div>
+                  <p className="mt-2 text-center text-hud tabular-nums text-clay/60">
+                    {Math.round(progress)}%
+                  </p>
+                </div>
+              )}
+
+              {/* ── Done ───────────────────────────────────────────────── */}
+              {uploadState === "success" && (
+                <SuccessState
+                  message="Video ready"
+                  detail="Taking you into the session…"
+                  className="py-4"
+                />
+              )}
+            </div>
+
+            {/* ── Failure ──────────────────────────────────────────────── */}
+            <AnimatePresence initial={false}>
+              {error && (
+                <motion.div
+                  key="upload-error"
+                  initial={{ y: -6 }}
+                  animate={{ y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18, ease: EASE_OUT }}
+                >
+                  <ErrorState
+                    bare
+                    title="That didn't work"
+                    message={error}
+                    className="px-0 pb-0 pt-6"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* ── Commit ───────────────────────────────────────────────── */}
+            {!busy && (
+              <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+                {uploadState === "error" && (
+                  <Pressable variant="quiet" size="lg" onClick={resetUpload}>
+                    Start over
+                  </Pressable>
+                )}
+                <Pressable
+                  variant="primary"
+                  size="lg"
+                  block
+                  onClick={handleUpload}
+                  disabled={!canUpload}
+                >
+                  {uploadState === "error" ? "Try again" : "Start session"}
+                  <ArrowRight />
+                </Pressable>
+              </div>
+            )}
+
+            {/* Why the button is off, said in words rather than by greying out
+                and leaving the user to guess which of two fields is at fault. */}
+            {!busy && !canUpload && (
+              <p className="mt-2.5 text-center text-xs font-semibold text-clay/70">
+                {!selectedFile && nameShort
+                  ? "Name the routine and choose a video to begin."
+                  : !selectedFile
+                    ? "Choose a video to begin."
+                    : "Name the routine to begin."}
+              </p>
+            )}
+          </Panel>
+
+          <p className="mt-5 text-center text-xs font-medium leading-relaxed text-clay/60">
+            MP4, MOV or WebM · up to 200MB. Your video is read on this device and
+            saved here so the next session opens instantly.
+          </p>
+        </motion.div>
       </main>
     </div>
   );

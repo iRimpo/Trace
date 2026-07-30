@@ -5,6 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { initPoseDetection, detectPose, detectAllPosesFromFrame, smoothKeypoints } from "@/lib/mediapipe";
 import type { Keypoint } from "@/lib/mediapipe";
 import { extractFaceThumbnail } from "@/lib/faceExtraction";
+import { CUE_PALETTE } from "@/lib/cuePalette";
+import Panel from "@/components/ui/Panel";
+import Pressable from "@/components/ui/Pressable";
 
 // ── BlazePose indices ────────────────────────────────────────────────────────
 const NOSE = 0;
@@ -90,12 +93,28 @@ function drawRefFrame(ctx: CanvasRenderingContext2D, video: HTMLVideoElement, cW
   ctx.restore();
 }
 
+/**
+ * Canvas cannot take a Tailwind class, so these come from `lib/cuePalette` —
+ * the module that exists precisely so colours living in data structures are
+ * still defined once (see `docs/DESIGN_SYSTEM.md` §2). They were two raw hex
+ * literals here.
+ *
+ * Blue while you are framing, green the moment the palm is up: blue means
+ * view/framing everywhere in the app, and green is the one "committing" colour.
+ */
+const SKELETON_IDLE   = CUE_PALETTE.shoulder;
+const SKELETON_ARMED  = CUE_PALETTE.foot;
+/** Person-picker rings — four palette colours, one per detected dancer. */
+const PERSON_COLORS = [CUE_PALETTE.hand, CUE_PALETTE.foot, CUE_PALETTE.head, CUE_PALETTE.armBoth];
+
 function drawSkeleton(ctx: CanvasRenderingContext2D, kps: Keypoint[], cW: number, cH: number, vW: number, vH: number, palmRaised: boolean) {
   const px = (kp: Keypoint) => (1 - kp.x / vW) * cW;
   const py = (kp: Keypoint) => (kp.y / vH) * cH;
-  const accent = palmRaised ? "#10B981" : "#60A5FA";
+  const accent = palmRaised ? SKELETON_ARMED : SKELETON_IDLE;
   ctx.save();
-  ctx.lineWidth   = 2;
+  // 2px reads as a hairline on a phone held at arm's length and disappears
+  // entirely across a room; the skeleton is the thing being aligned.
+  ctx.lineWidth   = 3;
   ctx.strokeStyle = accent;
   ctx.globalAlpha = 0.75;
   for (const [a, b] of SKELETON_EDGES) {
@@ -106,7 +125,7 @@ function drawSkeleton(ctx: CanvasRenderingContext2D, kps: Keypoint[], cW: number
   ctx.globalAlpha = 1;
   for (const kp of kps) {
     if (!kp || (kp.score ?? 0) < 0.3) continue;
-    ctx.beginPath(); ctx.arc(px(kp), py(kp), 3, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(px(kp), py(kp), 4, 0, Math.PI * 2);
     ctx.fillStyle = accent; ctx.fill();
   }
   ctx.restore();
@@ -122,6 +141,15 @@ function fmt(s: number): string {
 
 type FrameState = "loading" | "ready" | "palm" | "calibrating" | "done";
 type CalibStep  = "frame" | "trim" | "mode" | "dancer";
+
+/**
+ * Every step is the same card. `stage-solid`, not `stage` glass: there is a
+ * scrim behind it, so this is a real surface rather than something floating
+ * over video, and translucency stacked on translucency is exactly the
+ * legibility failure apple-design §12 warns about.
+ */
+const STEP_CARD =
+  "relative w-full max-w-2xl overflow-hidden rounded-3xl border border-stage-edge bg-stage-raised shadow-stage";
 
 export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: CalibrationModalProps) {
   const webcamRef    = useRef<HTMLVideoElement>(null);
@@ -475,25 +503,26 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
 
     if (persons.length === 0) return;
 
-    const COLORS = ["#00D4FF", "#34D399", "#FBBF24", "#F472B6"];
     persons.forEach(({ x, y }, i) => {
       const cx = x * canvas.width, cy = y * canvas.height;
       const isSelected = i === selectedPerson;
-      const c = COLORS[i % COLORS.length];
+      const c = PERSON_COLORS[i % PERSON_COLORS.length];
       ctx.beginPath();
-      ctx.arc(cx, cy, isSelected ? 22 : 18, 0, Math.PI * 2);
+      ctx.arc(cx, cy, isSelected ? 26 : 20, 0, Math.PI * 2);
       ctx.strokeStyle = c;
-      ctx.lineWidth   = isSelected ? 3 : 1.5;
-      ctx.globalAlpha = isSelected ? 0.9 : 0.5;
+      ctx.lineWidth   = isSelected ? 4 : 2;
+      ctx.globalAlpha = isSelected ? 0.95 : 0.55;
       ctx.stroke();
       ctx.beginPath();
-      ctx.arc(cx, cy, isSelected ? 14 : 11, 0, Math.PI * 2);
+      ctx.arc(cx, cy, isSelected ? 17 : 13, 0, Math.PI * 2);
       ctx.fillStyle = c;
-      ctx.globalAlpha = isSelected ? 0.3 : 0.15;
+      ctx.globalAlpha = isSelected ? 0.45 : 0.2;
       ctx.fill();
       ctx.globalAlpha = 1;
-      ctx.fillStyle   = "#ffffff";
-      ctx.font        = `bold ${isSelected ? 13 : 11}px system-ui`;
+      ctx.fillStyle   = "white";
+      // 11px was below the stage's type floor even on the label of a tap
+      // target you are meant to hit from across the room.
+      ctx.font        = `bold ${isSelected ? 16 : 13}px system-ui`;
       ctx.textAlign   = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(String(i + 1), cx, cy);
@@ -657,7 +686,18 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
   const trimLengthSec = trimEnd - trimStart;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">
+    /*
+      The stage ground, not paper — see `docs/DESIGN_SYSTEM.md` §1. This modal
+      was a cream card with ink-on-white text, but it is the first surface of
+      the practice session: it holds a live camera feed, and its first step is
+      performed standing several feet back with a palm in the air. White chrome
+      there is the brightest thing in the room and the 9–11px labels were
+      unreadable from where the user actually is.
+
+      Scrim + solid dark surface, per apple-design §12: a modal task dims what
+      is behind it rather than floating translucently over it.
+    */
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/80 p-2 backdrop-blur-sm sm:p-4">
       <AnimatePresence mode="wait">
 
         {/* ── Step 1: Frame ──────────────────────────────────────────── */}
@@ -667,26 +707,24 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="relative w-full max-w-2xl overflow-hidden rounded-xl bg-brand-cream shadow-2xl sm:rounded-2xl"
+            transition={{ type: "spring", stiffness: 380, damping: 34 }}
+            className={STEP_CARD}
           >
             {/* Header */}
-            <div className="flex items-start justify-between border-b border-ink/[0.08] bg-white px-3 py-3 sm:px-5 sm:py-4">
-              <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-ink/30">Step 1 of 3</span>
-                  <div className="hidden h-px flex-1 bg-ink/[0.08] w-12 sm:block" />
-                  <span className="hidden text-[10px] text-ink/20 sm:inline">Trim →</span>
+            <div className="flex items-start justify-between gap-3 border-b border-white/10 bg-white/[0.04] px-4 py-4 sm:px-5">
+              <div className="min-w-0">
+                <div className="mb-1 flex items-center gap-2">
+                  <span className="text-hud font-extrabold uppercase tracking-widest text-duo-blue">Step 1 of 3</span>
+                  <span className="hidden text-hud font-bold text-stage-text/40 sm:inline">Trim next</span>
                 </div>
-                <h2 className="font-bold text-sm text-ink sm:text-base">Frame Yourself</h2>
-                <p className="mt-0.5 text-[11px] text-ink/40 max-w-xs leading-relaxed sm:text-xs">
-                  Position yourself so your skeleton aligns with the reference, then raise your palm to lock in the framing.
+                <h2 className="text-lg font-extrabold tracking-tight text-stage-text">Frame yourself</h2>
+                <p className="mt-1 max-w-sm text-hud font-medium leading-relaxed text-stage-text/70">
+                  Stand so your skeleton lands on the reference, then raise a palm above your face to lock it in.
                 </p>
               </div>
-              <button onClick={() => goToTrim({ zoom: 1, offsetXNorm: 0, offsetYNorm: 0 })}
-                className="ml-4 mt-0.5 shrink-0 rounded-lg bg-ink/[0.06] px-3 py-1.5 text-xs font-medium text-ink/40 hover:bg-ink/10 hover:text-ink/60 transition-ui">
+              <Pressable variant="stage" size="sm" className="shrink-0" onClick={() => goToTrim({ zoom: 1, offsetXNorm: 0, offsetYNorm: 0 })}>
                 Skip
-              </button>
+              </Pressable>
             </div>
 
             {/* Camera view */}
@@ -703,13 +741,13 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                   <div className="flex flex-col items-center gap-3">
                     {loadingItems.map(item => (
                       <div key={item.label} className="flex items-center gap-2.5">
-                        <div className={`h-4 w-4 rounded-full flex items-center justify-center ${item.done ? "bg-emerald-500" : "border border-white/20"}`}>
+                        <div className={`flex h-5 w-5 items-center justify-center rounded-full ${item.done ? "bg-duo-green" : "border border-white/25"}`}>
                           {item.done
-                            ? <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                            : <div className="h-2 w-2 animate-spin motion-reduce:animate-pulse rounded-full border border-white/20 border-t-white/60" />
+                            ? <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                            : <div className="h-2.5 w-2.5 animate-spin motion-reduce:animate-pulse rounded-full border border-white/20 border-t-white/60" />
                           }
                         </div>
-                        <span className={`text-xs ${item.done ? "text-white/70" : "text-white/40"}`}>{item.label}</span>
+                        <span className={`text-hud font-bold ${item.done ? "text-stage-text" : "text-stage-text/55"}`}>{item.label}</span>
                       </div>
                     ))}
                   </div>
@@ -720,45 +758,46 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
               <AnimatePresence>
                 {palmProgress > 0 && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="relative h-28 w-28">
+                    className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <div className="relative h-32 w-32">
                       <svg className="absolute inset-0 -rotate-90" viewBox="0 0 112 112">
-                        <circle cx="56" cy="56" r="50" fill="none" stroke="white" strokeWidth="4" strokeOpacity="0.15" />
-                        <circle cx="56" cy="56" r="50" fill="none" stroke="#10B981" strokeWidth="4"
+                        <circle cx="56" cy="56" r="50" fill="none" stroke="white" strokeWidth="6" strokeOpacity="0.18" />
+                        <circle cx="56" cy="56" r="50" fill="none" className="stroke-duo-green" strokeWidth="6"
                           strokeDasharray={`${Math.PI * 2 * 50 * palmProgress} 999`} strokeLinecap="round" />
                       </svg>
-                      <div className="absolute inset-0 flex items-center justify-center text-3xl select-none">✋</div>
+                      <div className="absolute inset-0 flex select-none items-center justify-center text-4xl">✋</div>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
               {frameState === "calibrating" && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                  <div className="rounded-xl bg-white/10 px-5 py-3 backdrop-blur">
-                    <p className="text-sm font-semibold text-white">Calibrating…</p>
-                  </div>
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                  <Panel tone="stage" className="px-6 py-3.5">
+                    <p className="text-hud-lg font-extrabold text-stage-text">Calibrating…</p>
+                  </Panel>
                 </div>
               )}
 
               <AnimatePresence>
                 {frameState === "done" && (
-                  <motion.div initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }}
-                    className="absolute inset-0 flex items-center justify-center bg-emerald-900/30">
-                    <div className="flex items-center gap-2.5 rounded-xl bg-emerald-500/80 px-6 py-3 backdrop-blur">
-                      <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 420, damping: 30 }}
+                    className="absolute inset-0 flex items-center justify-center bg-black/45">
+                    <div className="flex items-center gap-3 rounded-2xl bg-duo-green px-7 py-4 shadow-stage">
+                      <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                       </svg>
-                      <p className="text-sm font-bold text-white">Framed!</p>
+                      <p className="text-lg font-extrabold text-white">Framed</p>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
               {(frameState === "ready" || frameState === "palm") && (
-                <div className="absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-lg bg-black/50 px-2.5 py-1 backdrop-blur">
-                  <div className={`h-1.5 w-1.5 rounded-full ${bodyDetected ? "bg-emerald-400 animate-pulse motion-reduce:animate-none" : "bg-amber-400 animate-pulse"}`} />
-                  <span className="text-[10px] font-semibold tracking-wide text-white/70">
+                <div className="absolute left-3 top-3 z-10 flex items-center gap-2 rounded-full bg-stage-glass px-3 py-2 backdrop-blur-xl">
+                  <div className={`h-2.5 w-2.5 animate-pulse motion-reduce:animate-pulse rounded-full ${bodyDetected ? "bg-duo-green" : "bg-duo-gold"}`} />
+                  <span className="text-hud font-extrabold tracking-wide text-stage-text/85">
                     {bodyDetected ? "Body detected" : "Looking for body…"}
                   </span>
                 </div>
@@ -766,37 +805,39 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between gap-4 px-5 py-3.5 bg-white border-t border-ink/[0.08]">
-              <div className="flex items-center gap-2 min-w-0">
-                {frameState === "loading" && <p className="text-xs text-ink/40">Initialising…</p>}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 bg-white/[0.04] px-4 py-3.5 sm:px-5">
+              <div className="flex min-w-0 items-center gap-2">
+                {frameState === "loading" && <p className="text-hud font-bold text-stage-text/60">Initialising…</p>}
                 {(frameState === "ready" || frameState === "palm") && !bodyDetected && (
-                  <p className="text-xs text-ink/50">Position yourself so your shoulders are visible</p>
+                  <p className="text-hud font-bold text-stage-text/70">Step back until your shoulders are in frame</p>
                 )}
                 {(frameState === "ready" || frameState === "palm") && bodyDetected && palmProgress === 0 && (
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">👋</span>
-                    <p className="text-xs text-ink/60">Raise your palm above your face to calibrate</p>
+                    <span className="text-xl">👋</span>
+                    <p className="text-hud font-bold text-stage-text/80">Raise your palm above your face</p>
                   </div>
                 )}
-                {palmProgress > 0 && <p className="text-xs font-medium text-emerald-600">Hold still… {Math.round(palmProgress * 100)}%</p>}
+                {palmProgress > 0 && (
+                  <p className="text-hud-lg font-extrabold text-duo-green">Hold still… {Math.round(palmProgress * 100)}%</p>
+                )}
               </div>
-              <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              <div className="flex shrink-0 items-center gap-3">
                 {(frameState === "ready" || frameState === "palm") && (
                   <div className="hidden items-center gap-2 sm:flex">
-                    <span className="text-[10px] text-ink/30">Overlay</span>
+                    <span className="text-hud font-bold text-stage-text/60">Ghost</span>
                     <input type="range" min={0} max={80} value={overlayOpacity}
                       onChange={e => setOverlayOpacity(parseInt(e.target.value))}
-                      className="h-1 w-16 cursor-pointer appearance-none rounded-full bg-ink/[0.08] accent-emerald-500" />
+                      aria-label="Reference overlay opacity"
+                      className="slider slider-stage w-24" />
                   </div>
                 )}
                 {(frameState === "ready" || frameState === "palm") && (
-                  <button onClick={() => goToTrim({ zoom: 1, offsetXNorm: 0, offsetYNorm: 0 })}
-                    className="flex items-center gap-1.5 rounded-full bg-brand-primary px-4 py-1.5 text-xs font-semibold text-white transition-ui hover:bg-brand-accent">
+                  <Pressable variant="secondary" size="md" onClick={() => goToTrim({ zoom: 1, offsetXNorm: 0, offsetYNorm: 0 })}>
                     Next
-                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                     </svg>
-                  </button>
+                  </Pressable>
                 )}
               </div>
             </div>

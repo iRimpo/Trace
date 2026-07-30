@@ -1,88 +1,76 @@
 "use client";
 
-import { motion } from "framer-motion";
+/**
+ * The loading state of *this* dashboard.
+ *
+ * It previously drew a different page: a `max-w-5xl` container (the dashboard
+ * is `max-w-3xl`), a 2×4 grid of stat cards (the dashboard has a single row of
+ * four tiles), a bar-chart placeholder for a chart that is not on this screen,
+ * and six video cards in a three-column grid for a list that is a single
+ * column of song cards. Loading looked like one product and loaded like
+ * another, so every load ended in a layout jump.
+ *
+ * Shapes now match the real thing: greeting card, four tiles, three song cards.
+ * Nothing here has content, so nothing here has text — a skeleton that guesses
+ * at word lengths is just a second layout to keep in sync.
+ *
+ * `motion-reduce:animate-pulse`, not `animate-none`: opacity is not a
+ * vestibular trigger, and a loading indicator that stops indicating is worse
+ * than one that keeps breathing.
+ */
 
-function Shimmer({ className, style }: { className?: string; style?: React.CSSProperties }) {
-  return (
-    <motion.div
-      className={`rounded-lg bg-zinc-200 ${className ?? ""}`}
-      style={style}
-      animate={{ opacity: [0.5, 1, 0.5] }}
-      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-    />
-  );
+function Bone({ className = "" }: { className?: string }) {
+  return <div className={`rounded-lg bg-ink/[0.08] animate-pulse motion-reduce:animate-pulse ${className}`} />;
 }
 
-export function StatCardSkeleton() {
+function SongCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+    <div className="rounded-3xl bg-white p-4 shadow-card sm:p-5">
       <div className="flex items-center gap-3">
-        <Shimmer className="h-10 w-10 shrink-0 rounded-xl" />
+        <Bone className="h-12 w-16 shrink-0 rounded-xl" />
         <div className="flex-1 space-y-2">
-          <Shimmer className="h-6 w-16" />
-          <Shimmer className="h-3 w-24" />
+          <Bone className="h-4 w-2/5" />
+          <Bone className="h-3 w-1/4" />
         </div>
+        <Bone className="h-8 w-16 shrink-0" />
       </div>
-    </div>
-  );
-}
-
-export function ChartSkeleton() {
-  return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-      <div className="flex items-center justify-between mb-4">
-        <Shimmer className="h-4 w-24" />
-        <Shimmer className="h-3 w-16" />
-      </div>
-      <div className="flex items-end gap-1 h-24">
-        {Array.from({ length: 12 }).map((_, i) => (
-          <Shimmer
-            key={i}
-            className="flex-1 max-w-[24px] mx-auto rounded-full"
-            style={{ height: `${30 + Math.random() * 70}%` } as React.CSSProperties}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export function VideoCardSkeleton() {
-  return (
-    <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden">
-      <Shimmer className="h-40 w-full rounded-none" />
-      <div className="p-4 space-y-2">
-        <Shimmer className="h-4 w-3/4" />
-        <Shimmer className="h-3 w-1/2" />
-      </div>
+      <Bone className="mt-4 h-3 w-full rounded-full" />
+      <Bone className="mt-4 h-11 w-full rounded-2xl" />
     </div>
   );
 }
 
 export default function DashboardSkeleton() {
   return (
-    <div className="mx-auto max-w-5xl animate-in motion-reduce:animate-none fade-in duration-300">
-      <div className="mb-10">
-        <Shimmer className="h-6 w-36 mb-4" />
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 mb-6">
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label="Loading your progress"
+      className="mx-auto max-w-3xl"
+    >
+      <div className="mb-6">
+        <div className="flex items-center justify-between gap-3 rounded-3xl bg-white px-5 py-4 shadow-card">
+          <Bone className="h-7 w-40" />
+          <Bone className="h-10 w-24 rounded-2xl" />
+        </div>
+        <div className="mt-2 flex gap-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <StatCardSkeleton key={i} />
+            <div key={i} className="flex flex-1 flex-col items-center gap-1.5 rounded-2xl bg-white px-2 py-3 shadow-card">
+              <Bone className="h-7 w-12" />
+              <Bone className="h-2.5 w-14" />
+            </div>
           ))}
         </div>
-        <ChartSkeleton />
       </div>
 
-      <div className="flex items-center justify-between mb-8">
-        <div className="space-y-2">
-          <Shimmer className="h-8 w-32" />
-          <Shimmer className="h-4 w-20" />
-        </div>
-        <Shimmer className="h-10 w-24 rounded-xl" />
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <Bone className="h-6 w-32" />
+        <Bone className="h-11 w-32 rounded-2xl" />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <VideoCardSkeleton key={i} />
+      <div className="flex flex-col gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <SongCardSkeleton key={i} />
         ))}
       </div>
     </div>

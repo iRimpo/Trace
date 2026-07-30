@@ -2,12 +2,15 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import DashboardSkeleton from "@/components/skeletons/DashboardSkeleton";
 import SongCard from "@/components/dashboard/SongCard";
 import DashboardTutorial from "@/components/dashboard/DashboardTutorial";
 import DeviceVideos from "@/components/dashboard/DeviceVideos";
+import { EmptyState } from "@/components/states/EmptyState";
+import { ErrorState } from "@/components/states/ErrorState";
+import Panel from "@/components/ui/Panel";
 import Pressable from "@/components/ui/Pressable";
 import StatTile from "@/components/ui/StatTile";
 import type { SongGroup } from "@/app/api/progress/route";
@@ -25,10 +28,20 @@ interface ProgressData {
   songs: SongGroup[];
 }
 
+/**
+ * Counts up on mount rather than on scroll.
+ *
+ * `components/ui/CountUp` gates on `useInView`, which means a number that never
+ * enters the observer's view — or an observer that never fires — is permanently
+ * 0. Above the fold, that is a stat row of zeroes. This one starts on mount and
+ * always lands on the real number.
+ */
 function AnimCount({ n, suffix = "" }: { n: number; suffix?: string }) {
+  const reduce = useReducedMotion();
   const [v, setV] = useState(0);
+
   useEffect(() => {
-    if (n === 0) { setV(0); return; }
+    if (n === 0 || reduce) { setV(n); return; }
     let cur = 0;
     const step = Math.max(1, Math.ceil(n / 24));
     const id = setInterval(() => {
@@ -37,13 +50,17 @@ function AnimCount({ n, suffix = "" }: { n: number; suffix?: string }) {
       if (cur >= n) clearInterval(id);
     }, 40);
     return () => clearInterval(id);
-  }, [n]);
+  }, [n, reduce]);
+
   return <>{v}{suffix}</>;
 }
 
+/* Entrances are offset-only. Nothing here starts at `opacity: 0`, so a stalled
+   animation leaves content in place rather than invisible — the failure that
+   shipped a near-blank landing page once already. */
 const cardVariants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0 },
+  hidden:  { y: 10 },
+  visible: { y: 0 },
 };
 
 function DashboardContent() {
@@ -53,6 +70,7 @@ function DashboardContent() {
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [showTutorial, setShowTutorial] = useState(() =>
     typeof window !== "undefined" && !localStorage.getItem("trace_onboarding_v1_done")
   );
@@ -66,7 +84,7 @@ function DashboardContent() {
       .then(data => setProgress(data))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
-  }, [user, refreshKey]);
+  }, [user, refreshKey, reloadKey]);
 
   if (!user) return null;
 
@@ -106,39 +124,41 @@ function DashboardContent() {
     <div className="mx-auto max-w-3xl">
       {showTutorial && <DashboardTutorial onDone={() => setShowTutorial(false)} />}
 
-      {/* ── Hero strip ──────────────────────────────────────────── */}
+      {/* ── Greeting + streak ───────────────────────────────────────────
+          One card, not a stack of conditionally-rounded fragments. The old
+          strip toggled `rounded-b-2xl` across three separate elements
+          depending on which of them happened to be last. */}
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="mb-8 overflow-hidden rounded-2xl"
+        initial={{ y: -8 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.26, ease: [0.23, 1, 0.32, 1] }}
+        className="mb-6"
       >
-        {/* State header: white to match the flow */}
-        <div
-          className={`flex items-center justify-between bg-white px-5 py-4 rounded-t-2xl ${!stats && !(streak >= 3) ? "rounded-b-2xl" : ""}`}
-        >
-          <p className="text-2xl font-bold tracking-tight text-ink">
-            Hi, {displayName}
-          </p>
+        <Panel tone="paper" radius="2xl" className="flex items-center justify-between gap-3 px-5 py-4">
+          <div className="min-w-0">
+            <p className="truncate text-2xl font-extrabold tracking-tight text-ink">
+              Hi, {displayName}
+            </p>
+            {streak >= 3 && (
+              <p className="mt-0.5 text-xs font-semibold text-clay/70">
+                {streak} days running. Keep it up.
+              </p>
+            )}
+          </div>
+
           {streak > 0 && (
-            <div className="flex items-center gap-1.5 rounded-2xl bg-duo-gold px-3 py-1.5 shadow-chunk-gold-sm">
-              <span className="text-base leading-none">🔥</span>
-              <span className="text-sm font-extrabold tabular-nums text-ink">{streak}</span>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-ink/70">day streak</span>
+            <div className="flex shrink-0 items-center gap-1.5 rounded-2xl bg-duo-gold px-3 py-2 shadow-chunk-gold-sm">
+              <span className="text-base leading-none" aria-hidden="true">🔥</span>
+              <span className="text-lg font-extrabold leading-none tabular-nums text-ink">{streak}</span>
+              <span className="text-hud uppercase tracking-[0.14em] text-ink/70">
+                day{streak === 1 ? "" : "s"}
+              </span>
             </div>
           )}
-        </div>
-        {streak >= 3 && (
-          <p className={`bg-white px-5 pb-2 text-xs text-clay/60 ${!stats ? "rounded-b-2xl" : ""}`}>
-            Keep it up!
-          </p>
-        )}
+        </Panel>
 
-        {/* Stats — four glanceable tiles rather than one dark bar of 10px text.
-            Each number carries its own accent so the row can be read in a
-            glance instead of scanned left to right. */}
         {stats && (
-          <div className="flex gap-2 rounded-b-2xl bg-transparent pt-2">
+          <div className="mt-2 flex gap-2">
             <StatTile accent="ink"   label="Sessions" value={<AnimCount n={stats.total_sessions} />} />
             <StatTile accent="blue"  label="Avg"      value={<AnimCount n={Math.round(stats.avg_score)} suffix="%" />} />
             <StatTile accent="green" label="Best"     value={<AnimCount n={Math.round(stats.best_score)} suffix="%" />} />
@@ -147,75 +167,72 @@ function DashboardContent() {
         )}
       </motion.div>
 
-      {/* ── Videos saved on this device ─────────────────────────── */}
+      {/* ── Videos saved on this device ─────────────────────────────────── */}
       <DeviceVideos />
 
-      {/* ── Section header ──────────────────────────────────────── */}
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-bold text-lg tracking-tight text-ink">Your Practice</h2>
+      {/* ── Section header ─────────────────────────────────────────────── */}
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-lg font-extrabold tracking-tight text-ink">Your practice</h2>
         {hasData && (
-          <Pressable href="/practice" size="md">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <Pressable href="/practice" variant="primary" size="sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            New Session
+            New session
           </Pressable>
         )}
       </div>
 
-      {/* Loading skeleton */}
       {loading && <DashboardSkeleton />}
 
-      {/* Error */}
+      {/* Failure, emptiness and waiting are all drawn from one vocabulary now —
+          see components/states. Retry re-runs the fetch instead of reloading
+          the whole document, which threw away the tutorial state and the
+          IndexedDB listing along with the error. */}
       {!loading && error && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-500">
-          Couldn&apos;t load your progress. <button onClick={() => window.location.reload()} className="underline">Retry</button>
-        </div>
+        <ErrorState
+          title="Couldn't load your progress"
+          message="The connection dropped on the way. Your sessions are safe."
+          onRetry={() => setReloadKey(k => k + 1)}
+        />
       )}
 
-      {/* ── Song cards ──────────────────────────────────────────── */}
       {!loading && !error && hasData && (
         <motion.div
           className="flex flex-col gap-3"
           initial="hidden"
           animate="visible"
-          variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
+          variants={{ visible: { transition: { staggerChildren: 0.06 } } }}
         >
           {songs.map((group) => (
-            <motion.div key={group.title} variants={cardVariants}>
+            <motion.div
+              key={group.title}
+              variants={cardVariants}
+              transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+            >
               <SongCard group={group} onDelete={handleDelete} />
             </motion.div>
           ))}
         </motion.div>
       )}
 
-      {/* ── Empty state ─────────────────────────────────────────── */}
       {!loading && !error && !hasData && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.97 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="mt-4 rounded-3xl border border-dashed border-ink/12 bg-white/60 p-12 text-center"
-        >
-          <div className="mx-auto flex justify-center">
-            <img
-              src="/character-start.svg"
-              width="120" height="120" alt=""
-              className="rounded-2xl"
-            />
-          </div>
-          <h2 className="mt-5 font-bold text-xl text-ink">Start your first session</h2>
-          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-clay/50">
-            Upload a reference dance video and start your first Trace session.
-          </p>
-          {/* No idle pulse. The chunk already reads as pressable, and a looping
-              scale on the only CTA competes with the press feedback itself. */}
-          <div className="mt-6">
-            <Pressable href="/practice" size="lg">
-              Upload Video →
+        <EmptyState
+          title="Start your first session"
+          body="Upload a reference dance video and Trace will overlay it on your camera so you can match every move."
+          art={
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src="/character-start.svg" width="120" height="120" alt="" className="rounded-2xl" />
+          }
+          action={
+            <Pressable href="/practice" variant="primary" size="lg">
+              Upload a video
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
             </Pressable>
-          </div>
-        </motion.div>
+          }
+        />
       )}
     </div>
   );

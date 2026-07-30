@@ -1,13 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { initPoseDetection, detectPose } from "@/lib/mediapipe";
 import type { PoseFrame } from "@/lib/poseRecorder";
 import type { CalibrationData } from "@/components/practice/CalibrationModal";
 import { saveSyncScore } from "@/lib/uploadRecording";
 import { loadRecordingSession, clearRecordingSession } from "@/lib/sessionVideoStorage";
-import { TOP_STACK } from "@/components/practice/chrome";
+import { TOP_STACK, BOTTOM_SAFE } from "@/components/practice/chrome";
+import Panel from "@/components/ui/Panel";
+import Pressable from "@/components/ui/Pressable";
+import IconButton from "@/components/ui/IconButton";
+import TogglePill from "@/components/ui/TogglePill";
+import Segmented from "@/components/ui/Segmented";
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
@@ -44,12 +49,41 @@ function drawRefVideo(
   ctx.restore();
 }
 
-function scoreColor(s: number): string {
-  if (s >= 80) return "#10B981";
-  if (s >= 55) return "#EAB308";
-  if (s >= 30) return "#F97316";
-  return "#EF4444";
+/**
+ * Score bands.
+ *
+ * These were four raw hex literals (an emerald, a yellow, an orange and a red)
+ * applied through inline `style={{ color }}`, so the palette could not be
+ * changed in one edit and none of it matched the app's tokens. They are now
+ * token *classes*, which also means a band reads the same in a bar, a number
+ * and a label without three separate values.
+ *
+ * Three colours, four labels: green means done, gold means nearly, red means
+ * this is the thing to fix. Four hues at dancing distance is more precision
+ * than the eye actually resolves, and the label already carries the nuance.
+ */
+type ScoreBand = "strong" | "close" | "work";
+
+function scoreBand(s: number): ScoreBand {
+  if (s >= 80) return "strong";
+  if (s >= 55) return "close";
+  return "work";
 }
+
+const BAND_TEXT: Record<ScoreBand, string> = {
+  strong: "text-duo-green",
+  close:  "text-duo-gold",
+  work:   "text-duo-red",
+};
+
+const BAND_BG: Record<ScoreBand, string> = {
+  strong: "bg-duo-green",
+  close:  "bg-duo-gold",
+  work:   "bg-duo-red",
+};
+
+const scoreText = (s: number) => BAND_TEXT[scoreBand(s)];
+const scoreBg   = (s: number) => BAND_BG[scoreBand(s)];
 
 function scoreLabel(s: number): string {
   if (s >= 80) return "Strong sync";
@@ -58,17 +92,49 @@ function scoreLabel(s: number): string {
   return "Off-beat";
 }
 
+/** Headline for the results card — the thing you read from ten feet away. */
+function scoreHeadline(s: number): string {
+  if (s >= 90) return "Locked in";
+  if (s >= 80) return "Strong run";
+  if (s >= 55) return "Nearly there";
+  if (s >= 30) return "Keep drilling";
+  return "Off the beat";
+}
+
 const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5] as const;
 
-// ── Region color map ─────────────────────────────────────────────────────
+/** Stage glass — the same recipe `Panel tone="stage"` applies, for the few
+ *  places that need it on a `button` rather than a wrapper. */
+const GLASS = "bg-stage-glass backdrop-blur-xl border border-white/10 shadow-stage";
 
-const REGION_COLOR: Record<string, string> = {
-  leftArm:  "#00D4FF",  // cyan
-  rightArm: "#60A5FA",  // sky blue
-  leftLeg:  "#34D399",  // teal
-  rightLeg: "#10B981",  // emerald
-  torso:    "#A78BFA",  // purple
-  head:     "#FBBF24",  // amber
+// ── Region colours ───────────────────────────────────────────────────────
+
+/**
+ * One class per body region, from the `cue-*` scale — the same colours the
+ * overlay paints on those joints, so the breakdown and the practice screen
+ * agree. Written out in full because Tailwind's scanner cannot see an
+ * interpolated `bg-cue-${region}`.
+ *
+ * Left and right leg were previously two greens a few hue-degrees apart,
+ * indistinguishable in a legend at any real distance. The right leg now takes
+ * the pink, so the pair separates.
+ */
+const REGION_DOT: Record<RegionName, string> = {
+  leftArm:  "bg-cue-hand",
+  rightArm: "bg-cue-shoulder",
+  leftLeg:  "bg-cue-foot",
+  rightLeg: "bg-cue-arm",
+  torso:    "bg-cue-hip",
+  head:     "bg-cue-head",
+};
+
+const REGION_BORDER: Record<RegionName, string> = {
+  leftArm:  "border-l-cue-hand",
+  rightArm: "border-l-cue-shoulder",
+  leftLeg:  "border-l-cue-foot",
+  rightLeg: "border-l-cue-arm",
+  torso:    "border-l-cue-hip",
+  head:     "border-l-cue-head",
 };
 
 // ── Region definitions ───────────────────────────────────────────────────
@@ -281,6 +347,13 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
   const [regionScores, setRegionScores] = useState<Record<RegionName, number> | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  /**
+   * The results card owns the screen when it lands — you have just finished
+   * dancing and the score is the entire point of the tab. "Watch it back"
+   * collapses it to a chip so the run underneath becomes scrubable.
+   */
+  const [resultsOpen, setResultsOpen] = useState(true);
 
   // ─────────────────────────────────────────────────────────────────
   // Load recording session from sessionStorage
@@ -602,10 +675,13 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
 
   if (loadError || !recordingUrl) {
     return (
-      <div className="flex h-full items-center justify-center bg-black">
-        <div className="rounded-2xl border border-white/[0.06] bg-black/50 px-5 py-8 text-center backdrop-blur-xl">
-          <p className="text-sm font-medium text-red-400">{loadError ?? "Recording not found."}</p>
-        </div>
+      <div className="flex h-full items-center justify-center bg-black px-6">
+        <Panel tone="stage" radius="2xl" className="max-w-sm px-6 py-8 text-center">
+          <p className="text-hud-lg font-extrabold text-duo-red">Nothing to score</p>
+          <p className="mt-2 text-hud font-bold leading-relaxed text-stage-text/70">
+            {loadError ?? "Recording not found."}
+          </p>
+        </Panel>
       </div>
     );
   }
@@ -664,375 +740,456 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
         />
       </div>
 
-      {/* ── Top-left floating badge (Sync + score) ─────────────── */}
+      {/* ── Top-left status / collapsed score ───────────────────── */}
       {/* top-14 was a fourth independent guess at the offset: 56px sits under a
           59px Dynamic Island inset, and collides with PracticeView's header at
           any inset. TOP_STACK is the one value that clears it. */}
-      <div className="absolute left-3 z-10 flex items-center gap-2" style={{ top: TOP_STACK }}>
-        <div className="flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur-xl border border-white/[0.06]">
-          <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-          <span className="text-[10px] font-semibold tracking-wide text-white/70">SYNC</span>
-        </div>
-
-
-        {scoringReady ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400 border border-emerald-500/20 backdrop-blur-xl">
-            <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 8 8">
-              <circle cx="4" cy="4" r="4" />
-            </svg>
-            Pose comparison
-          </span>
-        ) : userFrames.length > 0 ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white/40 backdrop-blur-xl border border-white/[0.06]">
-            <span className="h-2 w-2 animate-spin motion-reduce:animate-pulse rounded-full border border-white/20 border-t-white/50" />
-            Analyzing…
-          </span>
-        ) : null}
-      </div>
-
-      {/* ── Score breakdown floating side panel (right) — hidden on phone, shown on tablet+ ─── */}
-      {(feedbackItems.length > 0 || regionScores) && (
-        <div className="absolute right-3 bottom-44 z-10 hidden w-56 overflow-y-auto rounded-2xl bg-black/50 backdrop-blur-xl border border-white/[0.06] p-3 md:block" style={{ top: TOP_STACK }}>
-
-          {/* Region scores */}
-          {regionScores && (
-            <div className="mb-3">
-              <h3 className="text-xs font-bold text-white/70">Body Parts</h3>
-              <div className="mt-2 flex flex-col gap-1.5">
-                {REGION_ORDER.filter(r => regionScores[r] >= 0).map(r => {
-                  const s = regionScores[r];
-                  const off = 100 - s;
-                  const rc = REGION_COLOR[r];
-                  return (
-                    <div key={r} className="flex items-center gap-2 rounded-lg px-2 py-1.5">
-                      <div className="flex w-16 items-center gap-1 shrink-0">
-                        <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: rc }} />
-                        <span className="text-[10px] font-semibold text-white/50 truncate">{REGION_LABELS[r]}</span>
-                      </div>
-                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
-                        <div
-                          className="h-full rounded-full"
-                          style={{ width: `${s}%`, backgroundColor: rc, opacity: 0.5 + (s / 100) * 0.5 }}
-                        />
-                      </div>
-                      <span className="w-10 text-right text-[10px] font-bold tabular-nums" style={{ color: scoreColor(s) }}>{s}%</span>
-                      {off > 15 && <span className="text-[9px] text-white/25">{off}% off</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Worst segment jump */}
-          {feedbackItems.length > 0 && (() => {
-            const worst = feedbackItems.reduce((a, b) => a.score < b.score ? a : b);
-            return (
-              <button
-                onClick={() => {
-                  if (!isFinite(worst.t)) return;
-                  if (userVideoRef.current) userVideoRef.current.currentTime = worst.t;
-                  if (proVideoRef.current)  proVideoRef.current.currentTime  = worst.t;
-                  setCurrentTime(worst.t);
-                }}
-                className="mb-3 flex w-full items-center gap-1.5 rounded-lg bg-red-500/10 px-2.5 py-1.5 text-[10px] font-semibold text-red-400 transition-ui hover:bg-red-500/20"
-              >
-                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
-                Jump to weakest ({fmt(worst.t)})
-              </button>
-            );
-          })()}
-
-          {/* Fixes section */}
-          {regionScores && overallScore !== null && (
-            <div className="mb-3">
-              <h3 className="mb-2 text-xs font-bold text-white/70">Fixes</h3>
-              {overallScore >= 80 ? (
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-2.5">
-                  <p className="text-[10px] font-semibold text-emerald-400">Great run! Strong performance.</p>
-                  {(() => {
-                    const worst = REGION_ORDER
-                      .filter(r => regionScores[r] >= 0)
-                      .reduce<RegionName | null>((a, b) => a === null || regionScores[b] < regionScores[a] ? b : a, null);
-                    return worst && regionScores[worst] < 90 ? (
-                      <p className="mt-0.5 text-[9px] text-white/30">
-                        Keep polishing your {REGION_LABELS[worst].toLowerCase()}.
-                      </p>
-                    ) : null;
-                  })()}
-                </div>
-              ) : feedbackTips.length > 0 ? (
-                <div className="flex flex-col gap-1.5">
-                  {feedbackTips.map(({ region, tip }) => (
-                    <div
-                      key={region}
-                      className="rounded-xl border-l-2 bg-white/[0.03] p-2.5"
-                      style={{ borderColor: REGION_COLOR[region] }}
-                    >
-                      <span className="mb-1 inline-flex items-center gap-1 rounded-full bg-white/[0.07] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white/50">
-                        <span className="inline-block h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: REGION_COLOR[region] }} />
-                        {REGION_LABELS[region]}
-                      </span>
-                      <p className="text-[10px] leading-relaxed text-white/60">{tip}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-[10px] text-white/30">No specific fixes needed — keep it up!</p>
-              )}
-            </div>
-          )}
-
-          <h3 className="text-xs font-bold text-white/70">Timeline</h3>
-          <div className="mt-2 flex flex-col gap-1.5">
-            {feedbackItems.map((item, i) => (
-              <button
-                key={i}
-                onClick={() => {
-                  if (!isFinite(item.t)) return;
-                  if (userVideoRef.current) userVideoRef.current.currentTime = item.t;
-                  if (proVideoRef.current)  proVideoRef.current.currentTime  = item.t;
-                  setCurrentTime(item.t);
-                }}
-                className="flex items-center gap-2 rounded-xl px-2 py-2 text-left transition-colors hover:bg-white/[0.06]"
-              >
-                <span className="w-9 shrink-0 font-mono text-[11px] font-semibold text-white/40">
-                  {fmt(item.t)}
-                </span>
-                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
-                  <div
-                    className="h-full rounded-full transition-ui"
-                    style={{ width: `${item.score}%`, backgroundColor: scoreColor(item.score) }}
-                  />
-                </div>
-                <span className="w-16 shrink-0 text-[10px] font-medium text-right" style={{ color: scoreColor(item.score) }}>
-                  {item.label}
-                </span>
-              </button>
-            ))}
-          </div>
-          <p className="mt-2 text-[10px] text-white/25">
-            Click a timestamp to jump.
-          </p>
-        </div>
-      )}
-
-      {/* ── Done action sheet ───────────────────────────────────── */}
-      {overallScore !== null && (
-        <motion.div
-          initial={{ opacity: 0, y: -16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="absolute left-2 right-2 z-20 rounded-2xl border border-white/[0.08] bg-black/80 p-3 backdrop-blur-xl sm:left-3 sm:right-auto sm:w-72 sm:p-4"
-          style={{ top: TOP_STACK }}
-        >
-          {/* Score */}
-          <div className="mb-3 text-center">
-            <span className="text-5xl font-black tabular-nums" style={{ color: scoreColor(overallScore) }}>
+      <div className="absolute left-3 z-20 flex items-center gap-2" style={{ top: TOP_STACK }}>
+        {overallScore !== null && !resultsOpen ? (
+          /* Collapsed results — still the score, still legible, one tap back. */
+          <button
+            onClick={() => setResultsOpen(true)}
+            aria-label={`Show results — ${overallScore} out of 100`}
+            className={`touch-target flex min-h-[44px] items-center gap-2 rounded-full ${GLASS} px-3.5 transition-ui hover:bg-stage/80`}
+          >
+            <span className={`text-2xl font-black leading-none tabular-nums ${scoreText(overallScore)}`}>
               {overallScore}
             </span>
-            <span className="ml-1 text-sm text-white/30">/ 100</span>
-            <p className="mt-0.5 text-xs text-white/40">{scoreLabel(overallScore)}</p>
-          </div>
-
-          {/* Top-3 region breakdown */}
-          {regionScores && (() => {
-            const LABELS: Record<string, string> = {
-              leftArm: "Left arm", rightArm: "Right arm",
-              leftLeg: "Left leg", rightLeg: "Right leg", torso: "Core",
-            };
-            const sorted = Object.entries(regionScores)
-              .filter(([k]) => k in LABELS)
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 3);
-            return sorted.length > 0 ? (
-              <div className="mb-3 space-y-1.5 rounded-xl bg-white/5 p-2.5">
-                {sorted.map(([k, v]) => (
-                  <div key={k} className="flex items-center gap-2">
-                    <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: REGION_COLOR[k] ?? "#ffffff" }} />
-                    <span className="flex-1 text-[11px] text-white/60">{LABELS[k]}</span>
-                    <span className="text-[11px] font-bold tabular-nums" style={{ color: scoreColor(v) }}>{v}%</span>
-                  </div>
-                ))}
-              </div>
-            ) : null;
-          })()}
-
-          {/* Save & Done */}
-          <button
-            disabled={saving}
-            onClick={async () => {
-              if (saving) return;
-              setSaving(true);
-              setSaveError(null);
-              try {
-                if (!sessionId) throw new Error("No session ID — try re-recording in the Test tab.");
-                await saveSyncScore(sessionId, overallScore, regionScores ?? {});
-                clearRecordingSession();
-                onGoToDashboard();
-              } catch (e) {
-                setSaveError(e instanceof Error ? e.message : "Save failed");
-                setSaving(false);
-              }
-            }}
-            className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-2.5 text-sm font-semibold text-brand-primary transition-ui hover:bg-white/90 disabled:opacity-60"
-          >
-            {saving ? (
-              <div className="h-4 w-4 animate-spin motion-reduce:animate-pulse rounded-full border-2 border-brand-primary/20 border-t-brand-primary" />
-            ) : (
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-              </svg>
+            <span className="text-hud font-extrabold uppercase tracking-widest text-stage-text/70">
+              Results
+            </span>
+          </button>
+        ) : (
+          <div className={`flex items-center gap-2 rounded-full ${GLASS} px-3 py-2`}>
+            <span className="h-2 w-2 rounded-full bg-duo-green" />
+            <span className="text-hud font-extrabold tracking-widest text-stage-text/80">SYNC</span>
+            {!scoringReady && userFrames.length > 0 && (
+              <span className="flex items-center gap-1.5 text-hud font-bold text-stage-text/70">
+                <span className="h-3 w-3 animate-spin motion-reduce:animate-pulse rounded-full border border-white/30 border-t-transparent" />
+                Scoring…
+              </span>
             )}
-            {saving ? "Saving…" : "Save Progress →"}
-          </button>
+          </div>
+        )}
+      </div>
 
-          {saveError && (
-            <p className="mb-2 rounded-lg bg-red-500/15 px-2.5 py-1.5 text-[11px] text-red-400 text-center">{saveError}</p>
-          )}
+      {/* ── Detail panel (tablet+) — the drill-down, not the headline ─── */}
+      {(feedbackItems.length > 0 || regionScores) && (
+        <div
+          className="absolute right-3 bottom-56 z-10 hidden w-72 overflow-y-auto md:block"
+          style={{ top: TOP_STACK }}
+        >
+          <Panel tone="stage" radius="2xl" className="p-3.5">
 
-          {/* Practice Again */}
-          <button
-            onClick={onPracticeAgain}
-            className="w-full rounded-xl border border-white/[0.08] py-2.5 text-sm font-semibold text-white/50 transition-ui hover:border-white/20 hover:text-white"
-          >
-            Practice Again
-          </button>
-        </motion.div>
+            {/* Worst segment jump — the single most useful button here, so it
+                leads rather than sitting under two lists. */}
+            {feedbackItems.length > 0 && (() => {
+              const worst = feedbackItems.reduce((a, b) => a.score < b.score ? a : b);
+              return (
+                <Pressable
+                  block
+                  variant="stage"
+                  size="sm"
+                  className="mb-3"
+                  onClick={() => {
+                    if (!isFinite(worst.t)) return;
+                    if (userVideoRef.current) userVideoRef.current.currentTime = worst.t;
+                    if (proVideoRef.current)  proVideoRef.current.currentTime  = worst.t;
+                    setCurrentTime(worst.t);
+                    setResultsOpen(false);
+                  }}
+                >
+                  <svg className="h-4 w-4 text-duo-red" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
+                  Weakest bar · {fmt(worst.t)}
+                </Pressable>
+              );
+            })()}
+
+            {/* Region scores */}
+            {regionScores && (
+              <div className="mb-4">
+                <h3 className="text-hud font-extrabold uppercase tracking-widest text-stage-text/60">Body parts</h3>
+                <div className="mt-2 flex flex-col gap-2">
+                  {REGION_ORDER.filter(r => regionScores[r] >= 0).map(r => (
+                    <RegionBar key={r} region={r} score={regionScores[r]} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Fixes section */}
+            {regionScores && overallScore !== null && (
+              <div className="mb-4">
+                <h3 className="mb-2 text-hud font-extrabold uppercase tracking-widest text-stage-text/60">Fixes</h3>
+                {overallScore >= 80 ? (
+                  <div className="rounded-xl border border-duo-green/30 bg-duo-green/15 p-3">
+                    <p className="text-hud font-extrabold text-duo-green">Great run — strong performance.</p>
+                    {(() => {
+                      const worst = REGION_ORDER
+                        .filter(r => regionScores[r] >= 0)
+                        .reduce<RegionName | null>((a, b) => a === null || regionScores[b] < regionScores[a] ? b : a, null);
+                      return worst && regionScores[worst] < 90 ? (
+                        <p className="mt-1 text-hud font-bold text-stage-text/70">
+                          Keep polishing your {REGION_LABELS[worst].toLowerCase()}.
+                        </p>
+                      ) : null;
+                    })()}
+                  </div>
+                ) : feedbackTips.length > 0 ? (
+                  <div className="flex flex-col gap-2">
+                    {feedbackTips.map(({ region, tip }) => (
+                      <div
+                        key={region}
+                        className={`rounded-xl border-l-4 bg-white/[0.06] p-3 ${REGION_BORDER[region]}`}
+                      >
+                        <span className="mb-1.5 inline-flex items-center gap-1.5 text-hud font-extrabold uppercase tracking-widest text-stage-text/70">
+                          <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${REGION_DOT[region]}`} />
+                          {REGION_LABELS[region]}
+                        </span>
+                        <p className="text-hud font-medium leading-relaxed text-stage-text/75">{tip}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-hud font-bold text-stage-text/60">No specific fixes — keep it up.</p>
+                )}
+              </div>
+            )}
+
+            <h3 className="text-hud font-extrabold uppercase tracking-widest text-stage-text/60">Timeline</h3>
+            <p className="mt-1 text-hud font-medium text-stage-text/50">Tap a bar to jump there.</p>
+            <div className="mt-2 flex flex-col gap-1">
+              {feedbackItems.map((item, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    if (!isFinite(item.t)) return;
+                    if (userVideoRef.current) userVideoRef.current.currentTime = item.t;
+                    if (proVideoRef.current)  proVideoRef.current.currentTime  = item.t;
+                    setCurrentTime(item.t);
+                    setResultsOpen(false);
+                  }}
+                  className="touch-target flex min-h-[36px] items-center gap-2 rounded-xl px-2 text-left transition-ui hover:bg-white/10"
+                >
+                  <span className="w-10 shrink-0 font-mono text-hud font-bold tabular-nums text-stage-text/70">
+                    {fmt(item.t)}
+                  </span>
+                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-white/15">
+                    <span
+                      className={`block h-full rounded-full ${scoreBg(item.score)}`}
+                      style={{ width: `${item.score}%` }}
+                    />
+                  </span>
+                  <span className={`w-16 shrink-0 text-right text-hud font-bold ${scoreText(item.score)}`}>
+                    {item.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </Panel>
+        </div>
       )}
+
+      {/* ══════════════════ RESULTS — the payoff ══════════════════ */}
+      {/*
+        This used to be a 288px sidebar pinned to the top-left corner with the
+        score set at 48px and the breakdown at 11px. You have just finished
+        dancing; the score is the reason the tab exists, so it takes the screen
+        and dims the video behind it (apple-design §12 — a modal task pairs its
+        surface with a scrim), then collapses to a chip on "Watch it back".
+
+        The scrim fades; the card animates scale and position only and starts at
+        full opacity, so a mid-flight framer failure leaves a readable card
+        rather than an invisible one (contract §4).
+      */}
+      <AnimatePresence>
+        {overallScore !== null && resultsOpen && (
+          <motion.div
+            key="results"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 z-30 flex items-center justify-center overflow-y-auto bg-black/72 px-3 py-6"
+          >
+            <motion.div
+              initial={{ scale: 0.94, y: 14 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.97, y: 8 }}
+              transition={{ type: "spring", stiffness: 380, damping: 32 }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0.2, bottom: 0.5 }}
+              onDragEnd={(_, info) => {
+                // Flick it away rather than hunting for the button.
+                if (info.offset.y > 90 || info.velocity.y > 520) setResultsOpen(false);
+              }}
+              className="w-[min(440px,94vw)] cursor-grab active:cursor-grabbing"
+            >
+              <Panel tone="stage" radius="2xl" className="px-5 py-6">
+                <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/25" />
+
+                {/* The number. Everything else on this card is subordinate. */}
+                <p className="text-center text-hud font-extrabold uppercase tracking-[0.2em] text-stage-text/60">
+                  {scoreHeadline(overallScore)}
+                </p>
+                <div className="mt-1 flex items-end justify-center gap-1">
+                  <span className={`text-[5.5rem] font-black leading-[0.85] tabular-nums ${scoreText(overallScore)}`}>
+                    {overallScore}
+                  </span>
+                  <span className="pb-2 text-hud-lg font-extrabold text-stage-text/45">/100</span>
+                </div>
+                <p className={`mt-2 text-center text-base font-extrabold ${scoreText(overallScore)}`}>
+                  {scoreLabel(overallScore)}
+                </p>
+
+                {/* Body parts, worst first — the part you act on. */}
+                {regionScores && (() => {
+                  const ranked = REGION_ORDER
+                    .filter(r => regionScores[r] >= 0)
+                    .sort((a, b) => regionScores[a] - regionScores[b]);
+                  return ranked.length > 0 ? (
+                    <div className="mt-5 flex flex-col gap-2 rounded-2xl bg-white/[0.07] p-3">
+                      {ranked.map(r => (
+                        <RegionBar key={r} region={r} score={regionScores[r]} />
+                      ))}
+                    </div>
+                  ) : null;
+                })()}
+
+                {saveError && (
+                  <p className="mt-4 rounded-xl border border-duo-red/40 bg-duo-red/20 px-3 py-2.5 text-center text-hud font-bold text-stage-text">
+                    {saveError}
+                  </p>
+                )}
+
+                <div className="mt-5 flex flex-col gap-2">
+                  <Pressable
+                    block
+                    variant="primary"
+                    size="lg"
+                    disabled={saving}
+                    onClick={async () => {
+                      if (saving) return;
+                      setSaving(true);
+                      setSaveError(null);
+                      try {
+                        if (!sessionId) throw new Error("No session ID — try re-recording in the Test tab.");
+                        await saveSyncScore(sessionId, overallScore, regionScores ?? {});
+                        clearRecordingSession();
+                        onGoToDashboard();
+                      } catch (e) {
+                        setSaveError(e instanceof Error ? e.message : "Save failed");
+                        setSaving(false);
+                      }
+                    }}
+                  >
+                    {saving ? (
+                      <>
+                        <span className="h-4 w-4 animate-spin motion-reduce:animate-pulse rounded-full border-2 border-white/30 border-t-white" />
+                        Saving…
+                      </>
+                    ) : (
+                      <>
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                        Save this run
+                      </>
+                    )}
+                  </Pressable>
+
+                  <div className="flex gap-2">
+                    <Pressable block variant="stage" size="md" onClick={() => setResultsOpen(false)}>
+                      Watch it back
+                    </Pressable>
+                    <Pressable block variant="stage" size="md" onClick={onPracticeAgain}>
+                      Practise again
+                    </Pressable>
+                  </div>
+                </div>
+              </Panel>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Bottom floating playback bar ───────────────────────── */}
       <div
-        className="absolute bottom-0 left-0 right-0 z-10 p-3"
-        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+        className="absolute bottom-0 left-0 right-0 z-10 px-2 pt-2"
+        style={{ paddingBottom: BOTTOM_SAFE }}
       >
-        <div className="rounded-2xl bg-black/50 backdrop-blur-xl border border-white/[0.06] p-3">
+        <Panel tone="stage" radius="2xl" className="px-3 py-3 sm:px-4">
 
-          {/* Score timeline bars */}
+          {/* Score-per-moment strip, sitting directly above the scrubber it
+              indexes. 6px tall rather than 1.5 — it is the only place the shape
+              of the run is visible. */}
           {timelineBins.length > 0 && (
-            <div className="mb-1 flex h-1.5 gap-px overflow-hidden rounded-full">
+            <div className="mb-1.5 flex h-1.5 gap-px overflow-hidden rounded-full" aria-hidden>
               {timelineBins.map((score, i) => (
                 <div
                   key={i}
-                  className="flex-1 rounded-sm"
-                  style={{ backgroundColor: score !== null ? scoreColor(score) : "rgba(255,255,255,0.06)", opacity: 0.7 }}
+                  className={`flex-1 ${score !== null ? scoreBg(score) : "bg-white/15"}`}
                 />
               ))}
             </div>
           )}
 
-          {/* Scrub bar */}
+          {/*
+            Scrub bar. Was a 8px strip whose handle was `opacity-0
+            group-hover:opacity-100` — on a phone there is no hover, so the
+            handle never appeared at all. Same fix as TraceTab: a 44px pointer
+            area with the visible track centred inside it, and a playhead that
+            is always drawn.
+          */}
           <div
-            className="group relative h-2 cursor-pointer rounded-full bg-white/[0.08]"
+            className="group relative flex h-11 cursor-pointer items-center"
             onClick={handleTimelineClick}
+            role="slider"
+            aria-label="Playback position"
+            aria-valuemin={0}
+            aria-valuemax={Math.round(effectiveDuration)}
+            aria-valuenow={Math.round(currentTime)}
+            aria-valuetext={`${fmt(currentTime)} of ${fmt(effectiveDuration)}`}
+            tabIndex={0}
           >
-            <div
-              className="pointer-events-none absolute left-0 top-0 h-full rounded-full bg-emerald-500"
-              style={{ width: `${progressPct}%` }}
-            />
-            <div
-              className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500 opacity-0 shadow-md transition-opacity group-hover:opacity-100"
-              style={{ left: `${progressPct}%` }}
-            />
+            <div className="relative h-2 w-full rounded-full bg-white/20">
+              <div
+                className="pointer-events-none absolute left-0 top-0 h-full rounded-full bg-duo-green"
+                style={{ width: `${progressPct}%` }}
+              />
+              <div
+                className="pointer-events-none absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-stage bg-duo-green shadow-stage-sm"
+                style={{ left: `${progressPct}%` }}
+              />
+            </div>
           </div>
 
-          {/* Transport row */}
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-
-            {/* Play/Pause */}
-            <button
+          {/* Transport row — one scrolling row, never wrapping. Wrapping made
+              the panel's height change as controls appeared. */}
+          <div className="scrollbar-hide -mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1">
+            <IconButton
+              aria-label={playing ? "Pause" : "Play"}
+              tone="stage-solid"
+              visual="md"
               onClick={togglePlay}
-              className="touch-target flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white transition-ui hover:bg-white/20"
             >
               {playing
-                ? <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4Zm8 0h4v16h-4V4Z" /></svg>
-                : <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                ? <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4Zm8 0h4v16h-4V4Z" /></svg>
+                : <svg className="h-5 w-5 translate-x-[1px]" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
               }
-            </button>
+            </IconButton>
 
-            {/* Time */}
-            <span className="min-w-[5.5rem] font-mono text-xs tabular-nums text-white/40">
+            <span className="min-w-[5.5rem] shrink-0 text-center font-mono text-hud tabular-nums text-stage-text/80">
               {fmt(currentTime)} / {fmt(duration)}
             </span>
 
-            {/* Speed — full row on md+, compact toggle on mobile */}
-            <div className="hidden items-center gap-0.5 rounded-lg border border-white/[0.06] p-0.5 sm:flex">
-              {SPEEDS.map(s => (
-                <button key={s}
-                  onClick={() => {
-                    setSpeed(s);
-                    if (userVideoRef.current) userVideoRef.current.playbackRate = s;
-                    if (proVideoRef.current)  proVideoRef.current.playbackRate  = s;
-                  }}
-                  className={`rounded-md px-2 py-1 text-[10px] font-bold transition-ui ${
-                    speed === s ? "bg-white/10 text-white" : "text-white/25 hover:text-white/50"
-                  }`}
-                >
-                  {s}x
-                </button>
-              ))}
-            </div>
-            <button
-              className="flex items-center gap-0.5 rounded-lg border border-white/[0.06] px-2 py-1 text-[10px] font-bold text-white/50 sm:hidden"
-              onClick={() => {
-                const idx = SPEEDS.indexOf(speed as typeof SPEEDS[number]);
-                const next = SPEEDS[(idx + 1) % SPEEDS.length];
-                setSpeed(next);
-                if (userVideoRef.current) userVideoRef.current.playbackRate = next;
-                if (proVideoRef.current)  proVideoRef.current.playbackRate  = next;
+            <Segmented
+              label="Playback speed"
+              tone="stage"
+              className="shrink-0"
+              value={String(speed)}
+              onChange={(v) => {
+                const s = parseFloat(v);
+                setSpeed(s);
+                if (userVideoRef.current) userVideoRef.current.playbackRate = s;
+                if (proVideoRef.current)  proVideoRef.current.playbackRate  = s;
               }}
-            >
-              {speed}x
-            </button>
+              options={SPEEDS.map(s => ({ value: String(s), label: `${s}x` }))}
+            />
           </div>
 
           {/* Overlay controls row */}
-          <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-white/[0.06] pt-3 sm:gap-4">
-            <div className="hidden items-center gap-2 sm:flex">
-              <span className="text-[10px] font-medium text-white/30">Opacity</span>
+          <div className="scrollbar-hide -mx-1 mt-2 flex items-center gap-2 overflow-x-auto border-t border-white/10 px-1 pb-1 pt-3">
+            <TogglePill active={mirrored} onClick={() => setMirrored(m => !m)} accent="blue" tone="stage">
+              Mirror {mirrored ? "on" : "off"}
+            </TogglePill>
+
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="text-hud font-bold text-stage-text/70">Ghost</span>
               <input type="range" min="10" max="90" value={overlayOpacity}
                 onChange={e => setOverlayOpacity(parseInt(e.target.value))}
-                className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-white/[0.06] accent-indigo-500" />
-              <span className="w-7 text-[10px] tabular-nums text-white/20">{overlayOpacity}%</span>
+                aria-label="Reference overlay opacity"
+                className="slider slider-stage w-24" />
+              <span className="w-10 text-right text-hud tabular-nums text-stage-text/70">{overlayOpacity}%</span>
             </div>
-            <button onClick={() => setMirrored(m => !m)}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-ui ${
-                mirrored ? "bg-blue-500/10 text-blue-400" : "bg-white/[0.04] text-white/30 hover:bg-white/[0.08]"
-              }`}>
-              Mirror {mirrored ? "On" : "Off"}
-            </button>
 
-            {/* Fine-tune framing */}
-            <div className="ml-auto">
-              <button onClick={() => setFramingExpanded(x => !x)}
-                className="flex items-center gap-1.5 text-[10px] font-semibold text-white/30 transition-colors hover:text-white/50">
-                <svg className={`h-3 w-3 transition-transform ${framingExpanded ? "rotate-90" : ""}`}
+            <TogglePill
+              active={framingExpanded}
+              onClick={() => setFramingExpanded(x => !x)}
+              accent="violet"
+              tone="stage"
+              className="ml-auto"
+              icon={
+                <svg className={`h-3.5 w-3.5 transition-transform duration-150 ease-out-strong motion-reduce:transition-none ${framingExpanded ? "rotate-90" : ""}`}
                   fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                 </svg>
-                Framing
-              </button>
-            </div>
+              }
+            >
+              Framing
+            </TogglePill>
           </div>
 
-          {framingExpanded && (
-            <div className="mt-2 flex flex-col gap-2 border-t border-white/[0.06] pt-2">
-              <SyncSlider label="X offset" min={-300} max={300} step={1}
-                value={proOffsetX} onChange={v => setProOffsetX(Math.round(v))}
-                display={`${proOffsetX > 0 ? "+" : ""}${proOffsetX}px`} />
-              <SyncSlider label="Y offset" min={-300} max={300} step={1}
-                value={proOffsetY} onChange={v => setProOffsetY(Math.round(v))}
-                display={`${proOffsetY > 0 ? "+" : ""}${proOffsetY}px`} />
-              <SyncSlider label="Zoom" min={0.3} max={3.0} step={0.05}
-                value={proZoom} onChange={setProZoom}
-                display={`${proZoom.toFixed(2)}×`} />
-              <button onClick={() => { setProOffsetX(0); setProOffsetY(0); setProZoom(1.0); }}
-                className="self-start rounded-lg bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-white/30 hover:bg-white/[0.08]">
-                Reset
-              </button>
-            </div>
-          )}
-        </div>
+          <AnimatePresence initial={false}>
+            {framingExpanded && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="overflow-hidden"
+              >
+                <div className="mt-2 flex flex-col gap-1.5 rounded-2xl bg-white/[0.07] p-3">
+                  <SyncSlider label="X offset" min={-300} max={300} step={1}
+                    value={proOffsetX} onChange={v => setProOffsetX(Math.round(v))}
+                    display={`${proOffsetX > 0 ? "+" : ""}${proOffsetX}px`} />
+                  <SyncSlider label="Y offset" min={-300} max={300} step={1}
+                    value={proOffsetY} onChange={v => setProOffsetY(Math.round(v))}
+                    display={`${proOffsetY > 0 ? "+" : ""}${proOffsetY}px`} />
+                  <SyncSlider label="Zoom" min={0.3} max={3.0} step={0.05}
+                    value={proZoom} onChange={setProZoom}
+                    display={`${proZoom.toFixed(2)}×`} />
+                  <Pressable
+                    variant="stage"
+                    size="sm"
+                    className="mt-1 self-start"
+                    onClick={() => { setProOffsetX(0); setProOffsetY(0); setProZoom(1.0); }}
+                  >
+                    Reset framing
+                  </Pressable>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Panel>
       </div>
+    </div>
+  );
+}
+
+// ── Region bar ──────────────────────────────────────────────────────────
+
+/**
+ * One body region: a colour that matches the overlay, the label, a bar, and the
+ * number. The old version put the label at 10px, the number at 10px and an
+ * extra "{n}% off" at 9px — three sizes below the stage's 12px floor, in a
+ * 16px-wide column that truncated "Right Arm" to "Right A…".
+ */
+function RegionBar({ region, score }: { region: RegionName; score: number }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${REGION_DOT[region]}`} />
+      <span className="w-20 shrink-0 text-hud font-bold text-stage-text/80">{REGION_LABELS[region]}</span>
+      <span className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-white/15">
+        <span
+          className={`block h-full rounded-full ${REGION_DOT[region]}`}
+          style={{ width: `${Math.max(2, score)}%` }}
+        />
+      </span>
+      <span className={`w-10 shrink-0 text-right text-hud font-extrabold tabular-nums ${scoreText(score)}`}>
+        {score}%
+      </span>
     </div>
   );
 }
@@ -1046,12 +1203,13 @@ function SyncSlider({
   value: number; onChange: (v: number) => void; display: string;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="w-16 text-[10px] font-medium text-white/30">{label}</span>
+    <div className="flex items-center gap-2.5">
+      <span className="w-16 shrink-0 text-hud font-bold text-stage-text/70">{label}</span>
       <input type="range" min={min} max={max} step={step} value={value}
         onChange={e => onChange(parseFloat(e.target.value))}
-        className="h-1 w-28 cursor-pointer appearance-none rounded-full bg-white/[0.06] accent-indigo-500" />
-      <span className="w-12 text-[10px] tabular-nums text-white/20">{display}</span>
+        aria-label={label}
+        className="slider slider-stage min-w-0 flex-1" />
+      <span className="w-14 shrink-0 text-right text-hud tabular-nums text-stage-text/70">{display}</span>
     </div>
   );
 }

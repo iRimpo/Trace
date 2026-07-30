@@ -1,154 +1,165 @@
-"use client";
+import { CUE_PALETTE, CUE_ORDER, CUE_LABELS } from "@/lib/cuePalette";
+import Panel from "@/components/ui/Panel";
+import Reveal from "./Reveal";
 
-import { CUE_PALETTE } from "@/lib/cuePalette";
-
-import { motion } from "framer-motion";
-
-const CUE = {
-  hand: CUE_PALETTE.hand, foot: CUE_PALETTE.foot, head: CUE_PALETTE.head,
-  elbow: CUE_PALETTE.elbow, hip: CUE_PALETTE.hip, shoulder: CUE_PALETTE.shoulder, arm: CUE_PALETTE.armBoth,
-};
+/**
+ * What the app actually does, four claims deep.
+ *
+ * The old copy here was "Delicious Top Features From Our AI" over cards that
+ * hardcoded `#f43f5e`, `#0891b2`, `#f59e0b` and a `bg-[#faf8f3]` card fill —
+ * six raw hexes and a ground that was neither cream nor white. Cards are
+ * `Panel tone="paper"` now, and every colour in them comes from the cue palette
+ * the practice overlay draws with, so this page cannot claim a colour scheme
+ * the product does not have.
+ *
+ * Each card states something checkable. "AI-powered" is not a feature; "runs
+ * BlazePose in the tab and never posts the frames anywhere" is.
+ */
 
 const FEATURES = [
   {
-    title: "33 Keypoints",
-    sub: "Full body coverage",
-    desc: "MediaPipe BlazePose tracks every major joint — wrists, elbows, shoulders, hips, knees, ankles, and more — with per-joint confidence scoring.",
-    accent: CUE.shoulder,
+    title: "33 keypoints, per-joint confidence",
+    body:
+      "MediaPipe BlazePose tracks wrists, elbows, shoulders, hips, knees and ankles, and reports how sure it is about each one. Low-confidence joints are ignored rather than guessed at.",
+    color: CUE_PALETTE.shoulder,
     icon: (
-      <svg width="48" height="64" viewBox="0 0 48 64" fill="none">
-        <circle cx="24" cy="7"  r="5.5" fill={CUE.head} opacity="0.9"/>
-        <rect x="17" y="14" width="14" height="18" rx="3.5" fill={CUE.hip} opacity="0.7"/>
-        <rect x="4"  y="16" width="12" height="14" rx="3.5" fill={CUE.elbow} opacity="0.5"/>
-        <rect x="32" y="16" width="12" height="14" rx="3.5" fill={CUE.elbow} opacity="0.5"/>
-        <rect x="10" y="34" width="11" height="26" rx="3.5" fill={CUE.foot} opacity="0.6"/>
-        <rect x="27" y="34" width="11" height="26" rx="3.5" fill={CUE.foot} opacity="0.6"/>
+      <svg width="44" height="60" viewBox="0 0 44 60" fill="none" aria-hidden="true">
+        <circle cx="22" cy="7" r="6" fill={CUE_PALETTE.head} />
+        <rect x="15" y="16" width="14" height="19" rx="4" fill={CUE_PALETTE.hip} />
+        <rect x="2"  y="18" width="10" height="15" rx="4" fill={CUE_PALETTE.elbow} />
+        <rect x="32" y="18" width="10" height="15" rx="4" fill={CUE_PALETTE.elbow} />
+        <rect x="9"  y="38" width="10" height="20" rx="4" fill={CUE_PALETTE.foot} />
+        <rect x="25" y="38" width="10" height="20" rx="4" fill={CUE_PALETTE.foot} />
       </svg>
     ),
   },
   {
-    title: "Auto BPM",
-    sub: "Beat detection",
-    desc: "Analyzes audio to lock on the exact tempo. Tap to override, or nudge beat-1 to any frame. Guidance cues fire on the beat, every time.",
-    accent: CUE.arm,
+    title: "Tempo found for you, or tapped in",
+    body:
+      "Trace reads the tempo off the clip's audio. When a file will not decode — Safari is strict about AAC — four taps set it by hand, and it says which of the seven failure reasons it hit.",
+    color: CUE_PALETTE.armBoth,
     icon: (
-      <svg width="60" height="40" viewBox="0 0 60 40" fill="none">
-        {[5,10,7,18,12,22,9,16,14,7,13,11].map((h,i)=>(
-          <rect key={i} x={i*4+4} y={(40-h*1.5)/2} width="3.5" height={h*1.5} rx="1.75" fill={CUE.arm} opacity={0.35+i*0.04}/>
+      <svg width="60" height="40" viewBox="0 0 60 40" fill="none" aria-hidden="true">
+        {[5, 10, 7, 18, 12, 22, 9, 16, 14, 7, 13, 11].map((h, i) => (
+          <rect
+            key={i}
+            x={i * 4.6 + 3}
+            y={(40 - h * 1.5) / 2}
+            width="3.4"
+            height={h * 1.5}
+            rx="1.7"
+            fill={CUE_PALETTE.armBoth}
+            opacity={0.4 + i * 0.05}
+          />
         ))}
       </svg>
     ),
   },
   {
-    title: "8-Count Grid",
-    sub: "Beat-synced overlay",
-    desc: "Counts 1–8 displayed on screen. Downbeats, snares, and offbeats styled differently so you always know where you are in the phrase.",
-    accent: CUE.hip,
+    title: "An eight-count you can read at ten feet",
+    body:
+      "Counts 1–8 sit on the screen while you dance, with downbeats weighted differently from offbeats, so you always know where you are in the phrase without stopping to look.",
+    color: CUE_PALETTE.hip,
     icon: (
-      <div className="grid grid-cols-4 gap-1.5">
-        {[1,2,3,4,5,6,7,8].map(c=>(
-          <div key={c} className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold"
-            style={{
-              background: c===1||c===5 ? CUE.hip : `${CUE.hip}15`,
-              color: c===1||c===5 ? "white" : CUE.hip,
-            }}
-          >{c}</div>
-        ))}
+      <div className="grid grid-cols-4 gap-1.5" aria-hidden="true">
+        {[1, 2, 3, 4, 5, 6, 7, 8].map(c => {
+          const down = c === 1 || c === 5;
+          return (
+            <span
+              key={c}
+              className={`flex h-7 w-7 items-center justify-center rounded-lg text-hud font-extrabold tabular-nums ${down ? "text-white" : "text-clay"}`}
+              style={down ? { backgroundColor: CUE_PALETTE.hip } : undefined}
+            >
+              {c}
+            </span>
+          );
+        })}
       </div>
     ),
   },
   {
-    title: "Noise Filter",
-    sub: "Relative displacement",
-    desc: "Body sway is subtracted before cue detection. Only intentional movement triggers guidance — no false positives from natural swaying.",
-    accent: CUE.foot,
+    title: "Sway subtracted before anything fires",
+    body:
+      "Standing still is not standing perfectly still. Body drift is removed before cues are detected, so a cue means you moved a limb, not that you shifted your weight.",
+    color: CUE_PALETTE.foot,
     icon: (
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-500 line-through">false trigger</span>
-        </div>
-        <svg width="40" height="16" viewBox="0 0 40 16" fill="none">
-          <path d="M2 8h36M30 3l8 5-8 5" stroke={CUE.foot} strokeWidth="2" strokeLinecap="round"/>
-        </svg>
-        <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold self-start" style={{ background: `${CUE.foot}20`, color: CUE.foot }}>filtered ✓</span>
-      </div>
+      <svg width="60" height="40" viewBox="0 0 60 40" fill="none" aria-hidden="true">
+        <path
+          d="M2 20 Q10 6 18 20 T34 20"
+          stroke={CUE_PALETTE.hand}
+          strokeWidth="3"
+          strokeLinecap="round"
+          opacity="0.45"
+        />
+        <path d="M38 20h16m-5-5 5 5-5 5" stroke={CUE_PALETTE.foot} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
     ),
   },
 ];
 
 export default function Features() {
   return (
-    <>
-      <div className="h-7 w-full" style={{
-        backgroundImage: "repeating-conic-gradient(#f8f4e0 0% 25%, #ffffff 0% 50%)",
-        backgroundSize: "20px 20px",
-      }} />
+    <section
+      id="features"
+      className="scroll-mt-20 bg-brand-cream px-4 py-16 sm:px-6 sm:py-24 lg:px-10"
+    >
+      <div className="mx-auto max-w-5xl">
+        <Reveal>
+          <p className="text-hud font-extrabold uppercase tracking-[0.2em] text-clay/60">
+            What it tracks
+          </p>
+          <h2 className="mt-4 max-w-2xl text-balance text-title font-extrabold leading-tight tracking-tight text-ink sm:text-display">
+            Specific enough to fix something.
+          </h2>
+        </Reveal>
 
-      <section id="features" className="bg-white py-16 px-4 sm:py-24 sm:px-6 lg:px-10">
-        <div className="mx-auto max-w-6xl">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="mb-14 text-center"
-          >
-            <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-ink/30">
-              Features
-            </p>
-            <h2 className="font-calistoga text-[clamp(2.4rem,5vw,4rem)] leading-tight text-ink">
-              Delicious Top Features<br />From Our AI
-            </h2>
-          </motion.div>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {FEATURES.map((f, i) => (
-              <motion.div
-                key={f.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-60px" }}
-                transition={{ duration: 0.55, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-                whileHover={{ y: -6, transition: { duration: 0.2 } }}
-                className="group rounded-2xl border border-ink/[0.08] bg-[#faf8f3] p-6 flex flex-col gap-4"
-              >
-                <div className="flex h-20 items-center justify-start">
-                  {f.icon}
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-calistoga text-xl text-ink">{f.title}</h3>
-                  <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider" style={{ color: f.accent }}>
-                    {f.sub}
+        <div className="mt-10 grid gap-3 sm:grid-cols-2">
+          {FEATURES.map((f, i) => (
+            <Reveal key={f.title} delay={(i % 2) * 0.06}>
+              <Panel tone="paper" radius="2xl" className="flex h-full flex-col gap-4 p-5 sm:p-7">
+                <div className="flex h-16 items-center">{f.icon}</div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-balance text-xl font-extrabold leading-snug tracking-tight text-ink">
+                    {f.title}
+                  </h3>
+                  <p className="mt-2 text-pretty text-base font-medium leading-relaxed text-clay/80">
+                    {f.body}
                   </p>
-                  <p className="mt-2 text-sm leading-relaxed text-clay/60">{f.desc}</p>
                 </div>
-                <div className="h-0.5 w-8 rounded-full transition-ui duration-300 group-hover:w-16" style={{ background: f.accent }} />
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Stats row */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="mt-16 grid grid-cols-2 gap-6 border-t border-ink/[0.06] pt-10 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-10"
-          >
-            {[
-              { value: "33", label: "Body keypoints" },
-              { value: "60fps", label: "Real-time tracking" },
-              { value: "7", label: "Cue color types" },
-              { value: "8-ct", label: "Beat-synced counts" },
-            ].map(s => (
-              <div key={s.label} className="flex flex-col items-center gap-0.5">
-                <span className="font-calistoga text-3xl text-ink">{s.value}</span>
-                <span className="text-xs text-clay/50">{s.label}</span>
-              </div>
-            ))}
-          </motion.div>
+                <span
+                  className="h-1.5 w-10 shrink-0 rounded-full"
+                  style={{ backgroundColor: f.color }}
+                />
+              </Panel>
+            </Reveal>
+          ))}
         </div>
-      </section>
-    </>
+
+        {/*
+          The legend is the product's actual vocabulary, so it belongs in the
+          pitch rather than only in the app. Same source module as the overlay.
+        */}
+        <Reveal delay={0.1} className="mt-3">
+          <Panel tone="paper" radius="2xl" className="p-5 sm:p-7">
+            <p className="text-hud font-extrabold uppercase tracking-[0.16em] text-clay/50">
+              The seven cue colours
+            </p>
+            <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-3">
+              {CUE_ORDER.map(region => (
+                <li key={region} className="flex items-center gap-2">
+                  <span
+                    className="h-3.5 w-3.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: CUE_PALETTE[region] }}
+                  />
+                  <span className="text-hud-lg font-extrabold text-clay">
+                    {CUE_LABELS[region]}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        </Reveal>
+      </div>
+    </section>
   );
 }
