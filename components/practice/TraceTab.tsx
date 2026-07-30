@@ -979,9 +979,20 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
             of the back button. */}
         <div className="pointer-events-auto absolute left-3 flex flex-col gap-2" style={{ top: TOP_STACK }}>
           <div className={`flex items-center gap-1.5 rounded-full ${GLASS} px-3 py-1.5`}>
-            <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
-              <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" stroke="#1a0f00" strokeWidth="1.5" strokeLinejoin="round" opacity="0.6"/>
-              <circle cx="7" cy="7" r="2" fill="#1a0f00" opacity="0.6"/>
+            {/*
+              `currentColor` at the label's own weight, not a hardcoded value.
+              This mark was drawing itself in the literal value of `ink` — the
+              *paper* text colour — at 60% opacity, on dark glass over a live
+              camera feed, immediately beside a `text-stage-text/80` label. A
+              near-black glyph on the stage ground is invisible from where the
+              badge is read, which is across the room. It survived the ground
+              rewrite because a raw hex is not a Tailwind class and so nothing
+              swept it. Inheriting means the mark and its word can no longer
+              disagree about what colour the badge is.
+            */}
+            <svg width="10" height="10" viewBox="0 0 14 14" fill="none" className="text-stage-text/80">
+              <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+              <circle cx="7" cy="7" r="2" fill="currentColor"/>
             </svg>
             <span className="text-hud font-extrabold tracking-widest text-stage-text/80">TRACE</span>
           </div>

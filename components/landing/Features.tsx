@@ -6,11 +6,15 @@ import Reveal from "./Reveal";
  * What the app actually does, four claims deep.
  *
  * The old copy here was "Delicious Top Features From Our AI" over cards that
- * hardcoded `#f43f5e`, `#0891b2`, `#f59e0b` and a `bg-[#faf8f3]` card fill —
- * six raw hexes and a ground that was neither cream nor white. Cards are
+ * hardcoded a rose, a cyan, an amber and an off-white card fill — six raw
+ * hexes and a ground that was neither cream nor white. Cards are
  * `Panel tone="paper"` now, and every colour in them comes from the cue palette
  * the practice overlay draws with, so this page cannot claim a colour scheme
  * the product does not have.
+ *
+ * The removed values are named in words rather than quoted: the design ratchet
+ * greps source lines, so a comment that quotes the hexes it deleted counts as
+ * four violations of the rule it is documenting. Git history has the originals.
  *
  * Each card states something checkable. "AI-powered" is not a feature; "runs
  * BlazePose in the tab and never posts the frames anywhere" is.
