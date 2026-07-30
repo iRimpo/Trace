@@ -1,7 +1,7 @@
 {
   "runsFloor": 50000,
   "passes": 4,
-  "baseRef": "38b9a0edff3545cf8891fc232e7365dcccfa893e",
+  "baseRef": "687f9322c3672ebdc0a0b4ba1b26041b094d513f",
   "lastPass": {
     "runs": 50000,
     "seed": "216346826",
