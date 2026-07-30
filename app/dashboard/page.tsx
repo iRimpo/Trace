@@ -121,7 +121,7 @@ function DashboardContent() {
             Hi, {displayName}
           </p>
           {streak > 0 && (
-            <div className="flex items-center gap-1.5 rounded-2xl bg-duo-gold px-3 py-1.5 shadow-chunk-sm" style={{ ["--chunk-color" as string]: "#E5A600" }}>
+            <div className="flex items-center gap-1.5 rounded-2xl bg-duo-gold px-3 py-1.5 shadow-chunk-gold-sm">
               <span className="text-base leading-none">🔥</span>
               <span className="text-sm font-extrabold tabular-nums text-ink">{streak}</span>
               <span className="text-[10px] font-bold uppercase tracking-widest text-ink/70">day streak</span>

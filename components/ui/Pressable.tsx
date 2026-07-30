@@ -26,10 +26,10 @@ type Variant = "primary" | "secondary" | "quiet" | "danger";
 type Size = "md" | "lg";
 
 const VARIANT: Record<Variant, { face: string; chunk: string; text: string }> = {
-  primary:   { face: "bg-duo-green", chunk: "#43A302", text: "text-white" },
-  secondary: { face: "bg-duo-blue",  chunk: "#1899D6", text: "text-white" },
-  quiet:     { face: "bg-white",     chunk: "#E0DCC8", text: "text-ink" },
-  danger:    { face: "bg-duo-red",   chunk: "#E23A3A", text: "text-white" },
+  primary:   { face: "bg-duo-green", chunk: "shadow-chunk-green", text: "text-white" },
+  secondary: { face: "bg-duo-blue",  chunk: "shadow-chunk-blue",  text: "text-white" },
+  quiet:     { face: "bg-white",     chunk: "shadow-chunk-quiet", text: "text-ink" },
+  danger:    { face: "bg-duo-red",   chunk: "shadow-chunk-red",   text: "text-white" },
 };
 
 const SIZE: Record<Size, string> = {
@@ -68,7 +68,7 @@ export default function Pressable({
     SIZE[size],
     v.face,
     v.text,
-    "shadow-chunk",
+    v.chunk,
     // The press: drop by the chunk height and remove the chunk, so the face
     // lands exactly where the chunk was. No net layout shift.
     "transition-[transform,box-shadow] duration-[110ms] ease-out-strong",
@@ -80,12 +80,9 @@ export default function Pressable({
     className,
   ].join(" ");
 
-  // --chunk-color feeds the shadow-chunk token so one utility serves every variant.
-  const style = { ["--chunk-color" as string]: v.chunk };
-
   if (href && !disabled) {
     return (
-      <Link href={href} className={classes} style={style} aria-label={ariaLabel}>
+      <Link href={href} className={classes} aria-label={ariaLabel}>
         {children}
       </Link>
     );
@@ -98,7 +95,7 @@ export default function Pressable({
       disabled={disabled}
       aria-label={ariaLabel}
       className={classes}
-      style={style}
+     
     >
       {children}
     </button>

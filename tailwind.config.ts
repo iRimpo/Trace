@@ -86,11 +86,19 @@ const config: Config = {
         22: "5.5rem",
       },
       boxShadow: {
-        /** The pressable "chunk". Solid, not blurred — blur reads as soft. */
-        chunk:      "0 4px 0 0 var(--chunk-color, #43A302)",
-        "chunk-sm": "0 3px 0 0 var(--chunk-color, #43A302)",
+        /**
+         * The pressable "chunk". Solid, not blurred — blur reads as soft, and
+         * soft is the opposite of the affordance. One named shadow per variant
+         * so no component has to inline a hex to colour its own edge.
+         */
+        "chunk-green": "0 4px 0 0 #43A302",
+        "chunk-blue":  "0 4px 0 0 #1899D6",
+        "chunk-gold":  "0 4px 0 0 #E5A600",
+        "chunk-red":   "0 4px 0 0 #E23A3A",
+        "chunk-quiet": "0 4px 0 0 #E0DCC8",
+        "chunk-gold-sm": "0 3px 0 0 #E5A600",
         /** Resting card lift on cream. */
-        card:       "0 2px 0 0 #E0DCC8",
+        card:          "0 2px 0 0 #E0DCC8",
       },
       transitionTimingFunction: {
         /** Stronger than CSS ease-out, which is too weak to feel intentional. */
