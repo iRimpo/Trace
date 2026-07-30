@@ -114,14 +114,41 @@ Check, in this order:
    on the practice screen. `CountStrip` grew from 40px to 56px cells this session and has **not**
    been re-measured against the Dynamic Island. Confirm `01 TRACE`, `02 TEST` and `03 SYNC` all
    clear the status bar.
+
+   **Statically verified 07-30: nothing bypasses `TOP_STACK`.** Every `top-*` in
+   `components/practice/` that is not `TOP_STACK` was checked and is scoped to its own parent —
+   scrubber tracks, count cells, a `Panel`-relative Skip button, `TraceTutorial`'s computed
+   spotlight. There is no fourth independent guess. So if the top chrome is wrong on the phone,
+   the value of `TOP_STACK` is wrong, not its application — fix it in `chrome.ts` and every
+   surface moves together.
+
+1b. **PREDICTED COLLISION — check this first, it is the cheapest to confirm.**
+   `CountStrip` is `left-0 right-0 … justify-center` with an inner `max-w-sm` (384px) at
+   `top: TOP_STACK`. On a 393px-wide phone it spans essentially edge to edge. `TraceTab`'s
+   TRACE badge (`left-3`) and its top-right control cluster (`right-3`) sit at **exactly the
+   same `top`**, both at `z-30`, and the overlay div paints after — so the badge should land on
+   count cells 1–2 and the controls on cells 7–8.
+
+   Repro: overlay mode, counts on, a known BPM, **paused**. Controls only auto-hide during
+   playback (`showControls`, `TraceTab.tsx:626`), so while paused they stay up indefinitely —
+   which is exactly the setup state before you start dancing. It should clear itself ~3s into
+   playback.
+
+   **Deliberately not fixed blind.** Contract §5 exists because three independent guesses at
+   this geometry stacked on each other once already; a fourth guess made without looking at a
+   phone is how that happens again. Confirm it, then the fix is a real decision: the count strip
+   is the glanceable priority while dancing, so the badge row is the thing that should move.
 2. **Is the transport readable and hittable from where you actually stand?** That was the whole
    premise. Specifically the rebuilt timeline: the playhead used to be `opacity-0
    group-hover:opacity-100`, and there is no hover on a phone, so it never appeared at all on the
    target device. It is now always visible with a 44px pointer area and 28px A/B handles.
 3. **The `SyncTab` scrim now actually renders.** It never has before.
-4. **Cue behaviour** (turn the Beta toggle *on* first): never more than one cue on screen;
-   scrubbing to the same moment always shows the identical cue; changing BPM after a scan re-lands
-   cues without a rescan.
+4. **Cue behaviour** (turn the Beta toggle *on* first). **All three invariants named here are
+   already covered by `lib/__tests__/cueScript.test.ts`** — "emits at most one cue per beat" and
+   "windows never overlap", "is pure — order and direction of calls do not matter" plus "is
+   deterministic", and "moves cue times onto a new grid when the BPM changes". They hold at the
+   logic level, so do **not** spend device time re-checking them by hand. What the phone is
+   actually for here is whether that code path *runs* on Safari at all — i.e. item 5.
 5. **Which `beat_detection` failure reason fires on your phone.** `BpmInput` now surfaces the typed
    reason instead of showing "No tempo found" for six different causes. Leading suspect is
    `decode-failed` — Safari is far stricter than Chrome about extracting AAC from MP4. If it is
@@ -168,6 +195,12 @@ commands in §7 were green afterwards. What was done:
    centrally in `StateBlock`, which covers all ten call sites at once.
 3. ~~**`components/dashboard/VideoCard.tsx` is imported by nothing.**~~ **DELETED** by Richard's
    call, 2026-07-30. Verified no importers first. Recoverable from git.
+3b. **`components/AnimatedBanner.tsx` is imported by nothing** (found 07-30, not previously
+   listed anywhere). Unlike `VideoCard` it carries no "unused" flag and it is artwork — a TRACE
+   wordmark with line-drawing figures — so it was **left in place** rather than deleted on the
+   same reasoning as §5.4. Its `fill="black"`/`fill="white"` are illustration values, not UI
+   colour, and the ratchet does not count them. Delete-or-keep is still open.
+
 4. **Six landing components are unwired** and were correctly skipped: `Problem`, `Solution`,
    `StickySteps`, `Testimonial`, `Testimonials`, `LogoCloud`. `app/page.tsx` renders only `Navbar`,
    `Hero`, `MeetTrace`, `HowItWorks`, `Features`, `Waitlist`, `Footer`, `FloatingCTA`. The original
@@ -198,10 +231,17 @@ a cycle green by arguing.
 | `ease_in` | 0 | 0 |
 | `motion_no_reduce` | 0 | 0 |
 | `small_touch_target` | 0 | 0 |
-| `raw_hex` | **18** | 56 |
+| `raw_hex` | **12** | 56 |
 
-`raw_hex` fell 56 → 18 this session. **The budget file has not been re-pinned to 18** — do that
-only via `loop/verify.sh`, which owns it. The loop directory is protected by a `PreToolUse` hook
+`raw_hex` fell 56 → 18, then 18 → 12 on 07-30. **The budget file has not been re-pinned** — do
+that only via `loop/verify.sh`, which owns it.
+
+Five of that last drop came off *comments* that quoted the very hexes they documented removing —
+the ratchet greps source lines, so prose counts. No rendered colour changed for those. The sixth
+was a real bug (the TRACE badge mark, `2a45184`'s follow-up). **What remains is all legitimate:**
+8 are Google's brand marks on the auth screens, where a token would be a lie about what they
+are, and 4 are in `LogoCloud` and `Testimonials` — both unwired, both covered by §5.4. **Raw hex
+in live code is now zero**, so this rule has nothing left to give until §5.4 is decided. The loop directory is protected by a `PreToolUse` hook
 (`.claude/hooks/protect-verifier.sh`); the verifier may not be edited by an agent.
 
 Also enforced by reality rather than by a test:
