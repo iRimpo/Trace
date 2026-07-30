@@ -1,6 +1,10 @@
 {
-  "runsFloor": 300,
-  "passes": 0,
-  "baseRef": "19ca90b985a01ccc9874f33828a7ce9e3112dc23",
-  "lastPass": null
+  "runsFloor": 2000,
+  "passes": 1,
+  "baseRef": "3a8f14685bd061f8ebaff720b2fe416fbddde07f",
+  "lastPass": {
+    "runs": 2000,
+    "seed": "46013325",
+    "at": "2026-07-29T23:03:28"
+  }
 }
