@@ -53,3 +53,67 @@ test was ever going to probe. Any value derived twice by different arithmetic is
 to point a property.
 
 ---
+## Cycle 1 — 20000 runs (human, 2026-07-29)
+
+**Hypothesis:** the invariants that survived 2000 generated inputs will survive 20000.
+
+**Change:** none to `lib/`. Raised `LOOP_RUNS` 2000 → 20000, fresh seed.
+
+**Result:** 11 red tests. Two real, nine noise — and separating those two groups was
+the whole cycle.
+
+*The nine* were vitest's default 5000ms `testTimeout`; each property needs ~5.7s at
+20000 runs. Not findings. Raised `testTimeout` in `loop/vitest.loop.config.ts`.
+
+*The two* were the `one cue on screen` pair:
+
+```
+Counterexample: bpm 46.91730989308537, beatOneOffset 0
+  cue window 0 closes at 3.19711424934247701035e-1
+  cue window 1 opens  at 3.19711424934247645524e-1
+  overlap: 5.551e-17 s  =  0.78 ULP
+```
+
+`LEAD_BEATS + HOLD_BEATS` is *exactly* 1 in binary, so the windows abut exactly in
+real arithmetic. But `t_n + 0.25*beatS` and `t_(n+1) - 0.75*beatS` are two different
+float expressions for the same real number, and they can land under 1 ULP apart. One
+60fps frame is 1.67e-2 s — the sliver is 14 orders of magnitude below anything
+observable.
+
+**Decision: the property was wrong, not the code.** It asserted that float-computed
+bounds partition the real line, which is unachievable in binary and was never
+promised. `loop/program.md` names this case explicitly, and it is a human's call.
+
+Rewrote both to assert the contract `cueAt` actually offers — whatever cue it returns
+genuinely contains the time, and `null` only when nothing strictly does — plus a new
+assertion on the *cause* of non-overlap: consecutive cues are ≥ 1 beat apart. A real
+density regression breaks that by ~0.5 s, 8 orders of magnitude above the 1e-9
+tolerance, so nothing real can hide in it.
+
+**Result after fix:** `LOOP_RESULT verdict=pass runs=20000 seed=50083961 props=1`
+
+**Lesson:** a red property is not automatically a bug. Two of eleven were real, and
+the temptation — loosen the code until green — would have traded a correct
+implementation for a badly-specified test. Sizing the tolerance against a real
+physical quantity (one video frame) rather than against the failure is what keeps it
+honest.
+
+---
+
+## Cycle 2 — 50000 runs, done condition (human, 2026-07-29)
+
+**Hypothesis:** with the properties correctly specified, the invariants hold at the
+loop's target of 50000 generated inputs with all five gates live.
+
+**Change:** none. `FULL=1 LOOP_RUNS=50000`.
+
+**Result:** `LOOP_RESULT verdict=pass runs=50000 seed=71620433 integrity=1 tsc=1 unit=1 props=1 build=1`
+
+Ratchet floor: **50000**. Done condition in `loop/program.md` met.
+
+**Lesson:** the two real findings both came from *disagreement between two derivations
+of the same quantity* — count via floor vs via beat index, and window bounds via
+addition vs subtraction. That is the shape worth pointing a property at next: anywhere
+the code computes one value two ways.
+
+---
