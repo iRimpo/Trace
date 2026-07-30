@@ -35,9 +35,12 @@ print(d.get('$1', '$2'))
 "; }
 
 # ── Gate 0: verifier integrity ──────────────────────────────────────────
+# ratchet.json is excluded in every state: verify.sh writes it on each pass,
+# so flagging it would make gate 0 fail forever after the first success. The
+# baseRef diff below covers the files that actually define the target.
 integrity_ok=1
 if git rev-parse --git-dir >/dev/null 2>&1; then
-  dirty=$(git status --porcelain -- "${PROTECTED[@]}" 2>/dev/null | grep -v '^?? loop/ratchet.json$' || true)
+  dirty=$(git status --porcelain -- "${PROTECTED[@]}" 2>/dev/null | grep -v 'loop/ratchet\.json$' || true)
   if [ -n "$dirty" ]; then
     fail "verifier modified — the generator may not edit the verifier"
     echo "$dirty" | sed 's/^/       /'
