@@ -1,193 +1,169 @@
-# Trace — session handoff (2026-07-29)
+# Trace — consolidated handoff (2026-07-29)
 
-## THE CURRENT WORK — cue feedback redesign, branch `feedback-redesign`
-
-All nine code tasks are implemented and committed. **Nothing has been seen on a phone.**
-
-- Spec: `docs/superpowers/specs/2026-07-29-cue-feedback-redesign-design.md`
-- Plan: `docs/superpowers/plans/2026-07-29-cue-feedback-redesign.md`
-
-### What the audit found (don't re-derive)
-
-**One root cause explained three of the five reported problems: BPM was `null` on the phone.**
-Both count displays were gated on `bpm !== null`, and `quantize()` fell back to a 0.1s grid
-with no musical meaning. `detectBeatsFromVideo` fetches and decodes the entire video, which
-fails on iOS for large files.
-
-The other two:
-- `MAX_PER_BUCKET = 3` capped cues **per time bucket, not per screen**. With a 1.3s cue
-  lifetime and 0.1s buckets that allowed up to 39 concurrent cues.
-- `CueRuntime.cuesAt(t)` was already pure and seek-safe. What made feedback feel *live* was
-  (a) `beatPhase` falling back to a **wall-clock** `sin(performance.now())` oscillator,
-  (b) hit/miss badges being **live webcam judgments**, sticky per cue id and cleared only on
-  backward seeks, and (c) the timeline being composed once at scan time and never rebuilt.
-
-Also found: `anchorX/anchorY` was a *cooldown-reset artifact*, not the movement start, so
-arrow length never represented how far a limb travels.
-
-### What changed
-
-Scan output is now tempo-free (`MovementEvent[]`); composition into beat-locked cues is a
-separate pure function. Cue windows are exactly one beat wide (`LEAD_BEATS 0.75 + HOLD_BEATS
-0.25`) so they abut and **one-cue-on-screen is structural, not a limiter**. Rolls are detected
-by circuity (path length ÷ net displacement). Feedback now requires a count grid; without one
-the Feedback button opens tap-tempo. `judgeCue` left the practice loop entirely.
-
-### Mobile chrome fixes (2026-07-29, after a real installed-PWA screenshot)
-
-The installed PWA stacked three layers of chrome under the iPhone status bar.
-**Root cause:** PracticeView's header applied a safe-area inset but centred the
-tab bar with `absolute top-1/2`, which centres on the *padding* box — so a 59px
-Dynamic Island inset counted as centreable space. TraceTab's controls used a
-bare `top-3` with no inset at all; the count strip used a third value; both
-TestTab HUDs used `top-4`.
-
-Measured at a simulated 59px inset: tab bar was at **35px**, now **59px**, no
-horizontal collision down to a 320px viewport. One shared `TOP_STACK` in
-`components/practice/chrome.ts` now owns the offset — **import it rather than
-adding a fourth guess.**
-
-Also: transport sheet is drag/flick-dismissible; auto-hide no longer fires
-while paused (dancing reads as idle); recording HUD is a full-bleed red edge
-glow rather than an 8px dot; touch targets raised to 44px on mobile (56px for
-play), with `sm:` overrides keeping desktop compact.
-
-**Cues are now Beta and off by default** — Richard deprioritised the feedback
-feature. Consequence: **scan speed is no longer worth the risky rewrite**, since
-the scan exists only to produce cues. Revisit only if cues come out of Beta.
-
-### Storage — iOS evicts IndexedDB after 7 days
-
-`navigator.storage.persist()` (`lib/videoStore.ts:96`) is effectively denied in
-a normal iOS Safari tab, and iOS evicts IndexedDB after 7 days without
-interaction. Videos live in IndexedDB. **Installed PWAs are exempt.** So
-`InstallGate` protects the user's videos, not just their screen space — its copy
-should probably say so.
-
-### Still to do — REQUIRES RICHARD
-
-1. **Migration `008_scan_cache_v3.sql` has NOT been applied.** It contains
-   `delete from scan_cache where scan_version < 3` — a destructive statement against
-   production (`rnmnusnhkomiypjzmcbw`), so it was deliberately left for a human to run.
-2. **The 10-point device walkthrough in Task 10 of the plan has not been done.** The critical
-   checks: never more than one cue on screen; scrubbing to the same moment always shows the
-   identical cue; changing BPM after a scan re-lands cues without a rescan.
-3. `SCORE_FLOOR = 0.08` and the roll thresholds need tuning against the real TXT clip.
-
-Local verification only: `tsc` clean, 64 tests across 6 files, `build:check` green, app boots
-with no console errors.
+Self-contained. Paste this into a fresh chat and it should need no other context.
 
 ---
 
-# Previous handoff (2026-07-28)
+## 1. Project
 
-## Project context
+- **Trace**: Next.js 14 (App Router) + Supabase dance-practice PWA. On-device MediaPipe pose detection compares the user (webcam) to a reference dancer. All AI on-device; infra budget **$0/month**.
+- **Live (production = `main`)**: `https://trace-app-rho.vercel.app` — auto-deploys on push to `main`.
+- **Supabase**: project `rnmnusnhkomiypjzmcbw` (the *old* "Trace" one). `gncvjzcgnukwmruloutu` / "Trace-Fresh" is abandoned.
+- **Deadline**: KCON audition submissions close **Aug 7, 2026, 11:59 PDT**. Richard rehearses with the app.
+- **Core feature**: `TraceTab` renders the webcam full-screen with a canvas above it drawing the reference dancer at `overlayOpacity/100` — draggable and pinch-zoomable to align with your body. The scan is **additive** (cues on top) and must never gate practice.
+- **Three tabs**: `01 TRACE` (overlay practice) → `02 TEST` (record yourself) → `03 SYNC`.
 
-- **Trace**: Next.js 14 + Supabase dance-practice PWA. On-device MediaPipe pose detection compares the user (webcam) to a reference dancer.
-- **Live**: `https://trace-app-rho.vercel.app` — `main` auto-deploys via Vercel.
-- **Supabase project**: `rnmnusnhkomiypjzmcbw` (the *old* "Trace" one; `gncvjzcgnukwmruloutu` / "Trace-Fresh" is abandoned).
-- **Deadline**: KCON audition submissions close **Aug 7, 2026, 11:59 PDT**. Richard needs a tool he can actually rehearse with.
-- **Goals**: usable practice tool first; consumer-PM portfolio piece second; infra stays **$0/month** (free tiers, all AI on-device).
-- **Core feature** (confirmed in code): `TraceTab` renders the webcam full-screen with a canvas above it at `overlayOpacity/100` drawing the reference dancer — draggable and pinch-zoomable to align with your body. The scan is *additive* (cues on top) and must never gate it.
+### Verification commands
 
----
-
-## THE CURRENT WORK — feedback from a real phone session
-
-This is the active task. A screenshot from an iPhone practising a TXT / KCON routine surfaced six issues:
-
-1. **Not fullscreen.** Safari's top bar and bottom URL bar eat the screen. Wants them gone, or a way to hide them during practice.
-   - The manifest is already `"display": "standalone"` with `start_url: /dashboard`, so **installing to the Home Screen removes all Safari chrome**. `components/InstallPrompt.tsx` exists but is dismissible and stores `trace_install_prompt_dismissed` in localStorage — likely already dismissed.
-   - iOS Safari does **not** support the Fullscreen API on iPhone (only iPad); `webkitEnterFullscreen` works on `<video>` elements only. So installing the PWA is the only real path. Consider a practice-specific nudge when `display-mode: browser` is detected.
-
-2. **Cues are massively overwhelming.** The screenshot shows ~10 simultaneous markers — multiple blue arrows, orange arcs, red X circles, a purple diamond, a green ring. Needs a hard cap on concurrent cues and probably fewer distinct visual types.
-
-3. **Cues must lock to the 8-count.** Timing should sit on musical counts 1–8, not arbitrary times.
-
-4. **Feedback must be fully precomputed and scrubbable.** Richard's words: *"when I skip around, it shows the last previous feedback… it should be static, like a video — once it scans, it syncs directly to where it's at."* Today it feels dynamic/adaptive. Suspect `CueRuntime` holds a forward-only cursor with no re-seek on scrub / skip ±5s / A-B loop / playbackRate change.
-
-5. **Counts are invisible.** There's a `showCounts` / `countsEnabled` prop on `FeedbackCanvas`, but on a phone no 1–8 count is visible, so the user can't tell which move belongs to which count.
-
-6. **Sustained / rotational movement isn't representable.** A chest roll or body wave isn't a point-A-to-point-B joint translation, but the detector fires purely on displacement from an anchor. Needs a distinct representation.
-
-**Purpose of the feedback, restated by Richard:** tell the user *when* to move *which* body part (shoulder, head, hand) — and indicate the nature of the movement, including rolls/waves.
-
-### Investigation status
-An audit of the cue pipeline (`videoPreScan` → `movementEventDetector` → `choreoTimeline` → `cueRuntime` → `FeedbackCanvas` → `overlayRenderer`) was launched but **failed on a session limit before reporting**. Redo it. Key questions:
-- Does `CueRuntime` have a forward-only cursor, and does anything reset it on seek?
-- What exactly does `buildChoreoTimeline`'s "density cap" cap, and what's the worst-case simultaneous cue count given each cue's on-screen lifetime?
-- Does beat quantisation snap to `CountGrid`, and what happens when `grid` is null (no BPM)? Does `DEFAULT_LEAD_MS` get applied before or after quantisation (i.e. can the ~600ms lead knock a cue off its beat)?
-- Where is the 1–8 count actually drawn, and why would it not render on mobile?
+```bash
+npx tsc --noEmit          # must be clean
+npm test                  # 79 tests, 7 files
+npm run build:check       # safe build while dev server runs
+```
 
 ---
 
-## Shipped today (8 commits, all live)
+## 2. ⚠️ Immediate decision waiting
+
+**All work below is on branch `feedback-redesign`, not `main`. Production still has the broken iPhone header.**
+
+If Richard rehearses on `trace-app-rho.vercel.app` he gets the *old* code with the chrome bug. Options:
+
+- **Use the Vercel preview URL** for `feedback-redesign` — gets every fix, but the whole branch is unverified.
+- **Cherry-pick only the chrome fixes to `main`** — lowest risk, fixes the actual reported pain:
+  ```bash
+  git checkout main && git cherry-pick 3ba5990 a895c24 e99fba2
+  ```
+  Those three are self-contained layout/sizing fixes with no logic changes.
+- **Merge the whole branch** — do not do this without a device pass first.
+
+Nothing has been merged or deployed. That call is Richard's.
+
+---
+
+## 3. Branch state — `feedback-redesign`, 15 commits ahead of `main`
+
+Verified only by `tsc` clean + 79 tests + green `build:check` + the app booting with no console errors. **Nothing has been seen on a phone.**
 
 | Commit | What |
 |---|---|
-| `e4f200e` | Mid-scan dancer reacquire picker, abort-safe |
-| `dc50700` | Scan halved: 720 → 360 frames on a 3-min song; cue timing moved off a fake clock onto real video time. Wake lock + `storage.persist()` |
-| `c84f661` | Scan progress no longer a full-screen modal covering the overlay — now a corner pill |
-| `c649dae` | 28 Tailwind classes that emitted **zero CSS** (invalid `/06` `/05` opacity; `glassToggle` built classes by interpolation so the mirror toggle had no active state at all) |
-| `e5bf46c` | `scan_performance` telemetry → PostHog (frames, total, seek, detect, fps) |
-| `cefe312` | `ink` / `clay` Tailwind tokens replacing 415 arbitrary hex values — verified visually neutral (853 CSS rules before/after, identical declaration multiset) |
-| `8f4531c` | `<MotionConfig reducedMotion="user">`; scoped the blanket reduced-motion CSS that was freezing loading spinners; fixed invisible-but-clickable HUD controls; fixed countdown desync (recording started while "GO!" was still animating in); `lib/cuePalette.ts` as single source for the 7 region colours |
-| `f1d23cf` | **Scan stall fix** — the "stuck at 2%". `DancerTracker`'s coast budget only reset on a successful lock, so once blown every frame re-prompted, and "keep best guess" returned `-1` without locking → modal reappeared forever. Also recalibrated the fast-movement threshold |
-| `bbc4c04` | **Service worker serving stale JS**; mobile `100vh` → `h-full`; header logo covering the fullscreen button; transport row wrapping |
+| `d4cec97` | Design spec for the cue redesign |
+| `544b12a` | Implementation plan |
+| `c6457ee` | `lib/cueScript.ts` — beat-locked cue script, one cue per count |
+| `de3f08f` | Arrow origin = movement start, not cooldown artifact |
+| `80ccc3d` | Roll/wave detection by circuity |
+| `dd940fe` | Cache raw events so tempo changes recompose; migration 008 |
+| `62d08a2` | One cue renderer replacing seven bespoke shapes |
+| `dae4684` | `FeedbackCanvas` purely precomputed |
+| `3213ec9` | 8-count strip |
+| `b3feaa5` | Tempo required for feedback; recompose instead of rescan |
+| `c985a30` | iOS install walkthrough on the practice route |
+| `1e07145` | Tempo detection reports *why* it failed + 3 real defects |
+| `3ba5990` | **Practice chrome no longer stacks under the iPhone status bar** |
+| `a895c24` | **Recording HUD visible from dancing distance** |
+| `e99fba2` | **Touch targets at 44px on mobile** |
 
-### Infra also done
-- Migration `007_scan_cache.sql` applied to `rnmnusnhkomiypjzmcbw` — `scan_cache` exists with both RLS policies.
-- All four Vercel env vars repointed to that project; production redeployed.
-- Supabase auth redirect allow-list fixed (was missing `https://trace-app-rho.vercel.app/auth/callback`).
-- Emil Kowalski's 8 skills + Taste installed in `~/.claude/skills/` (inspected first — no network calls, `eval`, or credential access).
-- `docs/CLAUDE_TOOLING.md` — what each skill does and when to use it.
-
----
-
-## Known-good facts (don't re-derive)
-
-- **Supabase stores zero video.** No `storage.upload()` call exists anywhere. The `dance-videos` bucket is created by `001_create_tables.sql:82-87` but is write-dead. Video lives in IndexedDB (`lib/videoStore.ts`).
-- **The binding free-tier limit is the 500MB database**, not the 1GB storage. `scan_cache.timeline` is 20–80KB jsonb per row → ~12,000 scans ≈ 500MB.
-- `scan_cache_key_idx` keys on segment bounds rounded to 0.1s, so re-trimming the same video writes a **whole new row**. No TTL, and nothing purges rows when `SCAN_VERSION` bumps — every `scan_version = 1` row is orphaned right now.
-- **68% of `lib/` is platform-agnostic TypeScript** (tracker, timeline, cue runtime, count grid). A future React Native port keeps all of it — staying on web accrues no debt.
-- **32 modules / 3,318 LOC are unreachable** from any entrypoint (incl. a whole disconnected 3D character subsystem, 6 unwired landing sections, 8 SVG character components). Richard chose to **leave it all** for now.
+Specs: `docs/superpowers/specs/2026-07-29-cue-feedback-redesign-design.md`, plan: `docs/superpowers/plans/2026-07-29-cue-feedback-redesign.md`.
 
 ---
 
-## Gotchas that cost real time today
+## 4. Root causes found — DO NOT RE-DERIVE
 
-- **Never run `npm run build` while the dev server is up** — it overwrites the same `.next` the dev server is serving and produces `Cannot find module './948.js'`. Use **`npm run build:check`** (writes to `.next-check` via `distDir`). Cost three rounds of confusion.
-- **The service worker outlives everything.** `sw.js` caches `/_next/static/` cache-first. It survived clearing `.next`, deleting `node_modules/.cache`, restarting the server, cache-busting the URL, *and* checking out a clean HEAD. Now production-only, and dev actively unregisters any leftover worker. `CACHE_VERSION` bumped to `trace-v2` so installed clients drop a stale app shell — **if the phone still looks stale, delete the PWA from the Home Screen and re-add it.**
-- Tailwind silently emits nothing for invalid opacity (`/06`) and for interpolated class names (`` `bg-${c}-100` ``). Both shipped unnoticed.
-- Measure before optimising the scan: the first three hypotheses were wrong. Benchmarked seek cost at ~38ms/frame on desktop — **not** the bottleneck there. `scan_performance` events now report real device numbers.
+### The cue overlay felt overwhelming and "live" rather than precomputed
+
+**One root cause explained three of five reported problems: BPM was `null` on the phone.**
+- Both count displays were gated on `bpm !== null`.
+- `quantize()` fell back to a **0.1s grid** with no musical meaning.
+- `detectBeatsFromVideo` fetches and decodes the *entire* video; that fails on iOS for large files.
+
+The other two:
+- `MAX_PER_BUCKET = 3` capped cues **per time bucket, not per screen**. With a 1.3s cue lifetime and 0.1s buckets that permitted up to **39 concurrent cues**.
+- `CueRuntime.cuesAt(t)` was *already* pure and seek-safe. What made it feel live was: (a) `beatPhase` falling back to a **wall-clock** `sin(performance.now())` oscillator, so cues pulsed while paused; (b) hit/miss badges being **live webcam judgments**, sticky per cue id and cleared only on *backward* seeks, so forward skips showed stale verdicts; (c) the timeline being composed once at scan time and never rebuilt.
+
+Also: `anchorX/anchorY` was a **cooldown-reset artifact** — wherever a joint sat when its 800–1200ms cooldown last expired — so arrow length never represented how far a limb travels.
+
+### The installed-PWA chrome stacked under the status bar
+
+`PracticeView`'s header applied a safe-area inset but centred the tab bar with `absolute top-1/2`, which centres on the **padding box** — so a 59px Dynamic Island inset counted as centreable space. `TraceTab`'s controls used a bare `top-3` with **no inset at all**; the count strip used a third value; both `TestTab` HUDs used `top-4`.
+
+Measured at a simulated 59px inset: tab bar was at **35px**, now **59px**, with no horizontal collision down to a 320px viewport.
+
+**One shared `TOP_STACK` in `components/practice/chrome.ts` now owns this. Import it — do not add a fourth guess.**
+
+### Beat detector defects (fixed)
+
+- Every failure returned bare `null` from two bare `catch`es — six causes, one indistinguishable outcome. Now returns typed reasons (`too-large`, `fetch-failed`, `not-media`, `decode-failed`, `no-audio-track`, `no-tempo`, `out-of-range`), surfaced in the tap-tempo sheet and sent to PostHog as `beat_detection`.
+- `guess()` renders its own window internally through a 240Hz lowpass — the old code pre-rendered the whole buffer separately, which the library discarded and redid. **Double peak memory on the device least able to afford it.** Now passes `(buffer, offset, duration)`.
+- Analysis always started at `t=0`. Tutorial clips open on logo cards and talking intros. Now analyses the trimmed segment.
+- `guess()` reports its offset *within* the rendered window, so beat one landed early once a non-zero window start was used.
+- The `HEAD` preflight was dead code: `blob:` URLs (every uploaded video) reject HEAD outright.
+
+**Still unknown:** which failure fires on Richard's phone. Leading suspect is `decode-failed` — Safari is far stricter than Chrome about extracting AAC from an MP4 container. **If it is that, it may be unfixable from here**; the workarounds (WebCodecs demuxing, realtime `MediaElementAudioSourceNode` capture) are both substantial, and tap-tempo is four taps.
+
+### iOS evicts IndexedDB after 7 days
+
+`navigator.storage.persist()` (`lib/videoStore.ts:96`) is effectively denied in a normal iOS Safari tab, and iOS evicts IndexedDB after **7 days without interaction**. Videos live in IndexedDB. **Installed PWAs are exempt.** So `InstallGate` protects the user's *videos*, not just screen space — its copy should say so.
 
 ---
 
-## Open tasks
+## 5. Architecture of the new cue system
 
-**Blocking / next**
-1. Redo the cue-pipeline audit (above), then fix: density cap, 8-count locking, precomputed+scrubbable playback, visible counts, rolls/waves.
-2. PWA install nudge so practice runs without Safari chrome.
-3. Verify the practice screen at 375px — the mobile fixes there are reasoned from code, **not yet seen**, because it needs auth + a loaded video.
+```
+scan  →  MovementEvent[]              tempo-free, cached      ← the expensive part
+            ↓  composeCueScript(events, grid)                 ← pure, instant, re-runnable
+         CueScript                    one BeatCue per beat
+            ↓  cueAt(script, t)                               ← pure lookup, binary search
+         renderCue()
+```
 
-**Product calls needing Richard**
-4. Idle timer hides transport controls after 500ms — mid-dance you're idle *by definition*, so they vanish when you can't reach them.
-5. Recording indicator is an 8px pulsing dot, invisible from across a room.
+- **One-cue-on-screen is structural, not a limiter.** Windows are exactly one beat wide (`LEAD_BEATS 0.75 + HOLD_BEATS 0.25`), so adjacent windows abut and cannot overlap. There is no density cap to tune.
+- **`cueAt` is a pure function of video time** — no cursor, no wall clock. Scrubbing, looping and `playbackRate` are exact.
+- **Composition is separate from scanning**, so correcting the BPM recomposes every cue instantly instead of forcing a rescan. This is why the cache stores raw events (`SCAN_VERSION = 3`).
+- `judgeCue` still exists in `lib/cueRuntime.ts` for the Test tab but **is not called from anywhere**. Wiring it into TestTab is deliberately out of scope.
 
-**Deferred**
-6. Scan speed architecture: replace 300 sequential seeks with playback-based sampling via `requestVideoFrameCallback` at elevated `playbackRate` (52s clip at 8× ≈ 6.5s). An earlier attempt returned zero frames because autoplay needs a user gesture — in-app there is one.
-7. Supabase scaling: purge `scan_version < 2` rows, add TTL, widen segment rounding, move `thumbnail_url` off base64 data URIs, wrap RLS as `(select auth.uid())`, add `(user_id, created_at desc)` index, `security_invoker=true` on `user_progress`.
-8. Duolingo-style redesign (direction chosen: bold, high-contrast, glanceable). Motion consolidation: 7 easings → 3, 19 durations → 4 tiers. Extract Button/Card/Modal primitives (100 raw `<button>`s).
+**Cues are Beta and off by default** — Richard deprioritised the feature ("seems kind of hard to get right… set that as an experimental feature").
+
+**Consequence:** the deferred scan-speed rewrite (300 sequential seeks → playback sampling via `requestVideoFrameCallback`) **is no longer worth the risk.** The scan exists only to produce cues. Revisit only if cues leave Beta.
+
+**Known limitation:** roll detection needs ~4 samples/beat, and scan rate is `max(2, min(10, 300/span))` fps. A 37s trim gets ~4 and works; 180s+ floors at 2fps and emits nothing rather than noise.
+
+---
+
+## 6. Open items
+
+**Blocking**
+1. Device pass on a real iPhone — nothing in §3 has been seen running. Critical checks: never more than one cue on screen; scrubbing to the same moment always shows the identical cue; changing BPM after a scan re-lands cues without a rescan.
+2. **Migration `008_scan_cache_v3.sql` is UNAPPLIED.** It contains `delete from scan_cache where scan_version < 3` — destructive against production, deliberately left for a human. Not urgent: old rows just read as cache misses.
+3. Report which `beat_detection` reason fires on the phone.
+
+**Deferred / product calls**
+4. Duolingo-style redesign — direction chosen (bold, high-contrast, glanceable). **Deliberately not started**: a visual overhaul touching ~100 raw buttons is high-churn, and it should be aimed at what actually annoys Richard in a real session rather than guesses. The motion-consolidation item was overstated — practice components only use 3 duration values.
+5. `SCORE_FLOOR = 0.08` and the roll thresholds need tuning against the real TXT clip.
+6. TikTok/YouTube link import — Richard wants to explore it. **A page URL is not a video file**; `useSignedUrl` returns full URLs as-is, so the fetch gets HTML (this is the new `not-media` case). Making it work needs server-side extraction (yt-dlp), which is feasible on Vercel's free tier but violates those sites' ToS and breaks constantly. The working path is share sheet → Files → upload.
+7. Supabase scaling: TTL on `scan_cache`, widen segment rounding, move `thumbnail_url` off base64 data URIs, wrap RLS as `(select auth.uid())`, add `(user_id, created_at desc)` index, `security_invoker=true` on `user_progress`.
+8. 32 modules / 3,318 LOC unreachable from any entrypoint (incl. a disconnected 3D character subsystem, 6 unwired landing sections, 8 SVG character components). Richard chose to leave it.
 
 **Housekeeping**
-9. **Revoke the Supabase and Vercel tokens** pasted into chat earlier — they're in `.env.local` as `SUPABASE_ACCESS_TOKEN` and `VERCEL_TOKEN`.
+9. **Revoke the Supabase and Vercel tokens** pasted into chat earlier — they are in `.env.local` as `SUPABASE_ACCESS_TOKEN` and `VERCEL_TOKEN`.
 
 ---
 
-## Verification commands
+## 7. Gotchas that cost real time
 
-```bash
-npx tsc --noEmit          # clean
-npm test                  # 55 tests, 7 files
-npm run build:check       # safe build while dev server runs
-```
+- **Never run `npm run build` while the dev server is up** — it overwrites the same `.next` the dev server serves and produces `Cannot find module './948.js'`. Use **`npm run build:check`** (writes to `.next-check`).
+- **The service worker outlives everything.** `sw.js` caches `/_next/static/` cache-first and survived clearing `.next`, deleting `node_modules/.cache`, restarting the server, cache-busting the URL, *and* checking out a clean HEAD. **If the phone looks stale, delete the PWA from the Home Screen and re-add it.**
+- **Tailwind silently emits nothing** for invalid opacity suffixes (`/06`) and for interpolated class names (`` `bg-${x}-100` ``). Both shipped unnoticed once. Verify new arbitrary variants actually emit CSS: `grep '\[data-active' .next-check/static/css/*.css`.
+- **`npm run build` lints test files too.** An unused `_a` parameter in a vitest stub failed the build while `tsc` passed.
+- **Measure before optimising.** The first three hypotheses about scan cost were wrong; seek was ~38ms/frame on desktop and *not* the bottleneck there. `scan_performance` telemetry now reports real device numbers.
+- **Supabase stores zero video.** No `storage.upload()` call exists anywhere. Video lives in IndexedDB (`lib/videoStore.ts`). The binding free-tier limit is the **500MB database**, not the 1GB storage.
+- **68% of `lib/` is platform-agnostic TypeScript** (tracker, timeline, cue script, count grid). A React Native port keeps all of it — staying on web accrues no debt.
+
+---
+
+## 8. Tooling
+
+Installed skills at `~/.claude/skills/`: `emil-design-eng`, `taste`, `apple-design`, `improve-animations`, `animation-vocabulary`, `find-animation-opportunities`, `review-animations`, `frontend-patterns`, `pick-ui-library`, `prototype`, plus the full `superpowers` and `vercel:*` suites. Added 2026-07-29: `web-design-guidelines` (vercel-labs, 499K installs) and `accessibility` (addyosmani, 40K). All inspected — pure markdown, no scripts.
+
+**Not worth installing** (searched and rejected): computer-vision skills are OpenCV-oriented and would mislead for MediaPipe; Web Audio results are game-audio; PWA and canvas results were weak; the top debugging skill is `superpowers@systematic-debugging`, already installed.
+
+**Figma MCP**: requires the Figma desktop app running locally *and* a paid seat — breaks the $0/month constraint, and only pays off if designing in Figma first. **Playwright**: not installed, and partly redundant with the in-app browser tools.
