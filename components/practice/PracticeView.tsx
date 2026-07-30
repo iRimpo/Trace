@@ -98,7 +98,7 @@ export default function PracticeView({ videoUrl, videoId, videoTitle, videoSourc
         <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
           {/* Back + title */}
           <div className="pointer-events-auto flex items-center gap-3">
-            <Link href="/dashboard" className="touch-target flex h-8 items-center gap-1.5 rounded-full bg-black/60 px-3 text-[11px] font-semibold text-white/60 backdrop-blur-xl border border-white/[0.08] transition-ui hover:text-white hover:bg-black/80">
+            <Link href="/dashboard" className="touch-target flex h-9 items-center gap-1.5 rounded-full border border-white/10 bg-stage-glass px-3 text-hud font-extrabold text-stage-text/80 backdrop-blur-xl transition-ui hover:bg-stage/80 hover:text-stage-text">
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
               <span className="hidden sm:inline max-w-[160px] truncate">{videoTitle}</span>
             </Link>
@@ -114,7 +114,7 @@ export default function PracticeView({ videoUrl, videoId, videoTitle, videoSourc
               At z-50 vs their z-30 it covered the fullscreen button outright,
               so it's hidden until there's room for both. */}
           <div className="pointer-events-auto hidden items-center gap-2 sm:flex">
-            <div className="flex h-8 w-8 flex-col items-center justify-center rounded-full bg-black/60 backdrop-blur-xl border border-white/[0.08]">
+            <div className="flex h-9 w-9 flex-col items-center justify-center rounded-full border border-white/10 bg-stage-glass backdrop-blur-xl">
               <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
                 <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" stroke="white" strokeWidth="1.5" strokeLinejoin="round" opacity="0.7"/>
                 <circle cx="7" cy="7" r="2" fill="white" opacity="0.7"/>
