@@ -3,6 +3,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaTimes } from "react-icons/fa";
+import Panel from "@/components/ui/Panel";
+import Pressable from "@/components/ui/Pressable";
+import IconButton from "@/components/ui/IconButton";
 
 const DISMISSED_KEY = "trace_install_prompt_dismissed";
 
@@ -57,34 +60,48 @@ export default function InstallPrompt() {
   }, [installEvent]);
 
   return (
+    /*
+      A dark solid surface rather than the hand-rolled `bg-brand-primary` card
+      it was: this toast is mounted in the root layout, so it lands on cream
+      pages *and* on the practice stage, and `stage-solid` is the one tone that
+      holds its own contrast on both. Type floor is `text-hud` throughout — the
+      body copy and the Install button were both 12px-and-under paper sizes on
+      a surface that can appear over a camera feed.
+    */
     <AnimatePresence>
       {visible && (
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 40 }}
-          className="fixed bottom-4 left-4 right-4 z-[100] mx-auto max-w-md rounded-2xl border border-white/10 bg-brand-primary p-4 shadow-2xl"
-          style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
+          transition={{ duration: 0.24, ease: "easeOut" }}
+          className="fixed bottom-4 left-4 right-4 z-[100] mx-auto max-w-md"
+          style={{ marginBottom: "env(safe-area-inset-bottom)" }}
         >
-          <div className="flex items-start gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icons/icon-192.png" alt="" className="h-10 w-10 rounded-xl" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-white">Install Trace</p>
-              <p className="mt-1 text-xs leading-relaxed text-white/60">
-                Get the fullscreen app experience — no browser bars during practice.
-              </p>
-              <button
-                onClick={install}
-                className="mt-3 rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-black transition-opacity hover:opacity-90"
+          <Panel tone="stage-solid" radius="2xl" className="p-4">
+            <div className="flex items-start gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icons/icon-192.png" alt="" className="h-10 w-10 shrink-0 rounded-xl" />
+              <div className="min-w-0 flex-1">
+                <p className="text-hud-lg font-extrabold text-stage-text">Install Trace</p>
+                <p className="mt-1 text-hud font-medium leading-relaxed text-stage-text/70">
+                  Full screen while you practise, and your uploaded videos stop
+                  depending on the browser keeping them.
+                </p>
+                <Pressable variant="primary" size="sm" className="mt-3" onClick={install}>
+                  Install
+                </Pressable>
+              </div>
+              <IconButton
+                tone="stage-solid"
+                visual="sm"
+                aria-label="Dismiss install prompt"
+                onClick={dismiss}
               >
-                Install
-              </button>
+                <FaTimes className="h-3.5 w-3.5" />
+              </IconButton>
             </div>
-            <button onClick={dismiss} aria-label="Dismiss" className="p-1 text-white/30 hover:text-white/70">
-              <FaTimes className="h-3.5 w-3.5" />
-            </button>
-          </div>
+          </Panel>
         </motion.div>
       )}
     </AnimatePresence>

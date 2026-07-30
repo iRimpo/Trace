@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Panel from "@/components/ui/Panel";
+import Pressable from "@/components/ui/Pressable";
 
 // ── Tutorial steps ──────────────────────────────────────────────────
 
@@ -105,7 +107,16 @@ export default function TraceTutorial({ onClose }: { onClose: () => void }) {
     if (step > 0) setStep(s => s - 1);
   }
 
+  const isLast = step === STEPS.length - 1;
+
   return (
+    /*
+      Ground: the stage — see `docs/DESIGN_SYSTEM.md` §1. This card was white
+      glass with 10–12px ink copy, floating over the same camera feed the rest
+      of the practice chrome sits on. White glass over video in a bright room
+      is the brightest thing on screen, and it was pointing at controls the
+      user could no longer see past it.
+    */
     <>
       <Spotlight targetId={current.targetId} />
 
@@ -117,54 +128,64 @@ export default function TraceTutorial({ onClose }: { onClose: () => void }) {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="pointer-events-auto relative w-[min(380px,90vw)] rounded-2xl border border-black/10 bg-white/95 px-5 py-4 shadow-2xl backdrop-blur-xl"
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="pointer-events-auto w-[min(400px,92vw)]"
           >
-            {/* Skip */}
-            <button
-              onClick={finish}
-              className="absolute right-3 top-3 text-[10px] font-semibold text-ink/30 hover:text-ink/60"
-            >
-              Skip
-            </button>
+            <Panel tone="stage" radius="2xl" className="relative px-5 pb-4 pt-5">
+              {/* Skip. A text link at 10px was a decoration, not a control. */}
+              <Pressable
+                variant="stage"
+                size="sm"
+                className="absolute right-3 top-3"
+                onClick={finish}
+              >
+                Skip
+              </Pressable>
 
-            {/* Content */}
-            <div className="mb-3 flex items-start gap-3">
-              <span className="text-2xl">{current.emoji}</span>
-              <div>
-                <h3 className="text-sm font-bold text-ink">{current.title}</h3>
-                <p className="mt-0.5 text-[12px] leading-relaxed text-ink/60">{current.body}</p>
+              {/* Content */}
+              <div className="mb-4 flex items-start gap-3 pr-16">
+                <span className="text-3xl leading-none">{current.emoji}</span>
+                <div className="min-w-0">
+                  <h3 className="text-hud-lg font-extrabold tracking-tight text-stage-text">{current.title}</h3>
+                  <p className="mt-1.5 text-hud font-medium leading-relaxed text-stage-text/75">{current.body}</p>
+                </div>
               </div>
-            </div>
 
-            {/* Progress dots */}
-            <div className="mb-3 flex items-center justify-center gap-1.5">
-              {STEPS.map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-1.5 rounded-full transition-ui ${
-                    i === step ? "w-4 bg-ink" : "w-1.5 bg-ink/20"
-                  }`}
-                />
-              ))}
-            </div>
+              {/*
+                Where-am-I, at a size that survives the room. The current step
+                is a wide filled bar rather than a 1.5px dot with a 20%-tint
+                sibling — a fill/no-fill difference is the one that reads at
+                distance (same reasoning as TogglePill).
+              */}
+              <div
+                className="mb-3 flex items-center justify-center gap-1.5"
+                role="progressbar"
+                aria-valuemin={1}
+                aria-valuemax={STEPS.length}
+                aria-valuenow={step + 1}
+                aria-label={`Step ${step + 1} of ${STEPS.length}`}
+              >
+                {STEPS.map((_, i) => (
+                  <span
+                    key={i}
+                    className={`h-1.5 rounded-full transition-[width,background-color] duration-200 ease-out-strong motion-reduce:transition-none ${
+                      i === step ? "w-6 bg-duo-blue" : "w-1.5 bg-white/20"
+                    }`}
+                  />
+                ))}
+              </div>
 
-            {/* Buttons */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={back}
-                disabled={step === 0}
-                className="flex-1 rounded-lg border border-ink/12 py-1.5 text-[11px] font-semibold text-ink/40 transition-ui hover:text-ink/70 disabled:cursor-not-allowed disabled:opacity-30"
-              >
-                ← Back
-              </button>
-              <button
-                onClick={next}
-                className="flex-1 rounded-lg bg-brand-primary py-1.5 text-[11px] font-semibold text-white transition-ui hover:bg-brand-accent"
-              >
-                {step === STEPS.length - 1 ? "Finish 🎉" : "Next →"}
-              </button>
-            </div>
+              {/* Buttons */}
+              <div className="flex items-center gap-2">
+                <Pressable variant="stage" size="md" onClick={back} disabled={step === 0} className="flex-1">
+                  Back
+                </Pressable>
+                {/* The one green "go" on this surface is the one that ends it. */}
+                <Pressable variant={isLast ? "primary" : "secondary"} size="md" onClick={next} className="flex-1">
+                  {isLast ? "Finish" : "Next"}
+                </Pressable>
+              </div>
+            </Panel>
           </motion.div>
         </AnimatePresence>
       </div>

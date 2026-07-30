@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import Panel from "@/components/ui/Panel";
 import IconButton from "@/components/ui/IconButton";
+import { Spinner } from "@/components/states/icons";
 import { useSignedUrl } from "@/lib/useSignedUrl";
 
 /**
@@ -16,7 +17,7 @@ import { useSignedUrl } from "@/lib/useSignedUrl";
  *
  * What was wrong: zinc borders and zinc text on a cream ground (the app has no
  * zinc), a blurred `hover:shadow-lg` where paper depth is a solid edge, a raw
- * `#6366f1` play triangle from no palette in particular, and a delete control
+ * indigo play triangle from no palette in particular, and a delete control
  * that was `opacity-0` until hover — invisible on the phone this runs on — at
  * roughly 26px square.
  */
@@ -140,10 +141,10 @@ export default function VideoCard({
         className={`absolute right-2 top-2 ${showConfirm ? "!border-duo-red !bg-duo-red !text-white" : ""}`}
       >
         {deleting ? (
-          <svg className="h-3.5 w-3.5 animate-spin motion-reduce:animate-pulse" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
+          // `IconButton` has no `loading` prop — an icon-only control has no
+          // label to sit beside a spinner — so the glyph swaps for the one
+          // spinner the state vocabulary already owns.
+          <Spinner className="h-3.5 w-3.5" />
         ) : (
           <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M3 6h18M8 6V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6m3 0v13.5A1.5 1.5 0 0 1 17.5 21h-11A1.5 1.5 0 0 1 5 19.5V6" />

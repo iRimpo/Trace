@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import StateBlock from "./StateBlock";
 import { Spinner } from "./icons";
 
@@ -7,6 +8,13 @@ interface Props {
   message?: string;
   /** Second line — what is happening, when the wait is long enough to explain. */
   detail?: string;
+  /**
+   * A determinate meter, when the wait has a number attached to it. The upload
+   * page had drawn its own centred heading, sub-line and bar rather than use
+   * this shell, so "preparing your session" and "video ready" — two frames of
+   * one moment — arrived at different type sizes and different vertical rhythm.
+   */
+  action?: ReactNode;
   bare?: boolean;
   className?: string;
 }
@@ -19,7 +27,7 @@ interface Props {
  * Two counter-rotating rings were the old spinner. One ring is enough: it is a
  * progress indicator, not a feature.
  */
-export function LoadingState({ message = "Loading…", detail, bare = true, className = "" }: Props) {
+export function LoadingState({ message = "Loading…", detail, action, bare = true, className = "" }: Props) {
   return (
     <StateBlock
       bare={bare}
@@ -27,6 +35,7 @@ export function LoadingState({ message = "Loading…", detail, bare = true, clas
       icon={<Spinner />}
       title={message}
       body={detail}
+      action={action}
       className={className}
     />
   );

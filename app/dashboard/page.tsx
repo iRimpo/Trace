@@ -4,7 +4,10 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
-import DashboardSkeleton from "@/components/skeletons/DashboardSkeleton";
+import DashboardSkeleton, {
+  StatRowSkeleton,
+  SongListSkeleton,
+} from "@/components/skeletons/DashboardSkeleton";
 import SongCard from "@/components/dashboard/SongCard";
 import DashboardTutorial from "@/components/dashboard/DashboardTutorial";
 import DeviceVideos from "@/components/dashboard/DeviceVideos";
@@ -135,12 +138,17 @@ function DashboardContent() {
         className="mb-6"
       >
         <Panel tone="paper" radius="2xl" className="flex items-center justify-between gap-3 px-5 py-4">
+          {/* The one h1 on the page, at the same scale as "Welcome back" on
+              login and "Upload your dance video" on the upload page. It was a
+              `text-2xl` <p>, which meant the dashboard had no first-level
+              heading at all and its greeting was a size smaller than the same
+              greeting on every screen either side of it. */}
           <div className="min-w-0">
-            <p className="truncate text-2xl font-extrabold tracking-tight text-ink">
+            <h1 className="truncate text-3xl font-extrabold tracking-tight text-ink">
               Hi, {displayName}
-            </p>
+            </h1>
             {streak >= 3 && (
-              <p className="mt-0.5 text-xs font-semibold text-clay/70">
+              <p className="mt-1.5 text-sm font-medium text-clay/80">
                 {streak} days running. Keep it up.
               </p>
             )}
@@ -150,12 +158,17 @@ function DashboardContent() {
             <div className="flex shrink-0 items-center gap-1.5 rounded-2xl bg-duo-gold px-3 py-2 shadow-chunk-gold-sm">
               <span className="text-base leading-none" aria-hidden="true">🔥</span>
               <span className="text-lg font-extrabold leading-none tabular-nums text-ink">{streak}</span>
-              <span className="text-hud uppercase tracking-[0.14em] text-ink/70">
+              <span className="text-hud uppercase tracking-[0.18em] text-ink/70">
                 day{streak === 1 ? "" : "s"}
               </span>
             </div>
           )}
         </Panel>
+
+        {/* The tiles hold their own space while the fetch is out. Without this
+            the row simply was not there, so every load ended with the whole
+            page below it jumping down by a tile's height. */}
+        {loading && !stats && <StatRowSkeleton />}
 
         {stats && (
           <div className="mt-2 flex gap-2">
@@ -183,7 +196,10 @@ function DashboardContent() {
         )}
       </div>
 
-      {loading && <DashboardSkeleton />}
+      {/* Just the list — the greeting and the section header above are already
+          the real ones, so the page skeleton would draw a second copy of both
+          underneath them. */}
+      {loading && <SongListSkeleton />}
 
       {/* Failure, emptiness and waiting are all drawn from one vocabulary now —
           see components/states. Retry re-runs the fetch instead of reloading

@@ -17,7 +17,7 @@ interface State {
 /**
  * The last-resort state. It now renders the same `ErrorState` the dashboard
  * uses for a failed fetch, rather than a fourth hand-rolled card (zinc borders,
- * a rose plate, a raw `#e11d48` stroke and a `brand-primary` button that
+ * a rose plate, a raw rose hex on the stroke and a `brand-primary` button that
  * appears nowhere else). A crash and a failed request should not look like two
  * different products.
  */

@@ -72,7 +72,10 @@ export default function DeviceVideos() {
 
   return (
     <section className="mb-6">
-      <div className="mb-2.5 flex items-baseline justify-between gap-3">
+      {/* Same geometry as "Your practice" below it — `mb-3`, centred, `gap-3`.
+          Two section headers three rows apart cannot have two different
+          baselines and two different margins. */}
+      <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-lg font-extrabold tracking-tight text-ink">On this device</h2>
         <p className="text-hud uppercase tracking-[0.18em] text-clay/60">Ready instantly</p>
       </div>

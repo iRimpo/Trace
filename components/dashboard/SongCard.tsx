@@ -183,11 +183,15 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
             {group.latest}
             <span className="text-base text-clay/50">%</span>
           </p>
+          {/* `/12` is not on Tailwind's opacity scale, so `bg-duo-green/12`
+              compiled to nothing and this chip had no plate at all — the
+              delta read as bare text on white. `/10` is the tint `BAND_SOFT`
+              already uses, so the chip now matches the band chip below it. */}
           {delta !== null && (
             <p
               className={`mt-1 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-hud tabular-nums ${
-                delta > 0 ? "bg-duo-green/12 text-ink"
-                : delta < 0 ? "bg-duo-red/12 text-ink"
+                delta > 0 ? "bg-duo-green/10 text-ink"
+                : delta < 0 ? "bg-duo-red/10 text-ink"
                 : "bg-ink/[0.06] text-clay/70"
               }`}
             >
@@ -299,14 +303,9 @@ export default function SongCard({ group, onDelete }: SongCardProps) {
                   variant={confirmDelete ? "danger" : "quiet"}
                   size="sm"
                   onClick={handleDelete}
-                  disabled={deleting}
+                  loading={deleting}
                 >
-                  {deleting ? (
-                    <svg className="h-3.5 w-3.5 animate-spin motion-reduce:animate-pulse" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                  ) : (
+                  {!deleting && (
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M8 6V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6m3 0v13.5A1.5 1.5 0 0 1 17.5 21h-11A1.5 1.5 0 0 1 5 19.5V6" />
                     </svg>

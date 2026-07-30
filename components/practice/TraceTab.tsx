@@ -1133,7 +1133,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                     <button
                       key={n}
                       onClick={() => handleAlignCount(n)}
-                      className="touch-target flex h-10 w-10 items-center justify-center rounded-xl bg-white/12 text-hud-lg font-extrabold text-stage-text transition-ui hover:bg-white/25 active:scale-95 motion-reduce:active:scale-100"
+                      className="touch-target flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 text-hud-lg font-extrabold text-stage-text transition-ui hover:bg-white/25 active:scale-95 motion-reduce:active:scale-100"
                     >
                       {n}
                     </button>
@@ -1277,7 +1277,14 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               {/* BPM + Count section */}
               <div id="trace-bpm-count">
                 <BpmInput bpm={bpm} onBpmChange={setBpm} onSetBeatOne={handleSetBeatOne}
-                  detecting={beatDetecting} onDetect={runBeatDetection} />
+                  detecting={beatDetecting} onDetect={runBeatDetection}
+                  // Detection returns a typed reason now, so say which one:
+                  // `decode-failed` means try another section, `no-audio-track`
+                  // means don't bother, tap it. Both used to read "no tempo".
+                  failure={beatFailure}
+                  // Route to the real sheet rather than the cramped inline
+                  // panel — it's a 160px pad, and it marks count one on confirm.
+                  onOpenTapTempo={() => setShowTapTempo(true)} />
               </div>
 
               {/* Count on/off pill */}

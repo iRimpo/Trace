@@ -34,7 +34,9 @@ const TRACK: Record<Tone, string> = {
 };
 
 const PILL: Record<Tone, string> = {
-  paper: "bg-white shadow-sm",
+  // Paper depth is a solid edge, not a blur — see the contract §1. `shadow-sm`
+  // here was the one place a stage rule leaked back onto the paper ground.
+  paper: "bg-white shadow-card",
   stage: "bg-white",
 };
 

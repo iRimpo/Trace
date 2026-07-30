@@ -278,15 +278,23 @@ export default function PracticePage() {
           animate={{ y: 0 }}
           transition={{ duration: 0.28, ease: EASE_OUT }}
         >
-          <p className="text-hud uppercase tracking-[0.2em] text-clay/60">New session</p>
-          <h1 className="mt-1.5 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
+          {/* `tracking-[0.18em]` is the app's uppercase micro-label — the same
+              one "On this device" and the song-card section labels use. The
+              heading is `text-3xl` flat, matching login, signup and the
+              dashboard greeting; the `sm:text-4xl` bump made this the only
+              rank-1 heading in the product that changed size with the
+              viewport. */}
+          <p className="text-hud uppercase tracking-[0.18em] text-clay/60">New session</p>
+          <h1 className="mt-1.5 text-3xl font-extrabold tracking-tight text-ink">
             Upload your dance video
           </h1>
-          <p className="mt-2 text-sm font-medium leading-relaxed text-clay/80">
+          <p className="mt-1.5 text-sm font-medium leading-relaxed text-clay/80">
             Trace overlays it on your camera so you can match every move.
           </p>
 
-          <Panel tone="paper" radius="2xl" className="mt-6 p-5 sm:p-7">
+          {/* Same padding as the auth card — this and the login panel are the
+              same object: the one form card on a paper page. */}
+          <Panel tone="paper" radius="2xl" className="mt-6 p-6 sm:p-8">
             {/* ── Name ─────────────────────────────────────────────────── */}
             <Field
               label="Song or trend name"
@@ -392,28 +400,33 @@ export default function PracticePage() {
               )}
 
               {/* ── Working ────────────────────────────────────────────── */}
+              {/* Working, done and failed are all drawn from `components/states`
+                  now. This block used to hand-roll its own centred heading and
+                  sub-line beside a `SuccessState` doing the same job two lines
+                  below, at a different size and a different rhythm. */}
               {uploadState === "uploading" && (
-                <div className="py-6" role="status" aria-live="polite">
-                  <p className="text-center text-lg font-extrabold tracking-tight text-ink">
-                    Preparing your session
-                  </p>
-                  <p className="mt-1 text-center text-sm font-medium text-clay/70">
-                    Fingerprinting the file so it opens instantly next time.
-                  </p>
-                  {/* Transform, not width — a width transition relayouts every
-                      frame of the one moment the user is watching. */}
-                  <div className="mx-auto mt-5 h-3 max-w-xs overflow-hidden rounded-full bg-ink/[0.08]">
-                    <motion.div
-                      className="h-full w-full origin-left rounded-full bg-duo-green"
-                      initial={reduce ? false : { scaleX: 0 }}
-                      animate={{ scaleX: Math.min(progress, 100) / 100 }}
-                      transition={{ duration: 0.3, ease: EASE_OUT }}
-                    />
-                  </div>
-                  <p className="mt-2 text-center text-hud tabular-nums text-clay/60">
-                    {Math.round(progress)}%
-                  </p>
-                </div>
+                <LoadingState
+                  message="Preparing your session"
+                  detail="Fingerprinting the file so it opens instantly next time."
+                  className="py-4"
+                  action={
+                    <div className="w-full">
+                      {/* Transform, not width — a width transition relayouts
+                          every frame of the one moment the user is watching. */}
+                      <div className="mx-auto h-3 max-w-xs overflow-hidden rounded-full bg-ink/[0.07]">
+                        <motion.div
+                          className="h-full w-full origin-left rounded-full bg-duo-green"
+                          initial={reduce ? false : { scaleX: 0 }}
+                          animate={{ scaleX: Math.min(progress, 100) / 100 }}
+                          transition={{ duration: 0.3, ease: EASE_OUT }}
+                        />
+                      </div>
+                      <p className="mt-2 text-center text-hud tabular-nums text-clay/60">
+                        {Math.round(progress)}%
+                      </p>
+                    </div>
+                  }
+                />
               )}
 
               {/* ── Done ───────────────────────────────────────────────── */}
@@ -440,7 +453,7 @@ export default function PracticePage() {
                     bare
                     title="That didn't work"
                     message={error}
-                    className="px-0 pb-0 pt-6"
+                    className="pb-0 pt-6"
                   />
                 </motion.div>
               )}

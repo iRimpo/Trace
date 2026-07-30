@@ -22,8 +22,10 @@ import { CUE_PALETTE, CUE_COLORS } from "@/lib/cuePalette";
  *
  * Now the chrome is the design system — `Panel`, `Pressable`, real 44px targets
  * — so the last thing a new user sees before the dashboard looks like the
- * dashboard. Green stays "go" on every step; the step's accent survives in the
- * progress dot, which is the only thing it was ever really identifying.
+ * dashboard. The forward button is `ink`, the same neutral commit the signup
+ * wizard uses, because green in this product means "start practising" and
+ * nothing else; the step's accent survives in the progress dot, which is the
+ * only thing it was ever really identifying.
  */
 
 // ── Step visuals ───────────────────────────────────────────────────────────
@@ -86,7 +88,7 @@ function VisualGhostMirror() {
           <circle cx="28" cy="65" r="3.5" fill={CUE_PALETTE.hip}/>
           <circle cx="32" cy="65" r="3.5" fill={CUE_PALETTE.hip}/>
         </svg>
-        <p className="mt-1 text-center text-hud uppercase tracking-[0.16em] text-clay/60">Reference</p>
+        <p className="mt-1 text-center text-hud uppercase tracking-[0.18em] text-clay/60">Reference</p>
       </div>
 
       {/* Blend arrow */}
@@ -113,7 +115,7 @@ function VisualGhostMirror() {
             <circle cx="52" cy="50" r="4" fill={CUE_PALETTE.hand} opacity={0.9}/>
           </motion.g>
         </svg>
-        <p className="mt-1 text-center text-hud uppercase tracking-[0.16em] text-clay/60">You</p>
+        <p className="mt-1 text-center text-hud uppercase tracking-[0.18em] text-clay/60">You</p>
       </div>
     </div>
   );
@@ -342,7 +344,7 @@ export default function DashboardTutorial({ onDone, dismissKey }: DashboardTutor
           <button
             type="button"
             onClick={finish}
-            className="touch-target absolute right-3 top-3 z-10 rounded-xl px-2 py-1 text-hud uppercase tracking-[0.14em] text-clay/60 transition-ui duration-150 hover:text-ink"
+            className="touch-target absolute right-3 top-3 z-10 rounded-xl px-2 py-1 text-hud uppercase tracking-[0.18em] text-clay/60 transition-ui duration-150 hover:text-ink"
           >
             Skip
           </button>
@@ -415,8 +417,16 @@ export default function DashboardTutorial({ onDone, dismissKey }: DashboardTutor
                   </svg>
                 </Pressable>
               )}
+              {/*
+                `ink`, not green. Green is the one "start practising" colour —
+                "New session", "Practise again", "Start session". Advancing a
+                wizard is a neutral commit, which is exactly what the signup
+                wizard's "Continue" two screens earlier already is, and a user
+                arriving here straight from signup should not meet the same
+                control in a different colour.
+              */}
               <Pressable
-                variant="primary"
+                variant="ink"
                 size="md"
                 block
                 onClick={isLast ? finish : () => setStep(s => s + 1)}

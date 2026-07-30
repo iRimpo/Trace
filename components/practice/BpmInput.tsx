@@ -2,6 +2,8 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import TogglePill from "@/components/ui/TogglePill";
+import { BEAT_FAILURE_COPY } from "@/lib/beatDetector";
+import type { BeatFailure } from "@/lib/beatDetector";
 
 interface BpmInputProps {
   bpm:              number | null;
@@ -10,6 +12,23 @@ interface BpmInputProps {
   detecting?:       boolean;
   onDetect?:        () => void;
   isFullscreen?:    boolean;
+  /**
+   * Why detection failed, when it did.
+   *
+   * Detection used to return a bare `null` for six distinct causes; it now
+   * returns a typed reason. The difference is not cosmetic — `decode-failed`
+   * means "try a different section", `no-audio-track` means "never bother, tap
+   * it". Showing "No tempo found" for both sends the user back to retry
+   * something that cannot succeed.
+   */
+  failure?:         BeatFailure | null;
+  /**
+   * Raise the full tap-tempo sheet. Without this, "Tap it out" can only open
+   * this component's own cramped inline panel, when the sheet (160px pad, four
+   * taps, and it marks count one on confirm) is the better surface — and the
+   * one that actually works on iOS, where audio decode is the likely failure.
+   */
+  onOpenTapTempo?:  () => void;
 }
 
 const MIN_TAPS     = 3;
@@ -70,6 +89,8 @@ export default function BpmInput({
   onSetBeatOne,
   detecting = false,
   onDetect,
+  failure = null,
+  onOpenTapTempo,
 }: BpmInputProps) {
   const [showManual, setShowManual] = useState(false);
   const [tapCount,   setTapCount]   = useState(0);
@@ -160,7 +181,9 @@ export default function BpmInput({
           <svg className="h-4 w-4 shrink-0 text-duo-red" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0 3.75h.008M10.34 3.94 2.7 17.1A1.5 1.5 0 0 0 4 19.35h16a1.5 1.5 0 0 0 1.3-2.25L13.66 3.94a1.5 1.5 0 0 0-2.62 0Z" />
           </svg>
-          No tempo found
+          <span className="max-w-[16rem] truncate">
+            {failure ? BEAT_FAILURE_COPY[failure] : "No tempo found"}
+          </span>
         </span>
       );
     }
@@ -200,7 +223,7 @@ export default function BpmInput({
           quiet otherwise — four taps is the answer, not the consolation. */}
       {!showManual && bpm === null && (
         <button
-          onClick={openManual}
+          onClick={onOpenTapTempo ?? openManual}
           className={
             detectFailed
               ? `${STAGE_PILL} border-cue-hip bg-cue-hip text-stage`

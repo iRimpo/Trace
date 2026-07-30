@@ -2,9 +2,9 @@
  * How a sync score is coloured, in one place.
  *
  * `scoreColor()` used to be copy-pasted into `SongCard` and `ProgressGraph`,
- * each returning raw hex (`#10B981`, `#EAB308`, `#EF4444`) into an inline
- * `style`, which is both a palette that cannot be changed in one edit and six
- * of the repo's scanned hex budget.
+ * each returning a raw emerald / amber / red hex into an inline `style`, which
+ * is both a palette that cannot be changed in one edit and six of the repo's
+ * scanned hex budget.
  *
  * Three bands, not four. The old fourth band borrowed `cue.elbow` — a *joint*
  * colour — for a UI meaning, which is exactly the reuse the design system

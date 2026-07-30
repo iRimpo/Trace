@@ -910,7 +910,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 z-30 flex items-center justify-center overflow-y-auto bg-black/72 px-3 py-6"
+            className="absolute inset-0 z-30 flex items-center justify-center overflow-y-auto bg-black/70 px-3 py-6"
           >
             <motion.div
               initial={{ scale: 0.94, y: 14 }}

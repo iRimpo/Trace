@@ -36,7 +36,7 @@ export default function StatTile({ value, label, accent = "ink", icon }: Props) 
       <p className={`text-2xl font-extrabold leading-none tabular-nums sm:text-3xl ${ACCENT[accent]}`}>
         {value}
       </p>
-      <p className="text-[10px] font-bold uppercase tracking-widest text-clay/50">
+      <p className="text-hud uppercase tracking-[0.18em] text-clay/60">
         {label}
       </p>
     </div>
