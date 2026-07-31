@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { detectPose, initPoseDetection } from "@/lib/mediapipe";
+import { detectPose, initPoseDetection, detectAllPosesFromFrame } from "@/lib/mediapipe";
 import { VideoRecorder } from "@/lib/videoRecorder";
 import { PoseRecorder, type PoseFrame } from "@/lib/poseRecorder";
+import { DancerTracker } from "@/lib/dancerTracker";
 import { createPracticeSession } from "@/lib/uploadRecording";
 import { storeRecordingSession, loadVideoSession } from "@/lib/sessionVideoStorage";
 import { useAuth } from "@/context/AuthContext";
@@ -95,6 +96,11 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
   const refDurationRef    = useRef(0);
   const calibAppliedRef   = useRef(false);
   const refPoseRecorderRef = useRef<PoseRecorder | null>(null);
+  /**
+   * Follows the dancer chosen in calibration through the reference video.
+   * Null for a solo clip, where there is only one pose to find anyway.
+   */
+  const refTrackerRef = useRef<DancerTracker | null>(null);
 
   // ── Webcam ───────────────────────────────────────────────────────
   const [webcamReady, setWebcamReady] = useState(false);
@@ -254,6 +260,20 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
       const refPoseRec = new PoseRecorder();
       refPoseRecorderRef.current = refPoseRec;
       refPoseRec.start();
+
+      // Group clip: lock onto the dancer the user picked. Solo: nothing to
+      // disambiguate, so the cheaper single-pose path stays.
+      const center = initialFraming?.personCenter;
+      if (center && !initialFraming?.solo) {
+        const tracker = new DancerTracker();
+        tracker.lock(center);
+        // A missed re-lock must not silently record nothing for the rest of
+        // the take — following a doubtful dancer beats following none.
+        tracker.acknowledgeReacquire({ bestGuess: true });
+        refTrackerRef.current = tracker;
+      } else {
+        refTrackerRef.current = null;
+      }
       setElapsedSec(0);
       // You are across the room and cannot see the red ring.
       confirmCue("recordStart");
@@ -293,16 +313,40 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
         const webcam = webcamRef.current;
         if (webcam) { const kps = detectPose(webcam); if (kps) pr.capture(kps); }
 
-        // Also capture reference video pose (for sync scoring)
+        /*
+          Reference pose, for scoring.
+
+          This used to be `detectPose(offscreen)`, which returns
+          `landmarks[0]` — whichever dancer MediaPipe happened to list first.
+          With `numPoses: 10` on a group video that is an arbitrary dancer, and
+          the index is not stable between frames, so a run could be scored
+          against a *different person every few frames*. It also made
+          calibration's "Pick the dancer to follow" a lie: the choice was
+          stored and then ignored for the whole take.
+
+          Now a group video follows the dancer that was actually picked, using
+          the same DancerTracker the pre-scan uses — it predicts where the
+          locked dancer should be and scores candidates on that plus box
+          overlap, which is what survives a formation crossing.
+
+          The per-frame offscreen canvas is gone too: it allocated a
+          full-resolution canvas and 2D context on every captured frame for the
+          length of the take, and detectPose takes a video element directly.
+        */
         const proVideo = proVideoRef.current;
         if (proVideo && !proVideo.paused && proVideo.readyState >= 2) {
-          const offscreen = document.createElement("canvas");
-          offscreen.width  = proVideo.videoWidth;
-          offscreen.height = proVideo.videoHeight;
-          const ctx2 = offscreen.getContext("2d");
-          if (ctx2) {
-            ctx2.drawImage(proVideo, 0, 0);
-            const refKps = detectPose(offscreen);
+          const tracker = refTrackerRef.current;
+          if (tracker) {
+            const all = detectAllPosesFromFrame(proVideo);
+            if (all && all.length > 0) {
+              const step = tracker.step(all, proVideo.videoWidth, proVideo.videoHeight);
+              // Coasting through an occlusion yields no keypoints; recording a
+              // guess would be worse than recording a gap, which the scorer
+              // now reports honestly as reduced coverage.
+              if (step.kps) refPoseRecorderRef.current?.capture(step.kps);
+            }
+          } else {
+            const refKps = detectPose(proVideo);
             if (refKps) refPoseRecorderRef.current?.capture(refKps);
           }
         }
