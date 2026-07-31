@@ -7,8 +7,8 @@ import type { PoseFrame } from "@/lib/poseRecorder";
 import type { CalibrationData } from "@/components/practice/CalibrationModal";
 import { saveSyncScore } from "@/lib/uploadRecording";
 import { loadRecordingSession, clearRecordingSession } from "@/lib/sessionVideoStorage";
-import { TOP_STACK, BOTTOM_SAFE } from "@/components/practice/chrome";
-import { SPRING_UI } from "@/lib/motion";
+import { TOP_STACK, BOTTOM_SAFE, useIsPortrait } from "@/components/practice/chrome";
+import { SPRING_UI, SEC } from "@/lib/motion";
 import Panel from "@/components/ui/Panel";
 import Pressable from "@/components/ui/Pressable";
 import IconButton from "@/components/ui/IconButton";
@@ -354,7 +354,15 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
    * dancing and the score is the entire point of the tab. "Watch it back"
    * collapses it to a chip so the run underneath becomes scrubable.
    */
+  /** Layout branches on orientation, never on a width breakpoint (§7). */
+  const isPortrait = useIsPortrait();
+
   const [resultsOpen, setResultsOpen] = useState(true);
+  /**
+   * The detail panel's sheet, in portrait only. In landscape the panel is a
+   * persistent rail and this is unused.
+   */
+  const [detailOpen, setDetailOpen] = useState(false);
 
   // ─────────────────────────────────────────────────────────────────
   // Load recording session from sessionStorage
@@ -687,99 +695,15 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // Main render
-  // ─────────────────────────────────────────────────────────────────
-  return (
-    <div className="relative h-full w-full overflow-hidden bg-black">
+  /** Is there anything to drill into at all? */
+  const hasDetail = feedbackItems.length > 0 || regionScores !== null;
 
-      {/* ── Video area (fills entire container) ────────────────── */}
-      <div className="absolute inset-0">
-
-        {/* User recording (base layer) */}
-        <video
-          ref={userVideoRef}
-          src={recordingUrl}
-          playsInline
-          preload="auto"
-          crossOrigin="anonymous"
-          className="absolute inset-0 h-full w-full object-cover"
-          style={{ transform: "scaleX(-1)" }}
-          onLoadedMetadata={e => {
-            const v = e.currentTarget;
-            setDuration(v.duration);
-            v.playbackRate = speed;
-          }}
-          onTimeUpdate={e => {
-            const t = e.currentTarget.currentTime;
-            setCurrentTime(t);
-            syncRef(t);
-          }}
-          onEnded={() => { setPlaying(false); proVideoRef.current?.pause(); }}
-        />
-
-        {/* Reference overlay canvas (draggable) */}
-        <canvas
-          ref={overlayCanvasRef}
-          className="absolute inset-0 h-full w-full"
-          style={{
-            opacity:     overlayOpacity / 100,
-            cursor:      isDragging ? "grabbing" : "grab",
-            touchAction: "none",
-          }}
-          onPointerDown={handleCanvasPointerDown}
-        />
-
-        {/* Reference video — visually hidden but NOT display:none so audio plays */}
-        <video
-          ref={proVideoRef}
-          src={videoUrl}
-          playsInline
-          preload="auto"
-          crossOrigin="anonymous"
-          style={{ position: "absolute", width: 0, height: 0, opacity: 0, pointerEvents: "none" }}
-        />
-      </div>
-
-      {/* ── Top-left status / collapsed score ───────────────────── */}
-      {/* top-14 was a fourth independent guess at the offset: 56px sits under a
-          59px Dynamic Island inset, and collides with PracticeView's header at
-          any inset. TOP_STACK is the one value that clears it. */}
-      <div className="absolute left-3 z-20 flex items-center gap-2" style={{ top: TOP_STACK }}>
-        {overallScore !== null && !resultsOpen ? (
-          /* Collapsed results — still the score, still legible, one tap back. */
-          <button
-            onClick={() => setResultsOpen(true)}
-            aria-label={`Show results — ${overallScore} out of 100`}
-            className={`touch-target flex min-h-[44px] items-center gap-2 rounded-full ${GLASS} px-3.5 transition-ui hover:bg-stage/80`}
-          >
-            <span className={`text-2xl font-black leading-none tabular-nums ${scoreText(overallScore)}`}>
-              {overallScore}
-            </span>
-            <span className="text-hud font-extrabold uppercase tracking-widest text-stage-text/70">
-              Results
-            </span>
-          </button>
-        ) : (
-          <div className={`flex items-center gap-2 rounded-full ${GLASS} px-3 py-2`}>
-            <span className="h-2 w-2 rounded-full bg-duo-green" />
-            <span className="text-hud font-extrabold tracking-widest text-stage-text/80">SYNC</span>
-            {!scoringReady && userFrames.length > 0 && (
-              <span className="flex items-center gap-1.5 text-hud font-bold text-stage-text/70">
-                <span className="h-3 w-3 animate-spin motion-reduce:animate-pulse rounded-full border border-white/30 border-t-transparent" />
-                Scoring…
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ── Detail panel (tablet+) — the drill-down, not the headline ─── */}
-      {(feedbackItems.length > 0 || regionScores) && (
-        <div
-          className="absolute right-3 bottom-56 z-10 hidden w-72 overflow-y-auto md:block"
-          style={{ top: TOP_STACK }}
-        >
+  /**
+   * The drill-down, rendered identically in both layouts — a rail in
+   * landscape, a sheet in portrait. One definition so the two cannot drift
+   * the way the live count did.
+   */
+  const detailPanel = (
           <Panel tone="stage" radius="2xl" className="p-3.5">
 
             {/* Worst segment jump — the single most useful button here, so it
@@ -888,8 +812,172 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
               ))}
             </div>
           </Panel>
+  );
+
+  // ─────────────────────────────────────────────────────────────────
+  // Main render
+  // ─────────────────────────────────────────────────────────────────
+  return (
+    <div className="relative h-full w-full overflow-hidden bg-black">
+
+      {/* ── Video area (fills entire container) ────────────────── */}
+      <div className="absolute inset-0">
+
+        {/* User recording (base layer) */}
+        <video
+          ref={userVideoRef}
+          src={recordingUrl}
+          playsInline
+          preload="auto"
+          crossOrigin="anonymous"
+          /* object-contain, not object-cover. Cover *crops* the recording to
+             fill, and combined with the scaleX(-1) mirror it silently cut the
+             dancer's hands and feet out of the comparison. On a review screen
+             you are judging shapes against a reference, not filling a frame —
+             seeing the whole body beats seeing it edge-to-edge. */
+          className="absolute inset-0 h-full w-full object-contain"
+          style={{ transform: "scaleX(-1)" }}
+          onLoadedMetadata={e => {
+            const v = e.currentTarget;
+            setDuration(v.duration);
+            v.playbackRate = speed;
+          }}
+          onTimeUpdate={e => {
+            const t = e.currentTarget.currentTime;
+            setCurrentTime(t);
+            syncRef(t);
+          }}
+          onEnded={() => { setPlaying(false); proVideoRef.current?.pause(); }}
+        />
+
+        {/* Reference overlay canvas (draggable) */}
+        <canvas
+          ref={overlayCanvasRef}
+          className="absolute inset-0 h-full w-full"
+          style={{
+            opacity:     overlayOpacity / 100,
+            cursor:      isDragging ? "grabbing" : "grab",
+            touchAction: "none",
+          }}
+          onPointerDown={handleCanvasPointerDown}
+        />
+
+        {/* Reference video — visually hidden but NOT display:none so audio plays */}
+        <video
+          ref={proVideoRef}
+          src={videoUrl}
+          playsInline
+          preload="auto"
+          crossOrigin="anonymous"
+          style={{ position: "absolute", width: 0, height: 0, opacity: 0, pointerEvents: "none" }}
+        />
+      </div>
+
+      {/* ── Top-left status / collapsed score ───────────────────── */}
+      {/* top-14 was a fourth independent guess at the offset: 56px sits under a
+          59px Dynamic Island inset, and collides with PracticeView's header at
+          any inset. TOP_STACK is the one value that clears it. */}
+      <div className="absolute left-3 z-20 flex items-center gap-2" style={{ top: TOP_STACK }}>
+        {overallScore !== null && !resultsOpen ? (
+          /* Collapsed results — still the score, still legible, one tap back. */
+          <button
+            onClick={() => setResultsOpen(true)}
+            aria-label={`Show results — ${overallScore} out of 100`}
+            className={`touch-target flex min-h-[44px] items-center gap-2 rounded-full ${GLASS} px-3.5 transition-ui hover:bg-stage/80`}
+          >
+            <span className={`text-2xl font-black leading-none tabular-nums ${scoreText(overallScore)}`}>
+              {overallScore}
+            </span>
+            <span className="text-hud font-extrabold uppercase tracking-widest text-stage-text/70">
+              Results
+            </span>
+          </button>
+        ) : (
+          <div className={`flex items-center gap-2 rounded-full ${GLASS} px-3 py-2`}>
+            <span className="h-2 w-2 rounded-full bg-duo-green" />
+            <span className="text-hud font-extrabold tracking-widest text-stage-text/80">SYNC</span>
+            {!scoringReady && userFrames.length > 0 && (
+              <span className="flex items-center gap-1.5 text-hud font-bold text-stage-text/70">
+                <span className="h-3 w-3 animate-spin motion-reduce:animate-pulse rounded-full border border-white/30 border-t-transparent" />
+                Scoring…
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/*
+        ── The detail panel exists on phones now ──────────────────────────
+        It was `hidden … md:block`, so the per-region breakdown and the
+        "jump to your weakest bar" button — the most actionable controls in
+        the app — did not exist on the device the app is actually used on.
+        Same class of bug as the Ghost slider and the live count; contract §7
+        now forbids it outright.
+
+        Landscape keeps the persistent rail, which is what the horizontal room
+        is for. Portrait gets a sheet on the same drag-to-dismiss pattern as
+        the results card, opened from the top-right.
+      */}
+      {hasDetail && !isPortrait && (
+        <div
+          className="absolute right-3 bottom-56 z-10 w-72 overflow-y-auto"
+          style={{ top: TOP_STACK }}
+        >
+          {detailPanel}
         </div>
       )}
+
+      {hasDetail && isPortrait && !resultsOpen && (
+        <div className="absolute right-3 z-20" style={{ top: TOP_STACK }}>
+          <Pressable
+            variant="stage"
+            size="sm"
+            onClick={() => setDetailOpen(true)}
+            aria-expanded={detailOpen}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+            </svg>
+            Details
+          </Pressable>
+        </div>
+      )}
+
+      <AnimatePresence>
+        {hasDetail && isPortrait && detailOpen && (
+          <motion.div
+            key="detail-scrim"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: SEC.EXIT }}
+            onClick={() => setDetailOpen(false)}
+            className="absolute inset-0 z-30 bg-black/60"
+          >
+            <motion.div
+              key="detail-sheet"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={SPRING_UI}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.5 }}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 90 || info.velocity.y > 520) setDetailOpen(false);
+              }}
+              onClick={e => e.stopPropagation()}
+              role="dialog"
+              aria-label="Run detail"
+              className="absolute inset-x-0 bottom-0 max-h-[82%] cursor-grab overflow-y-auto active:cursor-grabbing"
+              style={{ paddingBottom: BOTTOM_SAFE }}
+            >
+              <div className="mx-auto mb-1 h-1 w-10 shrink-0 rounded-full bg-white/25" />
+              {detailPanel}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ══════════════════ RESULTS — the payoff ══════════════════ */}
       {/*

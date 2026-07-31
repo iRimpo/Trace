@@ -40,3 +40,27 @@ export const ACTION = {
   redDark:   "#E23A3A",
   edge:      "#E0DCC8",
 } as const;
+
+/**
+ * Who a body on screen belongs to — the reference dancer, or you.
+ *
+ * This is an identity axis, not a UI accent, and it has to hold across two
+ * renderers: the pane badges are Tailwind classes, and the rings drawn on the
+ * video are canvas `strokeStyle`. Before this existed the badges invented
+ * `bg-pink-500` and `bg-blue-500` from the raw Tailwind palette, which meant
+ * they could never be kept in sync with anything drawn on the canvas — and
+ * being able to tell at a glance which body is which is the entire premise of
+ * a comparison view.
+ *
+ * Deliberately *not* `duo.blue`: that token means "view / framing /
+ * informational" everywhere in the app (`DESIGN_SYSTEM.md` §2), and reusing it
+ * for identity would make a YOU badge and a framing control the same colour.
+ * These two are chosen for maximum separation from each other and from the
+ * cue palette, and they survive being seen small, at distance, over video.
+ */
+export const IDENTITY = {
+  /** The reference dancer — the body you are copying. */
+  reference: "#FF5FA2",
+  /** You — the body from the camera. */
+  you:       "#38D9F5",
+} as const;

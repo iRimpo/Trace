@@ -152,6 +152,9 @@ interface TraceTabProps {
 // ── Component ──────────────────────────────────────────────────────────
 
 export default function TraceTab({ videoUrl, onComplete, initialFraming, videoIdentity }: TraceTabProps) {
+  /** Every layout branch on this screen reads this, never a width breakpoint. */
+  const isPortrait       = useIsPortrait();
+
   const proVideoRef      = useRef<HTMLVideoElement>(null);
   const webcamRef        = useRef<HTMLVideoElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -832,22 +835,39 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
           )}
         </div>
       ) : (
-        <div className="absolute inset-0 grid grid-cols-2">
-          <div className="relative overflow-hidden bg-black">
+        /*
+          Side-by-side branches on **orientation, not width** (contract §7).
+
+          This was an unconditional `grid-cols-2`, which on a 393×852 phone
+          gives each pane 196px. The reference is `object-contain`, so a 16:9
+          clip letterboxes into a 196×110 strip with ~370px of black above and
+          below it — two squished columns and almost no dancer, which is
+          exactly the reported symptom. A width breakpoint cannot fix it,
+          because a phone *in landscape* genuinely does want columns.
+
+          In portrait the panes stack, and **you are on top**: you are the body
+          being corrected, so you get the position the eye returns to, and the
+          reference sits below as the thing being consulted.
+        */
+        <div className={`absolute inset-0 grid ${isPortrait ? "grid-rows-2" : "grid-cols-2"}`}>
+          <div className={`relative overflow-hidden bg-black ${isPortrait ? "order-2" : "order-1"}`}>
             <video ref={proVideoRef} {...proProps} className="absolute inset-0 h-full w-full object-contain" style={proStyle} />
-            <div className="absolute left-3 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur" style={{ top: TOP_STACK }}>
-              <div className="h-1.5 w-1.5 rounded-full bg-pink-500" />
+            {/* In portrait this pane is the lower one, so it does not need to
+                clear the header — TOP_STACK would push the badge 105px into
+                the frame. Only the pane that touches the top edge pays it. */}
+            <div className="absolute left-3 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur" style={{ top: isPortrait ? "0.75rem" : TOP_STACK }}>
+              <div className="h-1.5 w-1.5 rounded-full bg-identity-reference" />
               <span className="hud-text text-hud font-extrabold tracking-widest text-white">REFERENCE</span>
             </div>
           </div>
-          <div className="relative overflow-hidden bg-black">
+          <div className={`relative overflow-hidden bg-black ${isPortrait ? "order-1" : "order-2"}`}>
             {webcamError ? (
               <div className="absolute inset-0 flex items-center justify-center"><p className="text-xs text-white/40">{webcamError}</p></div>
             ) : (
               <video ref={webcamRef} className="absolute inset-0 h-full w-full object-cover" style={{ transform: "scaleX(-1)" }} playsInline muted autoPlay />
             )}
             <div className="absolute left-3 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur" style={{ top: TOP_STACK }}>
-              <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+              <div className="h-1.5 w-1.5 rounded-full bg-identity-you" />
               <span className="hud-text text-hud font-extrabold tracking-widest text-white">YOU</span>
             </div>
           </div>

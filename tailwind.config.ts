@@ -45,6 +45,19 @@ const config: Config = {
           edge:      "#E0DCC8",
         },
         /**
+         * Whose body is this — the reference dancer's, or yours.
+         *
+         * An identity axis, not a UI accent, so it is deliberately not
+         * `duo.blue` (which means view/framing everywhere else). Mirrors
+         * `IDENTITY` in `lib/brandTokens.ts`, which is the source the canvas
+         * renderer reads — the badge and the ring drawn around a body have to
+         * agree, and they cannot if one of them is a raw palette class.
+         */
+        identity: {
+          reference: "#FF5FA2",
+          you:       "#38D9F5",
+        },
+        /**
          * The Stage — the second ground.
          *
          * The app has two surfaces, not one. `brand.cream` is *paper*: auth,
