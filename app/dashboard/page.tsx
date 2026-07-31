@@ -17,6 +17,10 @@ import Panel from "@/components/ui/Panel";
 import Pressable from "@/components/ui/Pressable";
 import StatTile from "@/components/ui/StatTile";
 import type { SongGroup } from "@/app/api/progress/route";
+import { SPRING_POP } from "@/lib/motion";
+
+/** Where a streak stops being a number and starts being a thing to protect. */
+const STREAK_MILESTONES = [3, 7, 30];
 
 interface Stats {
   total_sessions: number;
@@ -155,13 +159,33 @@ function DashboardContent() {
           </div>
 
           {streak > 0 && (
-            <div className="flex shrink-0 items-center gap-1.5 rounded-2xl bg-duo-gold px-3 py-2 shadow-chunk-gold-sm">
+            /*
+              A milestone streak pops once on arrival; an ordinary one does not.
+              3 / 7 / 30 are where a streak stops being a number and starts
+              being a thing you would be annoyed to lose, so those are the only
+              ones that get a reaction — a pill that celebrates every single day
+              is a pill nobody reads by day four.
+
+              Deliberately still just the streak. No XP, no hearts, no gems, no
+              leagues (ruled out 2026-07-30): Trace's reward is the score it
+              already computes, and a second currency would compete with it.
+            */
+            <motion.div
+              initial={STREAK_MILESTONES.includes(streak) ? { scale: 0.6, rotate: -8 } : false}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={SPRING_POP}
+              className={`flex shrink-0 items-center gap-1.5 rounded-2xl px-3 py-2 ${
+                STREAK_MILESTONES.includes(streak)
+                  ? "bg-duo-gold shadow-chunk-gold"
+                  : "bg-duo-gold shadow-chunk-gold-sm"
+              }`}
+            >
               <span className="text-base leading-none" aria-hidden="true">🔥</span>
               <span className="text-lg font-extrabold leading-none tabular-nums text-ink">{streak}</span>
               <span className="text-hud uppercase tracking-[0.18em] text-ink/70">
                 day{streak === 1 ? "" : "s"}
               </span>
-            </div>
+            </motion.div>
           )}
         </Panel>
 

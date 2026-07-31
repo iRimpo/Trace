@@ -8,8 +8,10 @@ import type { CalibrationData } from "@/components/practice/CalibrationModal";
 import { saveSyncScore } from "@/lib/uploadRecording";
 import { loadRecordingSession, clearRecordingSession } from "@/lib/sessionVideoStorage";
 import { TOP_STACK, BOTTOM_SAFE, useIsPortrait } from "@/components/practice/chrome";
-import { SPRING_UI, SEC } from "@/lib/motion";
+import { SPRING_UI, SPRING_POP, SEC, staggerDelay } from "@/lib/motion";
 import { sfx, haptic, registerDuckTarget } from "@/lib/feedback";
+import Confetti from "@/components/ui/Confetti";
+import { CelebratingCharacter, ThinkingCharacter } from "@/components/illustrations";
 import Panel from "@/components/ui/Panel";
 import Pressable from "@/components/ui/Pressable";
 import IconButton from "@/components/ui/IconButton";
@@ -641,22 +643,87 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
     : null;
 
   /*
-    The score reveal gets a sound. This is the payoff moment — you have just
-    finished dancing and the number is the reason the tab exists — and it
-    landed in silence. Banded rather than pass/fail: `almost` is the same
-    rising shape as `success` a third lower, because the number is already the
-    honest signal and a descending buzzer on top of it is just piling on.
+    ── The celebration moment ──────────────────────────────────────────────
 
-    Fires once per score, on the transition out of null, not on every render.
+    This was one spring and a static number, and then silence. It is the payoff
+    for the entire session — you have just finished dancing and this is the
+    reason the tab exists — so it is the one place in the app where 500ms+ is
+    correct. Everywhere else, motion that slow would be lag; here it is rare,
+    it is earned, and rushing it throws away the only moment the app gets to
+    react to what you did.
+
+    The order is not arbitrary. The number counts up first and alone, because
+    it is the headline and everything else on the card is subordinate to it.
+    Then the region bars fill **worst first** — that is the part you act on, so
+    it should arrive in the order you should read it. Then the character, then
+    confetti, then the buttons last, because a button that appears before you
+    have read the result invites a tap that skips the result.
+
+    Sound lands on the *number*, not on the card opening: the cue has to
+    coincide with the thing it is celebrating or it reads as a UI blip.
   */
-  const announcedRef = useRef<number | null>(null);
+  const REVEAL = { number: 140, bars: 900, mascot: 1180, buttons: 1360 } as const;
+  const [revealPhase, setRevealPhase] = useState(0);
+  const [shownScore,  setShownScore]  = useState(0);
+  /**
+   * Which score has already been celebrated. Survives the card being collapsed
+   * to a chip and reopened — "Watch it back" then reopening should not replay
+   * confetti and a fanfare, because the celebration is for finishing the run,
+   * not for opening a panel. A second look shows the finished state at once.
+   */
+  const celebratedRef = useRef<number | null>(null);
+
   useEffect(() => {
-    if (overallScore === null) { announcedRef.current = null; return; }
-    if (announcedRef.current === overallScore) return;
-    announcedRef.current = overallScore;
-    sfx(overallScore >= 80 ? "success" : "almost");
-    haptic("success");
-  }, [overallScore]);
+    if (overallScore === null || !resultsOpen) return;
+
+    // Already seen: show the landed state immediately. This is also the
+    // safety net for contract §4 — the phases must never be the only thing
+    // making the buttons visible, so any path that skips the sequence lands
+    // on "everything shown" rather than on a blank card.
+    if (celebratedRef.current === overallScore) {
+      setRevealPhase(4);
+      setShownScore(overallScore);
+      return;
+    }
+    celebratedRef.current = overallScore;
+
+    setRevealPhase(0);
+    setShownScore(0);
+
+    const timers = [
+      setTimeout(() => setRevealPhase(1), REVEAL.number),
+      setTimeout(() => setRevealPhase(2), REVEAL.bars),
+      setTimeout(() => setRevealPhase(3), REVEAL.mascot),
+      setTimeout(() => setRevealPhase(4), REVEAL.buttons),
+    ];
+
+    // Count the number up rather than printing it. A score that appears fully
+    // formed is information; a score that climbs is a result.
+    let raf = 0;
+    const startAt = performance.now() + REVEAL.number;
+    const RUN = REVEAL.bars - REVEAL.number;
+    function step(now: number) {
+      const t = Math.min(Math.max((now - startAt) / RUN, 0), 1);
+      // ease-out cubic: fast, then settling — the shape of a number landing.
+      setShownScore(Math.round((1 - Math.pow(1 - t, 3)) * overallScore!));
+      if (t < 1) raf = requestAnimationFrame(step);
+      else {
+        sfx(overallScore! >= 80 ? "success" : "almost");
+        haptic("success");
+      }
+    }
+    raf = requestAnimationFrame(step);
+
+    return () => {
+      timers.forEach(clearTimeout);
+      cancelAnimationFrame(raf);
+      // If the sequence is interrupted, land on the finished state rather than
+      // leaving the card frozen part-way through with its buttons invisible.
+      setRevealPhase(4);
+      setShownScore(overallScore);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overallScore, resultsOpen]);
 
   useEffect(() => {
     registerDuckTarget(userVideoRef.current);
@@ -1025,6 +1092,11 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
             transition={{ duration: 0.2 }}
             className="absolute inset-0 z-30 flex items-center justify-center overflow-y-auto bg-black/70 px-3 py-6"
           >
+            {/* Only above 80. Confetti for every run is confetti for none, and
+                it would be celebrating a score the card is telling you to
+                improve. Skipped entirely under prefers-reduced-motion — it is
+                the one element here carrying no information at all. */}
+            <Confetti active={revealPhase >= 3 && overallScore >= 80} />
             <motion.div
               initial={{ scale: 0.94, y: 14 }}
               animate={{ scale: 1, y: 0 }}
@@ -1046,12 +1118,25 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
                 <p className="text-center text-hud font-extrabold uppercase tracking-[0.2em] text-stage-text/60">
                   {scoreHeadline(overallScore)}
                 </p>
-                <div className="mt-1 flex items-end justify-center gap-1">
-                  <span className={`text-[5.5rem] font-black leading-[0.85] tabular-nums ${scoreText(overallScore)}`}>
-                    {overallScore}
+                <motion.div
+                  className="mt-1 flex items-end justify-center gap-1"
+                  initial={{ scale: 0.7, opacity: 0 }}
+                  animate={revealPhase >= 1 ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0 }}
+                  transition={SPRING_POP}
+                >
+                  {/* aria-live so the count-up is announced once, on landing,
+                      rather than sixty times as it climbs. */}
+                  <span
+                    className={`text-[5.5rem] font-black leading-[0.85] tabular-nums ${scoreText(overallScore)}`}
+                    aria-hidden="true"
+                  >
+                    {shownScore}
+                  </span>
+                  <span className="sr-only" aria-live="polite">
+                    {revealPhase >= 2 ? `Score ${overallScore} out of 100` : ""}
                   </span>
                   <span className="pb-2 text-hud-lg font-extrabold text-stage-text/45">/100</span>
-                </div>
+                </motion.div>
                 <p className={`mt-2 text-center text-base font-extrabold ${scoreText(overallScore)}`}>
                   {scoreLabel(overallScore)}
                 </p>
@@ -1063,8 +1148,15 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
                     .sort((a, b) => regionScores[a] - regionScores[b]);
                   return ranked.length > 0 ? (
                     <div className="mt-5 flex flex-col gap-2 rounded-2xl bg-white/[0.07] p-3">
-                      {ranked.map(r => (
-                        <RegionBar key={r} region={r} score={regionScores[r]} />
+                      {ranked.map((r, i) => (
+                        <motion.div
+                          key={r}
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={revealPhase >= 2 ? { opacity: 1, x: 0 } : { opacity: 0, x: -8 }}
+                          transition={{ duration: SEC.ENTER, delay: staggerDelay(i, ranked.length) }}
+                        >
+                          <RegionBar region={r} score={regionScores[r]} />
+                        </motion.div>
                       ))}
                     </div>
                   ) : null;
@@ -1076,7 +1168,32 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
                   </p>
                 )}
 
-                <div className="mt-5 flex flex-col gap-2">
+                {/*
+                  The character, and the only four moments it is allowed to
+                  appear (WS5). Celebrating above 80, Thinking below — the art
+                  reacts to the run rather than decorating it, and a grinning
+                  mascot over a 40 would read as sarcasm. It never appears on
+                  the practice stage; nothing decorative belongs over a camera
+                  feed you are trying to read from ten feet.
+                */}
+                <motion.div
+                  className="pointer-events-none mt-4 flex justify-center"
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={revealPhase >= 3 ? { scale: 1, opacity: 1 } : { scale: 0.5, opacity: 0 }}
+                  transition={SPRING_POP}
+                  aria-hidden="true"
+                >
+                  {overallScore >= 80
+                    ? <CelebratingCharacter size="sm" />
+                    : <ThinkingCharacter size="sm" />}
+                </motion.div>
+
+                <motion.div
+                  className="mt-5 flex flex-col gap-2"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={revealPhase >= 4 ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
+                  transition={{ duration: SEC.ENTER }}
+                >
                   <Pressable
                     block
                     variant="primary"
@@ -1120,7 +1237,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
                       Practise again
                     </Pressable>
                   </div>
-                </div>
+                </motion.div>
               </Panel>
             </motion.div>
           </motion.div>
