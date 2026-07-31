@@ -95,6 +95,8 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
   const stopTriggerRef   = useRef<(() => void) | null>(null);
   const poseInitRef       = useRef(false);
   const refDurationRef    = useRef(0);
+  /** End of the take window: the trim out-point, or the video end. */
+  const takeEndRef        = useRef(0);
   const calibAppliedRef   = useRef(false);
   const refPoseRecorderRef = useRef<PoseRecorder | null>(null);
   /**
@@ -109,7 +111,20 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
 
   // ── Reference video ──────────────────────────────────────────────
   const [refDuration, setRefDuration] = useState(0);
-  const [refTime,     setRefTime]     = useState(0);
+  /**
+   * ── The take window ─────────────────────────────────────────────────
+   *
+   * Calibration step 2 asks the dancer to "trim to the part you'll drill",
+   * and this tab was throwing that away: the reference started at 0 and
+   * recording ran for the *whole* video. Trim eight bars out of a
+   * three-minute song and Test still made you dance all three minutes,
+   * which made the entire trim step decorative — the same shape of bug as
+   * "Pick the dancer to follow" being collected and then ignored.
+   *
+   * Everything here is clamped into that window instead.
+   */
+  const takeStartSec = initialFraming?.trimStart ?? 0;
+  const [refTime,     setRefTime]     = useState(takeStartSec);
 
   // ── Overlay framing ──────────────────────────────────────────────
   const [proOffsetX,     setProOffsetX]     = useState(0);
@@ -390,8 +405,19 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
       setTestState("preview");
     }
     stopTriggerRef.current = doStop;
-    const duration = refDurationRef.current;
-    const autoStopTimeout = duration > 0 ? setTimeout(doStop, duration * 1000) : null;
+    /*
+      Stop when the section ends, not after a full video-length.
+
+      This used to be `refDurationRef.current` — the whole clip — regardless of
+      where the take started. Scrub to 2:00 of a 3:00 video and the reference
+      ran out after a minute while the recorder kept going for three, so the
+      last two minutes were danced to a stopped video. Those frames also
+      captured no reference pose (the capture loop skips a paused video), so
+      they now show up as lost coverage in the score.
+    */
+    const endSec = takeEndRef.current || refDurationRef.current;
+    const remainingSec = endSec - refTime;
+    const autoStopTimeout = remainingSec > 0 ? setTimeout(doStop, remainingSec * 1000) : null;
     return () => {
       stopped = true;
       cancelAnimationFrame(rafId);
@@ -562,7 +588,9 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
   // "How much time is left" is the second thing the HUD has to answer, so it is
   // computed rather than left for the dancer to subtract from a `x / y` pair
   // across the room.
-  const recTotal     = refDurationRef.current;
+  // Length of *this take*, not of the video — it has to agree with the
+  // auto-stop above or the timer counts down to the wrong number.
+  const recTotal     = Math.max(0, (takeEndRef.current || refDurationRef.current) - refTime);
   const recRemaining = recTotal > 0 ? Math.max(0, Math.ceil(recTotal - elapsedSec)) : null;
   const recPct       = recTotal > 0 ? Math.min(100, (elapsedSec / recTotal) * 100) : 0;
 
@@ -734,7 +762,15 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
         onLoadedMetadata={e => {
           const v = e.currentTarget;
           refDurationRef.current = v.duration;
+          takeEndRef.current = initialFraming?.trimEnd && initialFraming.trimEnd > takeStartSec
+            ? Math.min(initialFraming.trimEnd, v.duration)
+            : v.duration;
           setRefDuration(v.duration);
+          // Frame against the pose the take actually starts on. Without this
+          // the ghost sits at frame 0 while the take begins at the trim
+          // in-point, so the dancer lines themselves up against the wrong
+          // moment of the choreography.
+          if (v.currentTime < takeStartSec) v.currentTime = takeStartSec;
         }}
       />
 
@@ -818,7 +854,14 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
             {/* Start frame scrubber */}
             <div className="mt-2 flex items-center gap-3 border-t border-white/10 pt-3">
               <span className="shrink-0 text-hud font-bold text-stage-text/70">Start at</span>
-              <input type="range" min={0} max={refDuration || 1} step={0.033} value={refTime}
+              {/* Bounded by the trim: scrubbing outside the section you chose
+                  to drill is never what you meant. */}
+              <input
+                type="range"
+                min={takeStartSec}
+                max={(initialFraming?.trimEnd && initialFraming.trimEnd > takeStartSec ? initialFraming.trimEnd : refDuration) || 1}
+                step={0.033}
+                value={refTime}
                 onChange={e => {
                   const t = parseFloat(e.target.value);
                   setRefTime(t);
