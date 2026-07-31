@@ -9,51 +9,75 @@
 
 ## Progress log
 
-**2026-07-30 — Richard picked Ordering A ("Rehearse first", §10).** Days 1–3 executed on branch
-`ws0-foundations` (6 commits off `design-overhaul`). Days 4–8 are the **freeze** — rehearse, don't build.
+**2026-07-30 — Richard picked Ordering A (§10), then asked to run every workstream straight through
+rather than freezing.** All ten workstreams are implemented on branch `ws0-foundations` (15 commits off
+`design-overhaul`).
 
-| Item | Status |
+| WS | Status |
 |---|---|
-| WS0.1 `useIsPortrait` | ✅ `components/practice/chrome.ts`, `useSyncExternalStore`, SSR default portrait |
-| WS0.2 `lib/motion.ts` | ✅ bands + `SPRING_UI` / `SPRING_UI_SNAPPY` / `SPRING_POP`; all 8 divergent spring literals migrated |
-| WS0.3 `/taste` artefact | ❌ **not done.** Needs a browser; serves WS1, which is post-freeze. |
-| WS0.4 `DESIGN_SYSTEM.md` §7 | ✅ responsive contract, stated as binding |
-| §13 device pass | ✅ collision **confirmed in source**, and fixed — see below |
-| §3.1 squished side-by-side | ✅ orientation switch, you-on-top in portrait, identity tokens |
-| §3.2 `hidden md:block` + `object-cover` | ✅ detail panel is a sheet in portrait; review video is `object-contain` |
-| §3.3 portrait calibration | ✅ full-bleed media, floating chrome; media 25% → ~83% of viewport |
-| §3.4(1) solo-scan copy | ✅ "Found your dancer" — the free half of §3.4 |
-| §3.4(2)(3) face thumbnails | ❌ **deliberately not fixed.** Needs instrumenting on Richard's video first. |
-| §7A blend mode | ✅ shipped, defaults to `screen`, **needs judging on the phone** |
-| §3.6 duplicated live count | ✅ one control, branching on orientation |
+| **WS0** Foundations | ✅ `useIsPortrait`, `lib/motion.ts`, `DESIGN_SYSTEM.md` §7. **`/taste` artefact NOT done** — needs a browser. |
+| **WS1** Type + colour | ✅ `duo-teal` splits the cue accent off the "go" green; Nunito as `font-display`; raw palette classes at 0 |
+| **WS2** Motion system | ✅ folded into WS0 — 8 divergent springs → 3 named; stagger via `staggerDelay` |
+| **WS3** App chrome | ✅ `components/nav/AppNav.tsx` — bottom bar in portrait, left rail otherwise |
+| **WS4** Sound + haptics | ✅ `lib/feedback.ts`, synthesised (no assets, no `CACHE_VERSION` bump), 16 tests |
+| **WS5** Character + celebration | ✅ choreographed reveal, `Confetti`, mascot reacts to band, streak milestones |
+| **WS6** Calibration portrait | ✅ media 25% → ~83% of viewport |
+| **WS7** Comparison views | ✅ orientation switch, detail panel as a sheet, **stacked mode built** |
+| **WS8** Dashboard resume | ✅ resume state in IndexedDB v2, surfaced on device tiles, restored on mount, 6 tests |
+| **WS9** Ghost + modes | ✅ blend modes (§7A), hold-to-peek (Opt 1), drill mode (Opt 3), 12 tests. **Opt 2 PiP deferred** per plan. |
 
-**Two corrections to this document, found while executing it:**
+**Verification at every commit:** `tsc` 0 · 139 unit tests (was 79) · 24 properties incl. the design
+ratchet · `build:check` clean including lint · new Tailwind utilities checked against emitted CSS.
+
+### Corrections to this document, found while executing it
 
 1. **§0.1 is wrong that the redesign merged to `main`.** `design-overhaul` was 10 commits *ahead* of
-   `main` on 2026-07-30. Nothing shipped had reached `main`.
-2. **§7A prescribes `ctx.globalCompositeOperation`. That cannot work here.** A canvas composite op
-   blends against what is already in *that canvas*, which is cleared to transparent every frame; the
-   webcam is a separate sibling `<video>`. Only a CSS `mix-blend-mode` on the canvas *element*
-   composites against it. Shipped as such, with `isolation: isolate` on the parent.
+   `main`. Nothing had shipped.
+2. **§7A prescribes `ctx.globalCompositeOperation`. That cannot work.** A canvas composite op blends
+   against what is already in *that canvas*, cleared to transparent every frame; the webcam is a
+   separate sibling `<video>`. Only CSS `mix-blend-mode` on the element composites against it.
+3. **§7A offers only `screen`/`difference`/`lighten`.** A K-pop practice video is usually a *bright*
+   studio, which is the case `screen` blows out to white. `multiply` is the needed opposite polarity.
+4. **§5 WS3 proposes Practice · Progress · Profile.** Progress and Profile are not routes that exist.
+   The bar carries what is real rather than inventing empty pages.
+5. **WS4 assumes audio assets precached by `sw.js`.** Synthesised cues need neither.
 
-**Also found: a bug this document did not predict.** The calibration overlays mapped video space to
-canvas space by stretching, which agrees with CSS only when the pane is the camera's aspect ratio.
-Going full-bleed in portrait would have thrown the skeleton off the body entirely. Fixed via
-`lib/videoFit.ts` (+10 tests). **Any future workstream that changes a media pane's shape must check the
-canvas drawn over it.**
+### Two bugs this document did not predict
 
-**§11 ratchet rules — current counts, ready to pin** (the verifier is hook-protected, so these are
-still for Richard to add):
+- **Canvas overlays mapped video→canvas by stretching.** Correct only while a pane matched the camera's
+  aspect ratio. Going full-bleed in portrait would have thrown the calibration skeleton off the body
+  entirely. Fixed via `lib/videoFit.ts` (+10 tests). **Any workstream that reshapes a media pane must
+  check the canvas drawn over it.**
+- **The top edge collision was a paint overlap, not a near-miss.** The TRACE badge covered counts 1–2
+  and the utility cluster covered counts 6–8 — the downbeat was under the wordmark.
 
-| Rule | Count now |
-|---|---|
-| `raw_tailwind_palette` | 3 (was 5; 2 were the §3.1 pane badges) |
-| `hidden_on_mobile` | 2, **both in comments** — 0 live in `components/practice/` |
-| `magic_duration` | 65 |
-| `stage_type_floor` | 6 repo-wide, **0 in `components/practice/`** — pin at 0 there |
+### §11 ratchet rules — final counts, ready to pin
 
-**Next session starts at:** §3.4's remaining two candidates (instrument first, per §3.4), then the
-freeze. Post-Aug 7: WS0.3, then WS1–WS9.
+The verifier is hook-protected, so these remain for Richard to add to `loop/verify.sh`.
+
+| Rule | Repo-wide | `components/practice/` |
+|---|---|---|
+| `raw_tailwind_palette` | **0** | **0** |
+| `hidden_on_mobile` | **0** | **0** |
+| `stage_type_floor` | 6 | **0** |
+| `magic_duration` | 65 | — |
+
+Three of these can be pinned at **0 today**. `magic_duration` is the one still worth work: `lib/motion.ts`
+exists and the springs are migrated, but 65 duration literals remain across `app/` and `components/`.
+
+### Still outstanding
+
+- **WS0.3 `/taste https://www.duolingo.com`** → `docs/design/duolingo.md`. Needs a browser.
+- **§3.4(2)(3)** — `extractFaceThumbnail`'s three score gates and the unguarded `toDataURL`. The plan
+  says instrument on Richard's real video before fixing; still the right call.
+- **WS9 Option 2 (picture-in-picture)** — deferred on the plan's own reasoning.
+- **§13** — rotate `SUPABASE_ACCESS_TOKEN` / `VERCEL_TOKEN`; apply `008_scan_cache_v3.sql`; decide on the
+  six unwired landing components.
+- **Nothing is merged.** All 15 commits are on `ws0-foundations`, and `design-overhaul` has never
+  reached `main`.
+- **None of this has been seen on a phone.** The blend mode default, the portrait calibration, the drill
+  readout at eight feet, and the audio mix all need judging on the device, in a room, from where Richard
+  actually stands.
 
 ---
 
