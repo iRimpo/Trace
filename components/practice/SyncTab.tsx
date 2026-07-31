@@ -10,6 +10,7 @@ import { loadRecordingSession, clearRecordingSession } from "@/lib/sessionVideoS
 import { TOP_STACK, BOTTOM_SAFE, useIsPortrait } from "@/components/practice/chrome";
 import { SPRING_UI, SPRING_POP, SEC, staggerDelay } from "@/lib/motion";
 import { sfx, haptic, registerDuckTarget } from "@/lib/feedback";
+import { scoreRun } from "@/lib/poseScore";
 import Confetti from "@/components/ui/Confetti";
 import { CelebratingCharacter, ThinkingCharacter } from "@/components/illustrations";
 import Panel from "@/components/ui/Panel";
@@ -97,6 +98,13 @@ function scoreLabel(s: number): string {
 }
 
 /** Headline for the results card — the thing you read from ten feet away. */
+/**
+ * Below this fraction of the run compared, the number is not worth stating as
+ * a fact. 0.6 is the point where more than a third of the take is missing —
+ * enough that the average is describing a different run from the one danced.
+ */
+const LOW_COVERAGE = 0.6;
+
 function scoreHeadline(s: number): string {
   if (s >= 90) return "Locked in";
   if (s >= 80) return "Strong run";
@@ -154,15 +162,6 @@ const REGION_LABELS: Record<RegionName, string> = {
   head:     "Head",
 };
 
-const REGION_TRIPLETS: Record<RegionName, [number, number, number][]> = {
-  leftArm:  [[23, 11, 13], [11, 13, 15]],
-  rightArm: [[24, 12, 14], [12, 14, 16]],
-  leftLeg:  [[11, 23, 25], [23, 25, 27]],
-  rightLeg: [[12, 24, 26], [24, 26, 28]],
-  torso:    [[23, 11, 13], [24, 12, 14], [11, 23, 25], [12, 24, 26]],
-  head:     [],
-};
-
 const REGION_ORDER: RegionName[] = ["torso", "leftArm", "rightArm", "leftLeg", "rightLeg"];
 
 // ── Feedback tips ─────────────────────────────────────────────────────────
@@ -206,101 +205,6 @@ function generateFeedback(
     if (!tip) return [];
     return [{ region, tip }];
   });
-}
-
-// ── Pose scoring helpers ─────────────────────────────────────────────────
-
-const JOINT_TRIPLETS: [number, number, number][] = [
-  [11, 13, 15], // left elbow
-  [12, 14, 16], // right elbow
-  [23, 11, 13], // left shoulder
-  [24, 12, 14], // right shoulder
-  [23, 25, 27], // left knee
-  [24, 26, 28], // right knee
-  [11, 23, 25], // left hip
-  [12, 24, 26], // right hip
-];
-
-function jointAngle(kps: number[][], vW: number, vH: number, p1: number, v: number, p2: number): number | null {
-  const k1 = kps[p1], kv = kps[v], k2 = kps[p2];
-  if (!k1 || !kv || !k2) return null;
-  if ((k1[2] ?? 0) < 0.3 || (kv[2] ?? 0) < 0.3 || (k2[2] ?? 0) < 0.3) return null;
-  const dx1 = (k1[0] - kv[0]) / vW, dy1 = (k1[1] - kv[1]) / vH;
-  const dx2 = (k2[0] - kv[0]) / vW, dy2 = (k2[1] - kv[1]) / vH;
-  const dot  = dx1 * dx2 + dy1 * dy2;
-  const mag1 = Math.sqrt(dx1 ** 2 + dy1 ** 2);
-  const mag2 = Math.sqrt(dx2 ** 2 + dy2 ** 2);
-  if (mag1 < 1e-6 || mag2 < 1e-6) return null;
-  return Math.acos(Math.max(-1, Math.min(1, dot / (mag1 * mag2)))) * (180 / Math.PI);
-}
-
-function comparePoseScore(
-  userKps: number[][], uW: number, uH: number,
-  refKps:  number[][], rW: number, rH: number,
-): number {
-  let totalDiff = 0, count = 0;
-  for (const [p1, v, p2] of JOINT_TRIPLETS) {
-    const ua = jointAngle(userKps, uW, uH, p1, v, p2);
-    const ra = jointAngle(refKps,  rW, rH, p1, v, p2);
-    if (ua === null || ra === null) continue;
-    totalDiff += Math.abs(ua - ra);
-    count++;
-  }
-  if (count < 2) return 50;
-  const avgDiff = totalDiff / count;
-  return Math.max(0, Math.min(100, Math.round((1 - avgDiff / 90) * 100)));
-}
-
-function compareRegionScores(
-  userKps: number[][], uW: number, uH: number,
-  refKps:  number[][], rW: number, rH: number,
-): Record<RegionName, number> {
-  const result = {} as Record<RegionName, number>;
-  for (const region of REGION_ORDER) {
-    const triplets = REGION_TRIPLETS[region];
-    if (triplets.length === 0) { result[region] = -1; continue; }
-    let totalDiff = 0, count = 0;
-    for (const [p1, v, p2] of triplets) {
-      const ua = jointAngle(userKps, uW, uH, p1, v, p2);
-      const ra = jointAngle(refKps,  rW, rH, p1, v, p2);
-      if (ua === null || ra === null) continue;
-      totalDiff += Math.abs(ua - ra);
-      count++;
-    }
-    result[region] = count > 0 ? Math.max(0, Math.min(100, Math.round((1 - totalDiff / count / 90) * 100))) : -1;
-  }
-  return result;
-}
-
-// ── Inline fallback for environments where Web Worker is unavailable ────
-
-function computeScoresInline(
-  userFrames: PoseFrame[],
-  refFrames: PoseFrame[],
-  uW: number, uH: number,
-  rW: number, rH: number,
-  callback: (scores: { t: number; score: number }[], regionScores: Record<RegionName, number>) => void
-) {
-  const sortedRef = [...refFrames].sort((a, b) => a.t - b.t);
-  const regionAccum: Record<RegionName, number[]> = { leftArm: [], rightArm: [], leftLeg: [], rightLeg: [], torso: [], head: [] };
-  const scores = userFrames.map(frame => {
-    let lo = 0, hi = sortedRef.length - 1;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if (sortedRef[mid].t < frame.t) lo = mid + 1; else hi = mid;
-    }
-    const nearest = sortedRef[lo];
-    const score   = comparePoseScore(frame.kps, uW, uH, nearest.kps, rW, rH);
-    const regions = compareRegionScores(frame.kps, uW, uH, nearest.kps, rW, rH);
-    for (const r of REGION_ORDER) { if (regions[r] >= 0) regionAccum[r].push(regions[r]); }
-    return { t: frame.t, score };
-  });
-  const avgRegions = {} as Record<RegionName, number>;
-  for (const r of REGION_ORDER) {
-    const arr = regionAccum[r];
-    avgRegions[r] = arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : -1;
-  }
-  callback(scores, avgRegions);
 }
 
 // ── Props ───────────────────────────────────────────────────────────────
@@ -349,6 +253,15 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
   // ── Scoring ──────────────────────────────────────────────────────
   const [frameScores, setFrameScores] = useState<{ t: number; score: number }[]>([]);
   const [regionScores, setRegionScores] = useState<Record<RegionName, number> | null>(null);
+  /**
+   * Fraction of recorded frames that produced a real comparison, 0–1.
+   *
+   * The honesty dial. A 78 built from 30% of the run is a different claim from
+   * a 78 built from 95% of it, and the old UI printed both identically.
+   */
+  const [coverage, setCoverage] = useState(1);
+  /** Whether the number is a real comparison or just "did the camera see you". */
+  const [scoreKind, setScoreKind] = useState<"compared" | "visibility">("compared");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -402,36 +315,34 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
   }, []);
 
   // ─────────────────────────────────────────────────────────────────
-  // Compute scores: offload to web worker when ref frames available,
-  // otherwise fall back to visibility proxy on the main thread
-  // ─────────────────────────────────────────────────────────────────
+  // ── Scoring ─────────────────────────────────────────────────────
+  //
+  // One implementation, in lib/poseScore.ts, with tests. This used to run in
+  // a Web Worker loaded from public/workers/sync-scorer.js — a byte-for-byte
+  // copy of the same arithmetic in untyped, untested JavaScript, kept in sync
+  // by hand. Scoring three minutes at 15fps is a few milliseconds of acos
+  // calls, once, at the end of a run; a worker was never buying anything that
+  // justified a second copy of the number the whole app builds up to.
+  //
+  // The video dimensions that used to be passed here were hardcoded guesses
+  // (640x480 for the webcam, 1920x1080 for the reference) feeding a
+  // normalisation that distorted every angle it touched. Angles are
+  // scale-invariant, so no dimensions are needed at all.
   useEffect(() => {
     if (userFrames.length === 0) return;
 
     if (scoringReady && refFrames.length > 0) {
-      const rW = 1920, rH = 1080;
-      const uW = 640,  uH = 480;
-
-      const handleWorkerResult = (scores: { t: number; score: number }[], avgRegions: Record<RegionName, number>) => {
-        setFrameScores(scores);
-        setRegionScores(avgRegions);
-      };
-
-      try {
-        const worker = new Worker("/workers/sync-scorer.js");
-        worker.onmessage = (e) => {
-          handleWorkerResult(e.data.scores, e.data.regionScores);
-          worker.terminate();
-        };
-        worker.onerror = () => {
-          worker.terminate();
-          computeScoresInline(userFrames, refFrames, uW, uH, rW, rH, handleWorkerResult);
-        };
-        worker.postMessage({ userFrames, refFrames, uW, uH, rW, rH });
-      } catch {
-        computeScoresInline(userFrames, refFrames, uW, uH, rW, rH, handleWorkerResult);
-      }
+      const result = scoreRun(userFrames, refFrames);
+      setFrameScores(result.frames);
+      setRegionScores(result.regions as Record<RegionName, number>);
+      setCoverage(result.coverage);
+      setScoreKind("compared");
     } else {
+      // No reference poses, so nothing can be *compared*. What follows is the
+      // average confidence MediaPipe had in seeing your body — useful as "did
+      // the camera get you", useless as "how did you dance". It used to be
+      // presented as the score, which meant standing still in good light
+      // scored higher than dancing well in bad light.
       const BODY_JOINTS = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
       const scores = userFrames.map(frame => {
         const relevant = BODY_JOINTS.map(i => frame.kps[i]).filter(Boolean);
@@ -441,6 +352,9 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
         return { t: frame.t, score: Math.round(avg * 100) };
       });
       setFrameScores(scores);
+      setRegionScores(null);
+      setCoverage(scores.length > 0 ? 1 : 0);
+      setScoreKind("visibility");
     }
   }, [userFrames, refFrames, scoringReady, sessionId]);
 
@@ -1163,7 +1077,11 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
 
                 {/* The number. Everything else on this card is subordinate. */}
                 <p className="text-center text-hud font-extrabold uppercase tracking-[0.2em] text-stage-text/60">
-                  {scoreHeadline(overallScore)}
+                  {scoreKind === "visibility"
+                    ? "Camera check"
+                    : coverage < LOW_COVERAGE
+                      ? "Partial run"
+                      : scoreHeadline(overallScore)}
                 </p>
                 <motion.div
                   className="mt-1 flex items-end justify-center gap-1"
@@ -1185,8 +1103,32 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
                   <span className="pb-2 text-hud-lg font-extrabold text-stage-text/45">/100</span>
                 </motion.div>
                 <p className={`mt-2 text-center text-base font-extrabold ${scoreText(overallScore)}`}>
-                  {scoreLabel(overallScore)}
+                  {scoreKind === "visibility" ? "How well the camera saw you" : scoreLabel(overallScore)}
                 </p>
+
+                {/*
+                  Say what the number is built from when that changes what it
+                  means. A 78 from 30% of the run and a 78 from 95% of it are
+                  different claims, and the card used to print them
+                  identically — which is most of why the scoring "feels
+                  weird": it was confidently describing a run it had barely
+                  seen. Silent above the threshold; a number that has to
+                  explain itself every time is a number nobody trusts.
+                */}
+                {scoreKind === "visibility" ? (
+                  <p className="mt-3 rounded-xl border border-duo-gold/40 bg-duo-gold/15 px-3 py-2.5 text-center text-hud font-bold leading-relaxed text-stage-text">
+                    This is not a sync score. The reference poses were not
+                    available for this take, so there was nothing to compare
+                    against — this only reflects how clearly the camera saw
+                    your body. Re-run the scan and dance it again for a real score.
+                  </p>
+                ) : coverage < LOW_COVERAGE ? (
+                  <p className="mt-3 rounded-xl border border-duo-gold/40 bg-duo-gold/15 px-3 py-2.5 text-center text-hud font-bold leading-relaxed text-stage-text">
+                    Only {Math.round(coverage * 100)}% of this run could be scored — the
+                    camera lost your body for the rest. Step back so your whole
+                    body is in frame, and add light in front of you rather than behind.
+                  </p>
+                ) : null}
 
                 {/* Body parts, worst first — the part you act on. */}
                 {regionScores && (() => {
