@@ -5,6 +5,58 @@
 > **Pointer line for a fresh chat:**
 > `Read docs/superpowers/plans/2026-07-30-trace-ux-program.md, then docs/DESIGN_SYSTEM.md and docs/HANDOFF-DESIGN.md. Start at the workstream I name.`
 
+---
+
+## Progress log
+
+**2026-07-30 — Richard picked Ordering A ("Rehearse first", §10).** Days 1–3 executed on branch
+`ws0-foundations` (6 commits off `design-overhaul`). Days 4–8 are the **freeze** — rehearse, don't build.
+
+| Item | Status |
+|---|---|
+| WS0.1 `useIsPortrait` | ✅ `components/practice/chrome.ts`, `useSyncExternalStore`, SSR default portrait |
+| WS0.2 `lib/motion.ts` | ✅ bands + `SPRING_UI` / `SPRING_UI_SNAPPY` / `SPRING_POP`; all 8 divergent spring literals migrated |
+| WS0.3 `/taste` artefact | ❌ **not done.** Needs a browser; serves WS1, which is post-freeze. |
+| WS0.4 `DESIGN_SYSTEM.md` §7 | ✅ responsive contract, stated as binding |
+| §13 device pass | ✅ collision **confirmed in source**, and fixed — see below |
+| §3.1 squished side-by-side | ✅ orientation switch, you-on-top in portrait, identity tokens |
+| §3.2 `hidden md:block` + `object-cover` | ✅ detail panel is a sheet in portrait; review video is `object-contain` |
+| §3.3 portrait calibration | ✅ full-bleed media, floating chrome; media 25% → ~83% of viewport |
+| §3.4(1) solo-scan copy | ✅ "Found your dancer" — the free half of §3.4 |
+| §3.4(2)(3) face thumbnails | ❌ **deliberately not fixed.** Needs instrumenting on Richard's video first. |
+| §7A blend mode | ✅ shipped, defaults to `screen`, **needs judging on the phone** |
+| §3.6 duplicated live count | ✅ one control, branching on orientation |
+
+**Two corrections to this document, found while executing it:**
+
+1. **§0.1 is wrong that the redesign merged to `main`.** `design-overhaul` was 10 commits *ahead* of
+   `main` on 2026-07-30. Nothing shipped had reached `main`.
+2. **§7A prescribes `ctx.globalCompositeOperation`. That cannot work here.** A canvas composite op
+   blends against what is already in *that canvas*, which is cleared to transparent every frame; the
+   webcam is a separate sibling `<video>`. Only a CSS `mix-blend-mode` on the canvas *element*
+   composites against it. Shipped as such, with `isolation: isolate` on the parent.
+
+**Also found: a bug this document did not predict.** The calibration overlays mapped video space to
+canvas space by stretching, which agrees with CSS only when the pane is the camera's aspect ratio.
+Going full-bleed in portrait would have thrown the skeleton off the body entirely. Fixed via
+`lib/videoFit.ts` (+10 tests). **Any future workstream that changes a media pane's shape must check the
+canvas drawn over it.**
+
+**§11 ratchet rules — current counts, ready to pin** (the verifier is hook-protected, so these are
+still for Richard to add):
+
+| Rule | Count now |
+|---|---|
+| `raw_tailwind_palette` | 3 (was 5; 2 were the §3.1 pane badges) |
+| `hidden_on_mobile` | 2, **both in comments** — 0 live in `components/practice/` |
+| `magic_duration` | 65 |
+| `stage_type_floor` | 6 repo-wide, **0 in `components/practice/`** — pin at 0 there |
+
+**Next session starts at:** §3.4's remaining two candidates (instrument first, per §3.4), then the
+freeze. Post-Aug 7: WS0.3, then WS1–WS9.
+
+---
+
 This is a **program document**, not a task list. It decomposes the work into ten workstreams (WS0–WS9).
 Each workstream is sized to become its own spec → plan → implementation cycle via
 `superpowers:brainstorming` → `superpowers:writing-plans`. Do not try to execute this document
