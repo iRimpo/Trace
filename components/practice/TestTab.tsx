@@ -438,6 +438,7 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
       */
       const posesStored = await storeRecordingSession({
         blobUrl: recBlobUrl, poseFrames, refPoseFrames, sessionId: "",
+        refStartSec: refTime,
       });
 
       const sessionId = await createPracticeSession(user.id, videoId, videoSource, videoTitle, traceTimeSeconds, thumbnailUrl);

@@ -33,7 +33,7 @@ describe("recording session handoff", () => {
   it("round-trips a take", async () => {
     const poseFrames = stream(1);
     const refPoseFrames = stream(1);
-    await storeRecordingSession({ blobUrl: "blob:abc", poseFrames, refPoseFrames, sessionId: "s1" });
+    await storeRecordingSession({ blobUrl: "blob:abc", poseFrames, refPoseFrames, sessionId: "s1", refStartSec: 0 });
 
     const back = await loadRecordingSession();
     expect(back!.blobUrl).toBe("blob:abc");
@@ -54,10 +54,10 @@ describe("recording session handoff", () => {
 
     // Prove the premise rather than asserting it: the old payload really is
     // over the quota.
-    const oldPayload = JSON.stringify({ blobUrl: "blob:abc", poseFrames, refPoseFrames, sessionId: "s1" });
+    const oldPayload = JSON.stringify({ blobUrl: "blob:abc", poseFrames, refPoseFrames, sessionId: "s1", refStartSec: 0 });
     expect(oldPayload.length).toBeGreaterThan(5 * 1024 * 1024);
 
-    const ok = await storeRecordingSession({ blobUrl: "blob:abc", poseFrames, refPoseFrames, sessionId: "s1" });
+    const ok = await storeRecordingSession({ blobUrl: "blob:abc", poseFrames, refPoseFrames, sessionId: "s1", refStartSec: 0 });
     expect(ok).toBe(true);
 
     const back = await loadRecordingSession();
@@ -67,7 +67,7 @@ describe("recording session handoff", () => {
 
   it("keeps sessionStorage small — it holds a pointer, not the frames", async () => {
     await storeRecordingSession({
-      blobUrl: "blob:abc", poseFrames: stream(60), refPoseFrames: stream(60), sessionId: "s1",
+      blobUrl: "blob:abc", poseFrames: stream(60), refPoseFrames: stream(60), sessionId: "s1", refStartSec: 0,
     });
     const raw = sessionStorage.getItem("trace_recording_session")!;
     expect(raw.length).toBeLessThan(1024);
@@ -75,7 +75,7 @@ describe("recording session handoff", () => {
 
   it("patches the session id without touching the frames", async () => {
     const poseFrames = stream(2);
-    await storeRecordingSession({ blobUrl: "blob:abc", poseFrames, refPoseFrames: [], sessionId: "" });
+    await storeRecordingSession({ blobUrl: "blob:abc", poseFrames, refPoseFrames: [], sessionId: "", refStartSec: 0 });
     setRecordingSessionId("real-id");
     const back = await loadRecordingSession();
     expect(back!.sessionId).toBe("real-id");
@@ -89,7 +89,7 @@ describe("recording session handoff", () => {
   it("survives a take whose poses could not be stored — watchable, not scorable", async () => {
     // A recording with no poses must still load, so the user can watch it back
     // and the UI can say why there is no score.
-    await storeRecordingSession({ blobUrl: "blob:abc", poseFrames: [], refPoseFrames: [], sessionId: "s1" });
+    await storeRecordingSession({ blobUrl: "blob:abc", poseFrames: [], refPoseFrames: [], sessionId: "s1", refStartSec: 0 });
     const back = await loadRecordingSession();
     expect(back!.blobUrl).toBe("blob:abc");
     expect(back!.poseFrames).toEqual([]);
@@ -97,7 +97,7 @@ describe("recording session handoff", () => {
 
   it("clears both halves", async () => {
     await storeRecordingSession({
-      blobUrl: "blob:abc", poseFrames: stream(1), refPoseFrames: stream(1), sessionId: "s1",
+      blobUrl: "blob:abc", poseFrames: stream(1), refPoseFrames: stream(1), sessionId: "s1", refStartSec: 0,
     });
     clearRecordingSession();
     expect(await loadRecordingSession()).toBeNull();

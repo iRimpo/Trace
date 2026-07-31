@@ -19,6 +19,16 @@ export interface RecordingSession {
   poseFrames: PoseFrame[];
   refPoseFrames: PoseFrame[];
   sessionId: string;
+  /**
+   * Where in the reference video the take started, in seconds.
+   *
+   * Pose frames are timestamped from the start of the *take*, but the
+   * reference was playing from wherever the user had scrubbed to. Without this
+   * offset the two timelines cannot be related at all, which is why the
+   * fallback extraction used to compare a dancer against whatever the
+   * reference happened to be doing at the same *absolute* video time.
+   */
+  refStartSec: number;
 }
 
 export function storeVideoSession(data: VideoSession): void {
@@ -86,6 +96,7 @@ interface RecordingPointer {
   blobUrl: string;
   sessionId: string;
   takeKey: string;
+  refStartSec: number;
 }
 
 export async function storeRecordingSession(data: RecordingSession): Promise<boolean> {
@@ -97,6 +108,7 @@ export async function storeRecordingSession(data: RecordingSession): Promise<boo
     blobUrl: data.blobUrl,
     sessionId: data.sessionId,
     takeKey: TAKE_KEY,
+    refStartSec: data.refStartSec ?? 0,
   };
   try {
     sessionStorage.setItem(RECORDING_KEY, JSON.stringify(pointer));
@@ -124,6 +136,7 @@ export async function loadRecordingSession(): Promise<RecordingSession | null> {
   return {
     blobUrl: pointer.blobUrl,
     sessionId: pointer.sessionId,
+    refStartSec: pointer.refStartSec ?? 0,
     poseFrames: (take?.poseFrames ?? []) as RecordingSession["poseFrames"],
     refPoseFrames: (take?.refPoseFrames ?? []) as RecordingSession["refPoseFrames"],
   };

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { initPoseDetection, detectPose } from "@/lib/mediapipe";
+import { initPoseDetection, detectPose, detectAllPosesFromFrame } from "@/lib/mediapipe";
 import type { PoseFrame } from "@/lib/poseRecorder";
 import type { CalibrationData } from "@/components/practice/CalibrationModal";
 import { saveSyncScore } from "@/lib/uploadRecording";
@@ -10,7 +10,8 @@ import { loadRecordingSession, clearRecordingSession } from "@/lib/sessionVideoS
 import { TOP_STACK, BOTTOM_SAFE, useIsPortrait } from "@/components/practice/chrome";
 import { SPRING_UI, SPRING_POP, SEC, staggerDelay } from "@/lib/motion";
 import { sfx, haptic, registerDuckTarget } from "@/lib/feedback";
-import { scoreRun } from "@/lib/poseScore";
+import { scoreRun, MAX_MATCH_MS } from "@/lib/poseScore";
+import { DancerTracker } from "@/lib/dancerTracker";
 import Confetti from "@/components/ui/Confetti";
 import { CelebratingCharacter, ThinkingCharacter } from "@/components/illustrations";
 import Panel from "@/components/ui/Panel";
@@ -259,6 +260,9 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
    * The honesty dial. A 78 built from 30% of the run is a different claim from
    * a 78 built from 95% of it, and the old UI printed both identically.
    */
+  /** Where in the reference video this take began — see RecordingSession. */
+  const refStartSecRef = useRef(0);
+  const [extractProgress, setExtractProgress] = useState<number | null>(null);
   const [coverage, setCoverage] = useState(1);
   /** Whether the number is a real comparison or just "did the camera see you". */
   const [scoreKind, setScoreKind] = useState<"compared" | "visibility">("compared");
@@ -308,6 +312,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
       }
       setRecordingUrl(rec.blobUrl);
       setUserFrames(rec.poseFrames);
+      refStartSecRef.current = rec.refStartSec ?? 0;
       if (rec.refPoseFrames.length > 0) {
         setRefFrames(rec.refPoseFrames);
         setScoringReady(true);
@@ -371,10 +376,33 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
     let cancelled = false;
 
     async function extractRefPoses() {
+      /*
+        ── The rescue path ──────────────────────────────────────────────────
+
+        Runs only when the take handed over no reference poses. It was doing
+        three things wrong at once, and each on its own made the resulting
+        number meaningless:
+
+        1. It sampled **20 frames across the entire video**. On a three-minute
+           clip that is one reference pose every 9.5 seconds, against user
+           frames 66ms apart — so every comparison was against a pose from a
+           different part of the choreography.
+        2. It timestamped them by **absolute video time**, while user frames
+           are milliseconds from the start of the take. The take began wherever
+           the user had scrubbed to, so unless that was exactly zero the two
+           timelines never lined up at all. `refStartSec` exists now so they
+           can be related.
+        3. It took `landmarks[0]` — an arbitrary dancer, unstable between
+           frames — the same defect the live capture path had.
+
+        Sampling is now spaced to the scorer's own matching tolerance, so
+        every user frame has a neighbour close enough to be admissible, and
+        capped so a long take degrades into honest partial coverage rather
+        than a very long freeze.
+      */
       await initPoseDetection();
       if (cancelled) return;
 
-      // Dedicated extraction video — never touches proVideoRef
       const vid = document.createElement("video");
       vid.src = videoUrl;
       vid.crossOrigin = "anonymous";
@@ -388,31 +416,66 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
 
       if (cancelled || !vid.duration) return;
 
-      const N         = 20;
-      const dur       = vid.duration;
-      const extracted: PoseFrame[] = [];
+      const takeSec  = userFrames.length > 0 ? userFrames[userFrames.length - 1].t / 1000 : 0;
+      const startSec = refStartSecRef.current;
+      if (takeSec <= 0) return;
 
-      for (let i = 0; i < N; i++) {
+      // Half the scorer's tolerance, so the worst-case distance to the nearest
+      // sample is within it. Capped: past this a long take yields partial
+      // coverage, which the results card now states plainly.
+      const STEP_SEC = (MAX_MATCH_MS / 1000) * 0.8;
+      const MAX_SAMPLES = 400;
+      const count = Math.min(Math.ceil(takeSec / STEP_SEC), MAX_SAMPLES);
+
+      const tracker = initialFraming?.personCenter && !initialFraming?.solo
+        ? new DancerTracker()
+        : null;
+      if (tracker && initialFraming?.personCenter) {
+        tracker.lock(initialFraming.personCenter);
+        tracker.acknowledgeReacquire({ bestGuess: true });
+      }
+
+      const extracted: PoseFrame[] = [];
+      setExtractProgress(0);
+
+      for (let i = 0; i < count; i++) {
         if (cancelled) return;
-        const t = (i / (N - 1)) * dur;
-        vid.currentTime = t;
+        const takeOffsetSec = (i / Math.max(1, count - 1)) * takeSec;
+        const videoTime = startSec + takeOffsetSec;
+        if (videoTime > vid.duration) break;
+
+        vid.currentTime = videoTime;
         await new Promise<void>(resolve => {
           const done = () => { vid.removeEventListener("seeked", done); resolve(); };
           vid.addEventListener("seeked", done);
         });
         if (cancelled) return;
 
-        const off = document.createElement("canvas");
-        off.width  = vid.videoWidth  || 640;
-        off.height = vid.videoHeight || 480;
-        const ctx2 = off.getContext("2d");
-        if (ctx2) {
-          ctx2.drawImage(vid, 0, 0);
-          const kps = detectPose(off);
-          if (kps) extracted.push({ t: t * 1000, kps: kps.map(k => [k.x, k.y, k.score ?? 0]) });
+        let kps: ReturnType<typeof detectPose> = null;
+        if (tracker) {
+          const all = detectAllPosesFromFrame(vid);
+          if (all && all.length > 0) {
+            kps = tracker.step(all, vid.videoWidth, vid.videoHeight).kps;
+          }
+        } else {
+          kps = detectPose(vid);
         }
+
+        if (kps) {
+          extracted.push({
+            // The take's timeline, not the video's — this is the whole fix.
+            t: Math.round(takeOffsetSec * 1000),
+            kps: kps.map(k => [
+              Math.round(k.x * 10) / 10,
+              Math.round(k.y * 10) / 10,
+              Math.round((k.score ?? 0) * 1000) / 1000,
+            ]),
+          });
+        }
+        setExtractProgress((i + 1) / count);
       }
 
+      setExtractProgress(null);
       if (!cancelled && extracted.length > 0) {
         setRefFrames(extracted);
         setScoringReady(true);
@@ -955,7 +1018,12 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
             {!scoringReady && userFrames.length > 0 && (
               <span className="flex items-center gap-1.5 text-hud font-bold text-stage-text/70">
                 <span className="h-3 w-3 animate-spin motion-reduce:animate-pulse rounded-full border border-white/30 border-t-transparent" />
-                Scoring…
+                {/* The rescue path re-reads the reference video frame by frame,
+                    which takes real time. An unexplained spinner on a screen
+                    the user is waiting on reads as a hang. */}
+                {extractProgress !== null
+                  ? `Reading reference… ${Math.round(extractProgress * 100)}%`
+                  : "Scoring…"}
               </span>
             )}
           </div>
