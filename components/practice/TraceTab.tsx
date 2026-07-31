@@ -7,7 +7,8 @@ import FeedbackCanvas from "@/components/practice/FeedbackCanvas";
 import CountStrip from "@/components/practice/CountStrip";
 import { TOP_STACK, BOTTOM_SAFE, useIsPortrait } from "@/components/practice/chrome";
 import { SPRING_UI } from "@/lib/motion";
-import { haptic } from "@/lib/feedback";
+import { haptic, sfx } from "@/lib/feedback";
+import { phaseForPass, repsCompleted, canDrill, phaseLabel } from "@/lib/drill";
 import TapTempoSheet from "@/components/practice/TapTempoSheet";
 import BpmInput from "@/components/practice/BpmInput";
 import Segmented from "@/components/ui/Segmented";
@@ -273,6 +274,14 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
    */
   const [peeking, setPeeking] = useState(false);
   const [peekLatched, setPeekLatched] = useState(false);
+
+  /**
+   * Drill mode. Watch a pass, dance a pass, repeat, hands-free.
+   * `drillPass` counts every pass through the section; the rep counter shown
+   * to the user counts only the danced ones (lib/drill.ts).
+   */
+  const [drillOn, setDrillOn]     = useState(false);
+  const [drillPass, setDrillPass] = useState(0);
   const peekTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const peekActive = peeking || peekLatched;
 
@@ -661,14 +670,55 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
     setAligning(false);
   }, []);
 
-  // ── Loop enforcement ────────────────────────────────────────────
+  // ── Loop enforcement, and the drill runtime that rides on it ────
+  //
+  // Drill is deliberately not a second clock. It is the existing section loop
+  // plus a counter that advances on the wrap — so there is exactly one place
+  // that decides when the section restarts, and the phase can never disagree
+  // with what the video is doing.
   useEffect(() => {
     if (!loopSectionActive || loopStart === null || loopEnd === null) return;
     let raf: number;
-    function check() { const v = proVideoRef.current; if (v && !v.paused && v.currentTime >= loopEnd!) v.currentTime = loopStart!; raf = requestAnimationFrame(check); }
+    function check() {
+      const v = proVideoRef.current;
+      if (v && !v.paused && v.currentTime >= loopEnd!) {
+        v.currentTime = loopStart!;
+        if (drillOn) {
+          setDrillPass(n => {
+            const next = n + 1;
+            // The cue announces what the *next* pass is, on the wrap, so it
+            // lands before the section starts rather than after you have
+            // already missed the first count of it.
+            sfx(phaseForPass(next) === "dance" ? "countInGo" : "countIn");
+            haptic("commit");
+            return next;
+          });
+        }
+      }
+      raf = requestAnimationFrame(check);
+    }
     raf = requestAnimationFrame(check);
     return () => cancelAnimationFrame(raf);
-  }, [loopSectionActive, loopStart, loopEnd]);
+  }, [loopSectionActive, loopStart, loopEnd, drillOn]);
+
+  const drillPhase = drillOn ? phaseForPass(drillPass) : null;
+  const drillReps  = repsCompleted(drillPass);
+
+  /**
+   * Drill's "watch" phase and a held peek are the same thing on screen — the
+   * reference at full strength with you dimmed behind it — so they drive one
+   * switch rather than two competing opacity sources.
+   */
+  const referenceFull = peekActive || drillPhase === "watch";
+
+  // Turning drill off mid-session must not leave the reference latched at full
+  // opacity, and turning it on should start from rep zero rather than from
+  // wherever a previous drill left the counter.
+  useEffect(() => {
+    if (!drillOn) return;
+    setDrillPass(0);
+    sfx("countIn");
+  }, [drillOn]);
 
   // ── Webcam ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -943,7 +993,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 // Not 0. You still want to know roughly where you are while
                 // peeking, and a feed that vanishes entirely is disorienting
                 // when it comes back.
-                opacity: peekActive ? 0.15 : 1,
+                opacity: referenceFull ? 0.15 : 1,
                 transition: "opacity 140ms cubic-bezier(0.23,1,0.32,1)",
               }}
               playsInline muted autoPlay
@@ -957,10 +1007,10 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               // Peek overrides the slider rather than replacing it: release
               // and you are back at whatever you had set, which is the whole
               // point of a held gesture over a mode.
-              opacity: peekActive ? 1 : overlayOpacity / 100,
+              opacity: referenceFull ? 1 : overlayOpacity / 100,
               // Peek shows the reference *as a video*, so the blend that makes
               // it a ghost is exactly what you do not want while looking at it.
-              mixBlendMode: peekActive ? "normal" : ghostBlend,
+              mixBlendMode: referenceFull ? "normal" : ghostBlend,
               cursor: isDragging ? "grabbing" : "grab",
               touchAction: "none",
               transition: "opacity 140ms cubic-bezier(0.23,1,0.32,1)",
@@ -1176,6 +1226,27 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
             <div className="flex items-center gap-1.5 rounded-full bg-duo-gold px-3 py-1.5 backdrop-blur">
               <div className="h-2 w-2 animate-pulse motion-reduce:animate-pulse rounded-full bg-ink" />
               <span className="text-hud font-extrabold tabular-nums text-ink">{fmt(loopStart ?? 0)} → {fmt(loopEnd ?? 0)}</span>
+            </div>
+          )}
+
+          {/*
+            The drill readout. Set at a size you can resolve from across the
+            room, because that is the only place it is ever read — the entire
+            point of drill mode is that you do not touch or approach the phone
+            once it is running. WATCH and DANCE differ by fill *and* by word,
+            not by hue: at eight feet a blue pill and a green pill are the same
+            grey pill, which is the same reason the toggles are fill/no-fill.
+          */}
+          {drillPhase && (
+            <div className={`flex items-center gap-2 rounded-2xl px-3 py-2 shadow-stage ${
+              drillPhase === "watch" ? "bg-duo-blue" : "bg-duo-green"
+            }`}>
+              <span className="text-hud-lg font-black uppercase tracking-[0.18em] text-white">
+                {phaseLabel(drillPhase)}
+              </span>
+              <span className="text-hud font-extrabold tabular-nums text-white/75">
+                rep {drillReps + (drillPhase === "dance" ? 1 : 0)}
+              </span>
             </div>
           )}
         </div>
@@ -1425,6 +1496,28 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 >
                   Reference {peekLatched ? "on" : "off"}
                 </TogglePill>
+                {/*
+                  Drill needs a section, so the control only exists once there
+                  is one — offering a mode that silently does nothing is how a
+                  feature gets a reputation for being broken. Below ~2s a pass
+                  ends before the count-in does, so canDrill gates that too.
+                */}
+                {canDrill(loopStart, loopEnd) && (
+                  <TogglePill
+                    active={drillOn}
+                    onClick={() => {
+                      // Drill without the section loop running is just the
+                      // reference playing, so arm both together.
+                      if (!drillOn) setLoopSectionActive(true);
+                      setDrillOn(v => !v);
+                    }}
+                    accent="emerald"
+                    tone="stage"
+                    className="shrink-0"
+                  >
+                    Drill {drillOn ? "on" : "off"}
+                  </TogglePill>
+                )}
                 <div className="flex min-w-0 flex-1 items-center gap-2">
                   <span className="shrink-0 text-hud font-bold text-stage-text/70">Ghost</span>
                   <input
