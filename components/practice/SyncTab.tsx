@@ -360,6 +360,20 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
   /** Layout branches on orientation, never on a width breakpoint (§7). */
   const isPortrait = useIsPortrait();
 
+  /**
+   * How the two runs are compared.
+   *
+   * `overlay` composites the reference on top of your recording — good for
+   * judging alignment, bad for judging shape, because the two bodies occupy
+   * the same pixels and you cannot see either cleanly.
+   *
+   * `stacked` puts them side by side driven by one scrubber. This is the view
+   * Richard asked for and it simply did not exist: Sync had exactly one mode.
+   * Stacking is what you want when the question is "what is my arm doing"
+   * rather than "am I in the right place".
+   */
+  const [compareMode, setCompareMode] = useState<"overlay" | "stacked">("overlay");
+
   const [resultsOpen, setResultsOpen] = useState(true);
   /**
    * The detail panel's sheet, in portrait only. In landscape the panel is a
@@ -554,7 +568,10 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
     };
     canvas.addEventListener("wheel", onWheel, { passive: false });
     return () => canvas.removeEventListener("wheel", onWheel);
-  }, [recordingUrl]);
+    // compareMode matters: the canvas unmounts in stacked mode, so without it
+    // this effect keeps a handle on a dead node and scroll-zoom stays broken
+    // after switching back to overlay.
+  }, [recordingUrl, compareMode]);
 
   // ─────────────────────────────────────────────────────────────────
   // Sync reference video to user video as it plays
@@ -912,56 +929,86 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
     <div className="relative h-full w-full overflow-hidden bg-black">
 
       {/* ── Video area (fills entire container) ────────────────── */}
-      <div className="absolute inset-0">
+      {/* Stacked splits on orientation, exactly as TraceTab's side-by-side
+          does: rows when the viewport is taller than it is wide, columns when
+          it is wider. YOU leads in both — you are the body being judged. */}
+      <div className={
+        compareMode === "stacked"
+          ? `absolute inset-0 grid ${isPortrait ? "grid-rows-2" : "grid-cols-2"}`
+          : "absolute inset-0"
+      }>
 
-        {/* User recording (base layer) */}
-        <video
-          ref={userVideoRef}
-          src={recordingUrl}
-          playsInline
-          preload="auto"
-          crossOrigin="anonymous"
-          /* object-contain, not object-cover. Cover *crops* the recording to
-             fill, and combined with the scaleX(-1) mirror it silently cut the
-             dancer's hands and feet out of the comparison. On a review screen
-             you are judging shapes against a reference, not filling a frame —
-             seeing the whole body beats seeing it edge-to-edge. */
-          className="absolute inset-0 h-full w-full object-contain"
-          style={{ transform: "scaleX(-1)" }}
-          onLoadedMetadata={e => {
-            const v = e.currentTarget;
-            setDuration(v.duration);
-            v.playbackRate = speed;
-          }}
-          onTimeUpdate={e => {
-            const t = e.currentTarget.currentTime;
-            setCurrentTime(t);
-            syncRef(t);
-          }}
-          onEnded={() => { setPlaying(false); proVideoRef.current?.pause(); }}
-        />
+        {/* YOU — your recording. */}
+        <div className={compareMode === "stacked" ? "relative overflow-hidden bg-black" : "contents"}>
+          <video
+            ref={userVideoRef}
+            src={recordingUrl}
+            playsInline
+            preload="auto"
+            crossOrigin="anonymous"
+            /* object-contain, not object-cover. Cover *crops* the recording to
+               fill, and combined with the scaleX(-1) mirror it silently cut the
+               dancer's hands and feet out of the comparison. On a review screen
+               you are judging shapes against a reference, not filling a frame —
+               seeing the whole body beats seeing it edge-to-edge. */
+            className="absolute inset-0 h-full w-full object-contain"
+            style={{ transform: "scaleX(-1)" }}
+            onLoadedMetadata={e => {
+              const v = e.currentTarget;
+              setDuration(v.duration);
+              v.playbackRate = speed;
+            }}
+            onTimeUpdate={e => {
+              const t = e.currentTarget.currentTime;
+              setCurrentTime(t);
+              syncRef(t);
+            }}
+            onEnded={() => { setPlaying(false); proVideoRef.current?.pause(); }}
+          />
+          {compareMode === "stacked" && (
+            <div className="absolute left-3 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur" style={{ top: TOP_STACK }}>
+              <div className="h-1.5 w-1.5 rounded-full bg-identity-you" />
+              <span className="hud-text text-hud font-extrabold tracking-widest text-white">YOU</span>
+            </div>
+          )}
+        </div>
 
-        {/* Reference overlay canvas (draggable) */}
-        <canvas
-          ref={overlayCanvasRef}
-          className="absolute inset-0 h-full w-full"
-          style={{
-            opacity:     overlayOpacity / 100,
-            cursor:      isDragging ? "grabbing" : "grab",
-            touchAction: "none",
-          }}
-          onPointerDown={handleCanvasPointerDown}
-        />
+        {/* Reference overlay canvas — overlay mode only. */}
+        {compareMode === "overlay" && (
+          <canvas
+            ref={overlayCanvasRef}
+            className="absolute inset-0 h-full w-full"
+            style={{
+              opacity:     overlayOpacity / 100,
+              cursor:      isDragging ? "grabbing" : "grab",
+              touchAction: "none",
+            }}
+            onPointerDown={handleCanvasPointerDown}
+          />
+        )}
 
-        {/* Reference video — visually hidden but NOT display:none so audio plays */}
-        <video
-          ref={proVideoRef}
-          src={videoUrl}
-          playsInline
-          preload="auto"
-          crossOrigin="anonymous"
-          style={{ position: "absolute", width: 0, height: 0, opacity: 0, pointerEvents: "none" }}
-        />
+        {/* REFERENCE. In overlay mode this element is still mounted and still
+            playing — it is the canvas's source and it carries the audio — so it
+            is sized to nothing rather than display:none, which would stop both. */}
+        <div className={compareMode === "stacked" ? "relative overflow-hidden bg-black" : "contents"}>
+          <video
+            ref={proVideoRef}
+            src={videoUrl}
+            playsInline
+            preload="auto"
+            crossOrigin="anonymous"
+            className={compareMode === "stacked" ? "absolute inset-0 h-full w-full object-contain" : ""}
+            style={compareMode === "stacked"
+              ? undefined
+              : { position: "absolute", width: 0, height: 0, opacity: 0, pointerEvents: "none" }}
+          />
+          {compareMode === "stacked" && (
+            <div className="absolute left-3 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 backdrop-blur" style={{ top: isPortrait ? "0.75rem" : TOP_STACK }}>
+              <div className="h-1.5 w-1.5 rounded-full bg-identity-reference" />
+              <span className="hud-text text-hud font-extrabold tracking-widest text-white">REFERENCE</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Top-left status / collapsed score ───────────────────── */}
@@ -1329,21 +1376,42 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
             />
           </div>
 
+          {/* Compare mode — its own row above the scrolling one, because it
+              changes what every control below it means and must not be
+              scrollable off-screen. */}
+          <div className="mt-2 border-t border-white/10 pt-3">
+            <Segmented
+              label="Comparison view"
+              tone="stage"
+              value={compareMode}
+              onChange={v => setCompareMode(v)}
+              options={[
+                { value: "overlay", label: "Overlay" },
+                { value: "stacked", label: "Side by side" },
+              ]}
+            />
+          </div>
+
           {/* Overlay controls row */}
-          <div className="scrollbar-hide -mx-1 mt-2 flex items-center gap-2 overflow-x-auto border-t border-white/10 px-1 pb-1 pt-3">
+          <div className="scrollbar-hide -mx-1 mt-2 flex items-center gap-2 overflow-x-auto px-1 pb-1 pt-1">
             <TogglePill active={mirrored} onClick={() => setMirrored(m => !m)} accent="blue" tone="stage">
               Mirror {mirrored ? "on" : "off"}
             </TogglePill>
 
-            <div className="flex shrink-0 items-center gap-2">
-              <span className="text-hud font-bold text-stage-text/70">Ghost</span>
-              <input type="range" min="10" max="90" value={overlayOpacity}
-                onChange={e => setOverlayOpacity(parseInt(e.target.value))}
-                aria-label="Reference overlay opacity"
-                className="slider slider-stage w-24" />
-              <span className="w-10 text-right text-hud tabular-nums text-stage-text/70">{overlayOpacity}%</span>
-            </div>
+            {/* Opacity has no meaning when the two are side by side, and a
+                control that does nothing is worse than one that is absent. */}
+            {compareMode === "overlay" && (
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="text-hud font-bold text-stage-text/70">Ghost</span>
+                <input type="range" min="10" max="90" value={overlayOpacity}
+                  onChange={e => setOverlayOpacity(parseInt(e.target.value))}
+                  aria-label="Reference overlay opacity"
+                  className="slider slider-stage w-24" />
+                <span className="w-10 text-right text-hud tabular-nums text-stage-text/70">{overlayOpacity}%</span>
+              </div>
+            )}
 
+            {compareMode === "overlay" && (
             <TogglePill
               active={framingExpanded}
               onClick={() => setFramingExpanded(x => !x)}
@@ -1359,6 +1427,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
             >
               Framing
             </TogglePill>
+            )}
           </div>
 
           <AnimatePresence initial={false}>
