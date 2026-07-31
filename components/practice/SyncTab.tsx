@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { initPoseDetection, detectPose, detectAllPosesFromFrame, detectPoses } from "@/lib/mediapipe";
 import type { PoseFrame } from "@/lib/poseRecorder";
@@ -10,7 +10,8 @@ import { loadRecordingSession, clearRecordingSession } from "@/lib/sessionVideoS
 import { TOP_STACK, BOTTOM_SAFE, useIsPortrait } from "@/components/practice/chrome";
 import { SPRING_UI, SPRING_POP, SEC, staggerDelay } from "@/lib/motion";
 import { sfx, haptic, registerDuckTarget } from "@/lib/feedback";
-import { scoreRun, MAX_MATCH_MS } from "@/lib/poseScore";
+import { scoreRun, MAX_MATCH_MS, type ScoreRegion } from "@/lib/poseScore";
+import { summariseRun, type Finding } from "@/lib/runInsights";
 import { DancerTracker } from "@/lib/dancerTracker";
 import { pickPrimaryPose } from "@/lib/primaryPose";
 import Confetti from "@/components/ui/Confetti";
@@ -142,14 +143,6 @@ const REGION_DOT: Record<RegionName, string> = {
   head:     "bg-cue-head",
 };
 
-const REGION_BORDER: Record<RegionName, string> = {
-  leftArm:  "border-l-cue-hand",
-  rightArm: "border-l-cue-shoulder",
-  leftLeg:  "border-l-cue-foot",
-  rightLeg: "border-l-cue-arm",
-  torso:    "border-l-cue-hip",
-  head:     "border-l-cue-head",
-};
 
 // ── Region definitions ───────────────────────────────────────────────────
 
@@ -168,46 +161,7 @@ const REGION_ORDER: RegionName[] = ["torso", "leftArm", "rightArm", "leftLeg", "
 
 // ── Feedback tips ─────────────────────────────────────────────────────────
 
-const REGION_TIPS: Partial<Record<RegionName, { low: string; mid: string }>> = {
-  leftArm: {
-    low: "Left arm is significantly off — watch the reference overlay and focus on matching your elbow angle on every beat.",
-    mid: "Left arm almost there — pay attention to how fully you extend on the downbeats.",
-  },
-  rightArm: {
-    low: "Right arm needs the most work — pause at the timestamp below and compare arm position frame-by-frame.",
-    mid: "Right arm is close — try leading the movement from the shoulder rather than the hand.",
-  },
-  leftLeg: {
-    low: "Left leg is lagging — slow the video to 0.5× and drill the footwork in isolation.",
-    mid: "Left leg mostly in sync — make sure your weight shifts happen on the right beat.",
-  },
-  rightLeg: {
-    low: "Right leg is off — check your stance width; it may differ from the reference.",
-    mid: "Right leg is close — tighten the timing on your step-touches.",
-  },
-  torso: {
-    low: "Core/torso is the biggest gap — this affects everything else. Practice isolating hip and shoulder rolls.",
-    mid: "Torso is almost locked in — try consciously relaxing your shoulders to match the reference posture.",
-  },
-};
 
-function generateFeedback(
-  regionScores: Record<RegionName, number>,
-  overallScore: number,
-): { region: RegionName; tip: string }[] {
-  if (overallScore >= 80) return [];
-  const valid = REGION_ORDER.filter(r => regionScores[r] >= 0);
-  const sorted = [...valid].sort((a, b) => regionScores[a] - regionScores[b]);
-  const bottom = sorted.slice(0, 3).filter(r => regionScores[r] < 80);
-  return bottom.flatMap(region => {
-    const score = regionScores[region];
-    const tips = REGION_TIPS[region];
-    if (!tips) return [];
-    const tip = score < 45 ? tips.low : score < 65 ? tips.mid : null;
-    if (!tip) return [];
-    return [{ region, tip }];
-  });
-}
 
 // ── Props ───────────────────────────────────────────────────────────────
 
@@ -740,9 +694,23 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
     return () => registerDuckTarget(null);
   }, []);
 
-  const feedbackTips = regionScores !== null && overallScore !== null
-    ? generateFeedback(regionScores, overallScore)
-    : [];
+  /**
+   * What to actually do next, derived from this run rather than looked up.
+   *
+   * The old copy was ten fixed strings keyed on region and band, so a dancer
+   * saw the same sentence on their first run and their fortieth and it never
+   * referred to anything they did. These distinguish the two cases that need
+   * opposite advice — one bad transition (loop it, here is the timestamp)
+   * versus an evenly weak run (slow the whole thing down) — which is the
+   * difference between a useful session and a wasted one.
+   */
+  const findings: Finding[] = useMemo(
+    () => regionScores
+      ? summariseRun({ frames: frameScores, regions: regionScores as Record<ScoreRegion, number>, overall: overallScore, coverage })
+      : [],
+    [frameScores, regionScores, overallScore, coverage],
+  );
+
 
   const timelineBins = effectiveDuration > 0 && frameScores.length > 0
     ? Array.from({ length: 80 }, (_, i) => {
@@ -843,42 +811,45 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
               </div>
             )}
 
-            {/* Fixes section */}
-            {regionScores && overallScore !== null && (
+            {/* What to do next — derived from this run, not looked up. */}
+            {findings.length > 0 && (
               <div className="mb-4">
-                <h3 className="mb-2 text-hud font-extrabold uppercase tracking-widest text-stage-text/60">Fixes</h3>
-                {overallScore >= 80 ? (
-                  <div className="rounded-xl border border-duo-green/30 bg-duo-green/15 p-3">
-                    <p className="text-hud font-extrabold text-duo-green">Great run — strong performance.</p>
-                    {(() => {
-                      const worst = REGION_ORDER
-                        .filter(r => regionScores[r] >= 0)
-                        .reduce<RegionName | null>((a, b) => a === null || regionScores[b] < regionScores[a] ? b : a, null);
-                      return worst && regionScores[worst] < 90 ? (
-                        <p className="mt-1 text-hud font-bold text-stage-text/70">
-                          Keep polishing your {REGION_LABELS[worst].toLowerCase()}.
-                        </p>
-                      ) : null;
-                    })()}
-                  </div>
-                ) : feedbackTips.length > 0 ? (
-                  <div className="flex flex-col gap-2">
-                    {feedbackTips.map(({ region, tip }) => (
-                      <div
-                        key={region}
-                        className={`rounded-xl border-l-4 bg-white/[0.06] p-3 ${REGION_BORDER[region]}`}
-                      >
-                        <span className="mb-1.5 inline-flex items-center gap-1.5 text-hud font-extrabold uppercase tracking-widest text-stage-text/70">
-                          <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${REGION_DOT[region]}`} />
-                          {REGION_LABELS[region]}
-                        </span>
-                        <p className="text-hud font-medium leading-relaxed text-stage-text/75">{tip}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-hud font-bold text-stage-text/60">No specific fixes — keep it up.</p>
-                )}
+                <h3 className="mb-2 text-hud font-extrabold uppercase tracking-widest text-stage-text/60">
+                  What to do next
+                </h3>
+                <div className="flex flex-col gap-2">
+                  {findings.map((f, i) => (
+                    <div
+                      key={`${f.kind}-${i}`}
+                      className={`rounded-xl border-l-4 bg-white/[0.06] p-3 ${
+                        f.kind === "strength" ? "border-duo-green"
+                          : f.kind === "coverage" ? "border-duo-gold"
+                          : "border-duo-blue"
+                      }`}
+                    >
+                      <p className="text-hud font-medium leading-relaxed text-stage-text/85">{f.text}</p>
+                      {/* A timestamp in the text is only advice; a button is a
+                          thing you can do. The whole point of naming the bad
+                          stretch is getting the user back to it. */}
+                      {f.atMs !== undefined && (
+                        <Pressable
+                          variant="stage"
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => {
+                            const t = f.atMs! / 1000;
+                            if (userVideoRef.current) userVideoRef.current.currentTime = t;
+                            if (proVideoRef.current)  proVideoRef.current.currentTime  = t;
+                            setCurrentTime(t);
+                            setResultsOpen(false);
+                          }}
+                        >
+                          Jump there
+                        </Pressable>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
