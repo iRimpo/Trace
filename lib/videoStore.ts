@@ -22,6 +22,7 @@ export type StoredVideoMeta = Omit<StoredVideo, "blob">;
 const DB_NAME = "trace-videos";
 const STORE   = "videos";
 const RESUME  = "resume";
+const TAKES   = "takes";
 const DEFAULT_BUDGET_BYTES = 2 * 1024 * 1024 * 1024; // 2GB
 
 export function idbAvailable(): boolean {
@@ -36,13 +37,16 @@ function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     // v2 adds the `resume` store. Existing v1 databases upgrade in place and
     // keep every stored video — the handler only creates what is missing.
-    const req = indexedDB.open(DB_NAME, 2);
+    const req = indexedDB.open(DB_NAME, 3);
     req.onupgradeneeded = () => {
       if (!req.result.objectStoreNames.contains(STORE)) {
         req.result.createObjectStore(STORE, { keyPath: "key" });
       }
       if (!req.result.objectStoreNames.contains(RESUME)) {
         req.result.createObjectStore(RESUME, { keyPath: "key" });
+      }
+      if (!req.result.objectStoreNames.contains(TAKES)) {
+        req.result.createObjectStore(TAKES, { keyPath: "key" });
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -256,6 +260,56 @@ export async function clearResume(key: string): Promise<void> {
   if (!idbAvailable() || !key) return;
   try {
     await tx("readwrite", s => s.delete(key), RESUME);
+  } catch {
+    /* noop */
+  }
+}
+
+
+// ── Recorded takes ─────────────────────────────────────────────────────────
+
+/**
+ * The pose streams from one take.
+ *
+ * These used to be JSON-stringified into `sessionStorage` alongside the blob
+ * URL. sessionStorage has a ~5MB per-origin quota and two streams of a
+ * three-minute take are ~10MB, so **every take longer than about ninety
+ * seconds threw QuotaExceededError** — surfacing as a generic "Failed to save,
+ * please try again" that would fail identically on every retry, after the user
+ * had just danced a whole song. IndexedDB has no such ceiling.
+ */
+export interface StoredTake {
+  poseFrames: unknown[];
+  refPoseFrames: unknown[];
+}
+
+export async function putTake(key: string, take: StoredTake): Promise<boolean> {
+  if (!idbAvailable() || !key) return false;
+  try {
+    await tx("readwrite", s => s.put({ key, ...take }), TAKES);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function getTake(key: string): Promise<StoredTake | null> {
+  if (!idbAvailable() || !key) return null;
+  try {
+    const rec = await tx<(StoredTake & { key: string }) | undefined>(
+      "readonly", s => s.get(key), TAKES,
+    );
+    if (!rec) return null;
+    return { poseFrames: rec.poseFrames ?? [], refPoseFrames: rec.refPoseFrames ?? [] };
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteTake(key: string): Promise<void> {
+  if (!idbAvailable() || !key) return;
+  try {
+    await tx("readwrite", s => s.delete(key), TAKES);
   } catch {
     /* noop */
   }

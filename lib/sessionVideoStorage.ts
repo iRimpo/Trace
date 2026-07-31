@@ -1,5 +1,5 @@
 import type { PoseFrame } from "./poseRecorder";
-import { getVideo } from "./videoStore";
+import { getVideo, putTake, getTake, deleteTake } from "./videoStore";
 
 const VIDEO_KEY = "trace_video_session";
 const RECORDING_KEY = "trace_recording_session";
@@ -66,19 +66,88 @@ export function clearVideoSession(): void {
   sessionStorage.removeItem(VIDEO_KEY);
 }
 
-export function storeRecordingSession(data: RecordingSession): void {
-  sessionStorage.setItem(RECORDING_KEY, JSON.stringify(data));
+/**
+ * ── Where a take's pose streams live ─────────────────────────────────────
+ *
+ * Not in sessionStorage. They used to be, JSON-stringified alongside the blob
+ * URL, and sessionStorage has a ~5MB per-origin quota while two streams of a
+ * three-minute take are ~10MB. So every take longer than about ninety seconds
+ * threw QuotaExceededError, which surfaced as a generic "Failed to save,
+ * please try again" that failed identically on every retry — after the user
+ * had just danced a whole song. It is the kind of bug that only appears on
+ * real content, because a fifteen-second smoke test fits fine.
+ *
+ * The frames go to IndexedDB, which has no such ceiling. sessionStorage keeps
+ * only the handful of small fields it is actually suited for.
+ */
+const TAKE_KEY = "trace-take";
+
+interface RecordingPointer {
+  blobUrl: string;
+  sessionId: string;
+  takeKey: string;
 }
 
-export function loadRecordingSession(): RecordingSession | null {
+export async function storeRecordingSession(data: RecordingSession): Promise<boolean> {
+  const ok = await putTake(TAKE_KEY, {
+    poseFrames: data.poseFrames,
+    refPoseFrames: data.refPoseFrames,
+  });
+  const pointer: RecordingPointer = {
+    blobUrl: data.blobUrl,
+    sessionId: data.sessionId,
+    takeKey: TAKE_KEY,
+  };
+  try {
+    sessionStorage.setItem(RECORDING_KEY, JSON.stringify(pointer));
+  } catch {
+    return false;
+  }
+  // Reported rather than thrown: a take whose poses did not persist can still
+  // be watched back, it just cannot be scored, and the caller decides how to
+  // say so.
+  return ok;
+}
+
+export async function loadRecordingSession(): Promise<RecordingSession | null> {
+  let pointer: RecordingPointer | null = null;
   try {
     const raw = sessionStorage.getItem(RECORDING_KEY);
-    return raw ? (JSON.parse(raw) as RecordingSession) : null;
+    if (!raw) return null;
+    pointer = JSON.parse(raw) as RecordingPointer;
   } catch {
     return null;
+  }
+  if (!pointer?.blobUrl) return null;
+
+  const take = await getTake(pointer.takeKey ?? TAKE_KEY);
+  return {
+    blobUrl: pointer.blobUrl,
+    sessionId: pointer.sessionId,
+    poseFrames: (take?.poseFrames ?? []) as RecordingSession["poseFrames"],
+    refPoseFrames: (take?.refPoseFrames ?? []) as RecordingSession["refPoseFrames"],
+  };
+}
+
+/**
+ * Patch just the session id on the stored pointer.
+ *
+ * The id only exists after the row is created, and the row is created after
+ * the frames are stored — but rewriting the frames to attach an id would mean
+ * a second multi-megabyte IndexedDB write for the sake of one string.
+ */
+export function setRecordingSessionId(sessionId: string): void {
+  try {
+    const raw = sessionStorage.getItem(RECORDING_KEY);
+    if (!raw) return;
+    const pointer = JSON.parse(raw) as RecordingPointer;
+    sessionStorage.setItem(RECORDING_KEY, JSON.stringify({ ...pointer, sessionId }));
+  } catch {
+    /* noop */
   }
 }
 
 export function clearRecordingSession(): void {
   sessionStorage.removeItem(RECORDING_KEY);
+  void deleteTake(TAKE_KEY);
 }

@@ -7,7 +7,7 @@ import { VideoRecorder } from "@/lib/videoRecorder";
 import { PoseRecorder, type PoseFrame } from "@/lib/poseRecorder";
 import { DancerTracker } from "@/lib/dancerTracker";
 import { createPracticeSession } from "@/lib/uploadRecording";
-import { storeRecordingSession, loadVideoSession } from "@/lib/sessionVideoStorage";
+import { storeRecordingSession, loadVideoSession, setRecordingSessionId } from "@/lib/sessionVideoStorage";
 import { useAuth } from "@/context/AuthContext";
 import type { CalibrationData } from "@/components/practice/CalibrationModal";
 import { TOP_STACK, BOTTOM_SAFE } from "@/components/practice/chrome";
@@ -425,8 +425,31 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
     try {
       const recBlobUrl = URL.createObjectURL(recordingBlob);
       const thumbnailUrl = loadVideoSession()?.thumbnailUrl;
+
+      /*
+        The handoff happens *before* the practice session row is created.
+
+        It used to be the other way round, and the handoff was a
+        sessionStorage write that threw QuotaExceededError on any take longer
+        than about ninety seconds. So the row was already committed when the
+        write blew up, the user saw "Failed to save, please try again", and
+        every retry created another orphaned row for a take that could never
+        be handed off. Storing first means a failure costs nothing.
+      */
+      const posesStored = await storeRecordingSession({
+        blobUrl: recBlobUrl, poseFrames, refPoseFrames, sessionId: "",
+      });
+
       const sessionId = await createPracticeSession(user.id, videoId, videoSource, videoTitle, traceTimeSeconds, thumbnailUrl);
-      storeRecordingSession({ blobUrl: recBlobUrl, poseFrames, refPoseFrames, sessionId });
+      // Only the pointer needs the id — rewriting the frames for one string
+      // would be a second multi-megabyte write.
+      setRecordingSessionId(sessionId);
+
+      if (!posesStored) {
+        // Watchable, not scorable. Say which, rather than failing the whole
+        // step or silently showing a score built from nothing.
+        console.warn("[Trace] pose frames could not be persisted — this take will not be scored");
+      }
       onComplete(sessionId);
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Failed to save. Please try again.");

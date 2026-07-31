@@ -298,19 +298,23 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
   // Load recording session from sessionStorage
   // ─────────────────────────────────────────────────────────────────
   useEffect(() => {
-    const rec = loadRecordingSession();
-    if (!rec) {
-      setLoadError("Session data not found. Please complete the Test step first.");
+    let cancelled = false;
+    void loadRecordingSession().then(rec => {
+      if (cancelled) return;
+      if (!rec) {
+        setLoadError("Session data not found. Please complete the Test step first.");
+        setLoading(false);
+        return;
+      }
+      setRecordingUrl(rec.blobUrl);
+      setUserFrames(rec.poseFrames);
+      if (rec.refPoseFrames.length > 0) {
+        setRefFrames(rec.refPoseFrames);
+        setScoringReady(true);
+      }
       setLoading(false);
-      return;
-    }
-    setRecordingUrl(rec.blobUrl);
-    setUserFrames(rec.poseFrames);
-    if (rec.refPoseFrames.length > 0) {
-      setRefFrames(rec.refPoseFrames);
-      setScoringReady(true);
-    }
-    setLoading(false);
+    });
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
