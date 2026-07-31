@@ -7,9 +7,11 @@ import FeedbackCanvas from "@/components/practice/FeedbackCanvas";
 import CountStrip from "@/components/practice/CountStrip";
 import { TOP_STACK, BOTTOM_SAFE, useIsPortrait } from "@/components/practice/chrome";
 import { SPRING_UI } from "@/lib/motion";
+import { haptic } from "@/lib/feedback";
 import TapTempoSheet from "@/components/practice/TapTempoSheet";
 import BpmInput from "@/components/practice/BpmInput";
 import Segmented from "@/components/ui/Segmented";
+import TogglePill from "@/components/ui/TogglePill";
 import type { CalibrationData } from "@/components/practice/CalibrationModal";
 import { CountGrid } from "@/lib/countGrid";
 import { detectBeatsFromVideo, BEAT_FAILURE_COPY } from "@/lib/beatDetector";
@@ -253,6 +255,30 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
   const [viewMode,       setViewMode]       = useState<ViewMode>("overlay");
   const [overlayOpacity, setOverlayOpacity] = useState(50);
   const [ghostBlend,     setGhostBlend]     = useState<GhostBlend>("screen");
+
+  /**
+   * ── Hold to peek ────────────────────────────────────────────────────
+   *
+   * Press and hold the canvas and the reference goes to full strength while
+   * your own feed drops back; release and it springs home. This is the answer
+   * to "sometimes seeing the video in full form makes it a lot easier" and it
+   * costs no screen real estate at all — the alternative, a picture-in-picture
+   * pane, is a small dancer, and a small dancer at eight feet is the exact
+   * failure mode the squished side-by-side already had.
+   *
+   * `latched` is the hands-free half. Holding a phone is the one thing P1
+   * cannot do mid-song, so peek is also a toggle: tap the Reference button and
+   * it stays. Without that this feature only works for the desktop case, which
+   * is not the case the app is for.
+   */
+  const [peeking, setPeeking] = useState(false);
+  const [peekLatched, setPeekLatched] = useState(false);
+  const peekTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const peekActive = peeking || peekLatched;
+
+  const cancelPeekTimer = useCallback(() => {
+    if (peekTimerRef.current) { clearTimeout(peekTimerRef.current); peekTimerRef.current = null; }
+  }, []);
   const [mirrored,       setMirrored]       = useState(true);
 
   // ── Framing ─────────────────────────────────────────────────────
@@ -763,10 +789,25 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
           }
         } break;
         case "KeyB":     e.preventDefault(); handleSetBeatOne(); break;
+        // Held, not toggled — the keyboard mirror of the canvas long-press, so
+        // the gesture means the same thing on both inputs. `e.repeat` guards
+        // the auto-repeat storm a held key produces.
+        case "KeyV":     e.preventDefault(); if (!e.repeat) setPeeking(true); break;
       }
     }
+    function onKeyUp(e: KeyboardEvent) {
+      if (e.code === "KeyV") setPeeking(false);
+    }
+    // A window blur while V is held would otherwise leave peek stuck on.
+    const onBlur = () => setPeeking(false);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
+    };
   }, [togglePlay, restart, markLoopStart, markLoopEnd, skipBack, skipForward, loopStart, loopEnd, handleSetBeatOne]);
 
   // ── Drag-to-pan ─────────────────────────────────────────────────
@@ -776,14 +817,42 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
     (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
     const baseX = proOffsetX, baseY = proOffsetY, startX = e.clientX, startY = e.clientY;
     setIsDragging(true);
+
+    /*
+      Long-press arms peek, movement cancels it. This canvas already owns
+      drag-to-reposition and a two-finger pinch, so peek has to lose every
+      ambiguous case rather than win it: 350ms is long enough that a
+      reposition never trips it, and a 10px move disarms it outright. Getting
+      this backwards would make the framing undraggable, which is worse than
+      not having peek at all.
+    */
+    let moved = false;
+    peekTimerRef.current = setTimeout(() => {
+      if (!moved && !pinchActiveRef.current) { setPeeking(true); haptic("tick"); }
+    }, 350);
+
     const onMove = (ev: PointerEvent) => {
       if (pinchActiveRef.current) return;
+      if (!moved && Math.hypot(ev.clientX - startX, ev.clientY - startY) > 10) {
+        moved = true;
+        cancelPeekTimer();
+      }
       setProOffsetX(baseX + (ev.clientX - startX));
       setProOffsetY(baseY + (ev.clientY - startY));
     };
-    const onUp = () => { setIsDragging(false); window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); };
+    const onUp = () => {
+      setIsDragging(false);
+      cancelPeekTimer();
+      setPeeking(false);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+    // Without pointercancel the reference sticks at full opacity when the OS
+    // steals the pointer — a notification, a call, an edge-swipe.
+    window.addEventListener("pointercancel", onUp);
   }
 
   function handleCanvasPinchStart(e: React.TouchEvent<HTMLCanvasElement>) {
@@ -866,17 +935,35 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               <p className="text-xs text-white/40">{webcamError}</p>
             </div>
           ) : (
-            <video ref={webcamRef} className="absolute inset-0 h-full w-full object-cover" style={{ transform: "scaleX(-1)" }} playsInline muted autoPlay />
+            <video
+              ref={webcamRef}
+              className="absolute inset-0 h-full w-full object-cover"
+              style={{
+                transform: "scaleX(-1)",
+                // Not 0. You still want to know roughly where you are while
+                // peeking, and a feed that vanishes entirely is disorienting
+                // when it comes back.
+                opacity: peekActive ? 0.15 : 1,
+                transition: "opacity 140ms cubic-bezier(0.23,1,0.32,1)",
+              }}
+              playsInline muted autoPlay
+            />
           )}
 
           <canvas
             ref={overlayCanvasRef}
             className="absolute inset-0 h-full w-full"
             style={{
-              opacity: overlayOpacity / 100,
-              mixBlendMode: ghostBlend,
+              // Peek overrides the slider rather than replacing it: release
+              // and you are back at whatever you had set, which is the whole
+              // point of a held gesture over a mode.
+              opacity: peekActive ? 1 : overlayOpacity / 100,
+              // Peek shows the reference *as a video*, so the blend that makes
+              // it a ghost is exactly what you do not want while looking at it.
+              mixBlendMode: peekActive ? "normal" : ghostBlend,
               cursor: isDragging ? "grabbing" : "grab",
               touchAction: "none",
+              transition: "opacity 140ms cubic-bezier(0.23,1,0.32,1)",
             }}
             onPointerDown={handleCanvasPointerDown}
             onTouchStart={handleCanvasPinchStart}
@@ -1130,6 +1217,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                 {[
                   ["Space", "Play/Pause"], ["R", "Restart"], ["←/→", "±5 sec"], ["M", "Mirror"],
                   ["L", "Loop"], ["[/]", "Set A/B"], ["T", "Tap BPM"], ["B", "Set beat-1"],
+                  ["Hold V", "Peek at reference"],
                 ].map(([key, label]) => (
                   <div key={key} className="flex items-center gap-2">
                     <kbd className="rounded bg-white/15 px-1.5 py-0.5 font-mono text-hud text-stage-text/85">{key}</kbd>
@@ -1321,6 +1409,22 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   onChange={setGhostBlend}
                   className="shrink-0"
                 />
+                {/*
+                  The hands-free half of peek. The long-press is the better
+                  interaction but it needs a hand on the phone, which is the one
+                  thing P1 does not have mid-song — so the same state is also a
+                  latch you can arm before you start dancing. Without this, peek
+                  is a desktop feature, and desktop is not what the app is for.
+                */}
+                <TogglePill
+                  active={peekLatched}
+                  onClick={() => setPeekLatched(v => !v)}
+                  accent="blue"
+                  tone="stage"
+                  className="shrink-0"
+                >
+                  Reference {peekLatched ? "on" : "off"}
+                </TogglePill>
                 <div className="flex min-w-0 flex-1 items-center gap-2">
                   <span className="shrink-0 text-hud font-bold text-stage-text/70">Ghost</span>
                   <input
