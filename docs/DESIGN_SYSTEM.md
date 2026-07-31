@@ -53,14 +53,26 @@ a scanned budget of 56 for the whole repo and it only ratchets down.
 | `brand-cream` | Paper ground |
 | `duo-edge` | Borders on paper |
 | `stage`, `stage-raised`, `stage-glass`, `stage-inset`, `stage-edge`, `stage-text`, `stage-muted` | Everything on the practice screen |
-| `duo-green` | Go / commit / success. The one "start" colour |
+| `duo-green` | Go / commit / success. **The one "start" colour — a screen has exactly one green.** |
+| `duo-teal` | The cue system. Deliberately not green: a toggle that is merely *on* must not wear the colour that means *act* |
 | `duo-blue` | View, framing, focus rings, informational |
 | `duo-gold` | Streaks, achievement, loop regions |
 | `duo-red` | Destructive, errors, recording |
 | `cue-*` | Per-joint cue colours. Do not reuse them for UI |
 
-**Accents mean the same thing everywhere:** blue = view/framing, emerald =
+**Accents mean the same thing everywhere:** blue = view/framing, teal =
 the cue system, violet (`cue-hip`) = counts and tempo, amber/gold = looping.
+
+**One green per screen.** `duo-green` means *do this now* — the primary
+pressable, drill's DANCE phase, a completed step. It is not an "on" colour.
+This section claimed four accent meanings for three colours for a while, so the
+cue toggle was drawn in `duo-green` and the practice screen had two greens
+meaning two different things, with the one that means *start* used ambiently.
+That is what `duo-teal` exists to fix.
+
+**Raw Tailwind palette classes (`bg-emerald-500`, `bg-pink-500`) are banned in
+`app/` and `components/`,** the same as raw hex. They bypass the token system
+identically and are invisible to the `raw_hex` rule.
 
 ---
 

@@ -22,7 +22,9 @@ type Tone = "paper" | "stage";
 
 const ON: Record<Accent, string> = {
   blue:    "bg-duo-blue text-white border-duo-blue",
-  emerald: "bg-duo-green text-white border-duo-green",
+  // `duo-teal`, not `duo-green`: green is the one "go / commit" colour and a
+  // toggle that is merely *on* must not wear it. See tailwind.config.ts.
+  emerald: "bg-duo-teal text-white border-duo-teal",
   violet:  "bg-cue-hip text-stage border-cue-hip",
   amber:   "bg-duo-gold text-ink border-duo-gold",
 };

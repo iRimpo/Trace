@@ -42,6 +42,21 @@ const config: Config = {
           goldDark:  "#E5A600",
           red:       "#FF4B4B",
           redDark:   "#E23A3A",
+          /**
+           * The cue system's own accent.
+           *
+           * `DESIGN_SYSTEM.md` §2 claims four accent meanings — blue for
+           * view/framing, emerald for cues, violet for counts, amber for
+           * looping — but there was no emerald, so the cue toggle was drawn in
+           * `duo.green`. That is the one "go / commit" colour, which meant the
+           * practice screen had two different greens meaning two different
+           * things, and the one that means *start* was the one being used
+           * ambiently. Teal-green rather than another blue: it has to be
+           * separable from `duo.blue` at ten feet, and hue survives distance
+           * far worse than luminance does.
+           */
+          teal:      "#00C2A8",
+          tealDark:  "#00A38D",
           edge:      "#E0DCC8",
         },
         /**
@@ -112,6 +127,11 @@ const config: Config = {
         mono:      ["var(--font-mono)", "monospace"],
         logo:      ["var(--font-outfit)", "sans-serif"],
         hero:      ["var(--font-dm-sans)", "sans-serif"],
+        /**
+         * Headings and big numbers. Rounded and warm where DM Sans is cool and
+         * geometric. Never the stage HUD — see app/layout.tsx.
+         */
+        display:   ["var(--font-nunito)", "var(--font-dm-sans)", "sans-serif"],
         noname:    ["var(--font-jakarta)", "sans-serif"],
         helvetica: ["var(--font-raleway)", "sans-serif"],
         calistoga: ["var(--font-calistoga)", "serif"],

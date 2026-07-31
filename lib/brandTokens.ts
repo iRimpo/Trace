@@ -38,6 +38,9 @@ export const ACTION = {
   goldDark:  "#E5A600",
   red:       "#FF4B4B",
   redDark:   "#E23A3A",
+  /** The cue system's accent — deliberately not `green`, which means "go". */
+  teal:      "#00C2A8",
+  tealDark:  "#00A38D",
   edge:      "#E0DCC8",
 } as const;
 

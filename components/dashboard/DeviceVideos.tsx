@@ -96,7 +96,7 @@ export default function DeviceVideos() {
           Two section headers three rows apart cannot have two different
           baselines and two different margins. */}
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-lg font-extrabold tracking-tight text-ink">On this device</h2>
+        <h2 className="font-display text-lg font-extrabold tracking-tight text-ink">On this device</h2>
         <p className="text-hud uppercase tracking-[0.18em] text-clay/60">Ready instantly</p>
       </div>
 

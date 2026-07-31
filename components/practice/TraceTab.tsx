@@ -178,7 +178,7 @@ const GLASS_PILL = "flex shrink-0 items-center gap-1.5 rounded-full border px-3 
 
 const TOGGLE_ACTIVE = {
   blue:    "bg-duo-blue  text-white  border-duo-blue",
-  emerald: "bg-duo-green text-white  border-duo-green",
+  emerald: "bg-duo-teal  text-white  border-duo-teal",
   violet:  "bg-cue-hip   text-stage  border-cue-hip",
   amber:   "bg-duo-gold  text-ink    border-duo-gold",
 } as const;
@@ -1248,7 +1248,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
             exit={{ opacity: 0, y: 8 }}
             className="pointer-events-none absolute bottom-24 left-1/2 z-40 -translate-x-1/2"
           >
-            <div className={`flex items-center gap-2 rounded-full bg-emerald-500/90 px-4 py-1.5 text-xs text-white shadow-lg`}>
+            <div className="flex items-center gap-2 rounded-full bg-duo-teal px-4 py-1.5 text-hud font-bold text-white shadow-stage">
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
               </svg>
@@ -1903,7 +1903,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
       <AnimatePresence>
         {videoError && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="absolute bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-red-500/20 px-4 py-2 text-xs font-medium text-red-300 backdrop-blur"
+            className="absolute bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-duo-red/20 px-4 py-2 text-hud font-bold text-stage-text backdrop-blur"
           >{videoError}</motion.div>
         )}
       </AnimatePresence>

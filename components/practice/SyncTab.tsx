@@ -1174,7 +1174,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
                   {/* aria-live so the count-up is announced once, on landing,
                       rather than sixty times as it climbs. */}
                   <span
-                    className={`text-[5.5rem] font-black leading-[0.85] tabular-nums ${scoreText(overallScore)}`}
+                    className={`font-display text-[5.5rem] font-black leading-[0.85] tabular-nums ${scoreText(overallScore)}`}
                     aria-hidden="true"
                   >
                     {shownScore}
