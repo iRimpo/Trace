@@ -8,6 +8,7 @@ import type { CalibrationData } from "@/components/practice/CalibrationModal";
 import { saveSyncScore } from "@/lib/uploadRecording";
 import { loadRecordingSession, clearRecordingSession } from "@/lib/sessionVideoStorage";
 import { TOP_STACK, BOTTOM_SAFE } from "@/components/practice/chrome";
+import { SPRING_UI } from "@/lib/motion";
 import Panel from "@/components/ui/Panel";
 import Pressable from "@/components/ui/Pressable";
 import IconButton from "@/components/ui/IconButton";
@@ -916,7 +917,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
               initial={{ scale: 0.94, y: 14 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.97, y: 8 }}
-              transition={{ type: "spring", stiffness: 380, damping: 32 }}
+              transition={SPRING_UI}
               drag="y"
               dragConstraints={{ top: 0, bottom: 0 }}
               dragElastic={{ top: 0.2, bottom: 0.5 }}

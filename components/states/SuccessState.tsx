@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
+import { SPRING_POP } from "@/lib/motion";
 import StateBlock from "./StateBlock";
 import { CheckIcon } from "./icons";
 
@@ -37,7 +38,7 @@ export function SuccessState({ message, detail, bare = true, className = "" }: P
         <motion.span
           initial={reduce ? false : { scale: 0.6 }}
           animate={{ scale: 1 }}
-          transition={{ type: "spring", duration: 0.42, bounce: 0.3 }}
+          transition={SPRING_POP}
           className="flex"
         >
           <CheckIcon />

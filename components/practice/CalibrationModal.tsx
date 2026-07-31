@@ -9,6 +9,7 @@ import { extractFaceThumbnail } from "@/lib/faceExtraction";
 import { CUE_PALETTE } from "@/lib/cuePalette";
 import { MIN_TRIM, clampTrim, trimKeyTarget } from "@/lib/trimControls";
 import { TOP_STACK, BOTTOM_SAFE } from "@/components/practice/chrome";
+import { SPRING_UI, SPRING_POP } from "@/lib/motion";
 import Panel from "@/components/ui/Panel";
 import Pressable from "@/components/ui/Pressable";
 import IconButton from "@/components/ui/IconButton";
@@ -779,7 +780,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, x: -20 }}
-            transition={{ type: "spring", stiffness: 380, damping: 34 }}
+            transition={SPRING_UI}
             className={STEP_CARD}
           >
             <StepHeader
@@ -849,7 +850,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
               <AnimatePresence>
                 {frameState === "done" && (
                   <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                    transition={{ type: "spring", stiffness: 420, damping: 30 }}
+                    transition={SPRING_POP}
                     className="absolute inset-0 flex items-center justify-center bg-black/45">
                     <div className="flex items-center gap-3 rounded-2xl bg-duo-green px-7 py-4 shadow-stage">
                       <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>

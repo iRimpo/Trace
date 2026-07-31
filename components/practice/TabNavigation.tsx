@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { SPRING_UI_SNAPPY } from "@/lib/motion";
 
 export type TabId = "trace" | "test" | "sync";
 
@@ -76,7 +77,7 @@ export default function TabNavigation({ currentTab, onTabChange, completedTabs }
               <motion.div
                 layoutId="tab-pill"
                 className="absolute inset-0 rounded-full bg-duo-green"
-                transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                transition={SPRING_UI_SNAPPY}
               />
             )}
             <span className="relative z-10 flex items-center gap-1.5">

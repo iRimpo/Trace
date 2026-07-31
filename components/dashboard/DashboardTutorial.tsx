@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { SPRING_POP } from "@/lib/motion";
 import Panel from "@/components/ui/Panel";
 import Pressable from "@/components/ui/Pressable";
 
@@ -59,7 +60,7 @@ function VisualSkeleton() {
       ))}
       {joints.map((j, i) => (
         <motion.g key={i} initial={{ opacity: 0, scale: 0.4 }} animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: j.delay, duration: 0.3, type: "spring", stiffness: 260, damping: 18 }}
+          transition={{ ...SPRING_POP, delay: j.delay }}
           style={{ transformOrigin: `${j.x}px ${j.y}px` }}
         >
           <circle cx={j.x} cy={j.y} r={j.r + 5} fill={j.color} opacity={0.2} />

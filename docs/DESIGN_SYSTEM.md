@@ -130,6 +130,35 @@ Also required, though not scanned:
 - `env(safe-area-inset-*)` always resolves to 0 in a desktop browser, so notch
   geometry cannot be checked by looking at it locally.
 
+### The top edge has two rows
+
+`TOP_STACK` fixed the *vertical* offset. It does not allocate *horizontal*
+room, and that is a second, independent bug — confirmed in source, not
+predicted:
+
+`CountStrip` spans `left-0 right-0` at `TOP_STACK` in the `z-30` layer.
+TraceTab's TRACE badge (`left-3`) and utility cluster (`right-3`) sit at the
+same offset in the same layer, and render *later*, so they paint on top of it.
+The badge covers counts 1–2 and the three utility buttons cover counts 6–8.
+**Count 1 — the downbeat, the one cell being read from ten feet — is underneath
+the wordmark.** Repro: overlay mode, counts on, paused.
+
+The fix is a **second row**, not horizontal lanes. Lanes were tried first and
+are arithmetically impossible on the target device: a badge (~7rem) plus three
+44px buttons (~10rem) leaves 121px of a 393px screen for eight count cells —
+15px each, narrower than the digit inside them. The top edge does not have room
+for a badge, eight counts and a utility cluster side by side, and any layout
+that pretends otherwise trades a visible overlap for an illegible strip.
+
+| Row | Offset | Owner |
+|---|---|---|
+| one | `TOP_STACK` | one badge at `left-3`, the utility cluster at `right-3` |
+| two | `TOP_STACK_ROW2` | `CountStrip`, full width, and nothing else |
+
+`TOP_ROW_H` (3.25rem) is row one's height: one 44px touch target plus its gap.
+Anything new anchored to the top edge belongs in row one, beside the badge —
+row two is spoken for.
+
 ---
 
 ## 6. What this is for
@@ -139,3 +168,60 @@ phone across the room and dances. Every decision should be checked against that:
 *can he read it, and can he hit it, from where he is actually standing?*
 
 The scan/cue system is **additive and Beta** — it must never gate practice.
+
+---
+
+## 7. The responsive contract
+
+**This section is binding.** Three parallel attempts at "make it work on a
+phone" invented three different strategies, and that is how the tab bar, the
+controls and the count strip ended up stacked under the Dynamic Island.
+
+### Branch on orientation, not on width
+
+On the practice surfaces — `TraceTab`, `SyncTab`, `TestTab`, `CalibrationModal`
+— layout branches on `useIsPortrait()` from `components/practice/chrome.ts`.
+**Never on `sm:` / `md:`.**
+
+A 393px phone held sideways is a landscape device and wants columns. A 1024px
+tablet held upright is a portrait device and wants rows. A width breakpoint
+cannot express that, and every squished practice layout the app has shipped was
+a width breakpoint applied to an orientation problem.
+
+One hook, one source of truth, exactly as `TOP_STACK` is for the top edge. Do
+not add a second orientation check.
+
+### Portrait — tailored to its strengths
+
+- **Media is full-bleed.** Chrome floats *over* it as stage-glass. Never a
+  header row stacked above the media and a footer row stacked below it —
+  that is what reserves 40% of a phone screen for the thing you are looking at
+  and gives the rest to furniture.
+- Comparisons stack **vertically**, and **you are on top**.
+- Primary controls live in the **bottom third** — thumb-reachable, and out of
+  the way of the body being watched.
+- **Sheets, not modals.** Drag-to-dismiss with velocity. `TraceTab.tsx`'s
+  transport already does this correctly; copy that pattern rather than
+  inventing a second one.
+- Nothing critical is `hidden` at a phone width. This bug has now shipped three
+  times — the Ghost slider, the Sync detail panel, the live count. If a control
+  does not fit in portrait it becomes a sheet; it does not disappear.
+
+### Landscape / desktop — tailored to *its* strengths
+
+- Use the horizontal room: reference and camera **side by side at full height**,
+  plus a persistent detail rail.
+- Keyboard is a first-class input, and only here.
+- Hover states are real, and only here — keep them behind
+  `@media (hover: hover) and (pointer: fine)`, as `Pressable` already does.
+- Larger type is *available*, not mandatory. **The 12px stage floor does not
+  move**, because viewing distance set it, not screen size.
+
+### Motion comes from `lib/motion.ts`
+
+Durations and springs are named there — `MS`/`SEC` bands, `SPRING_UI`,
+`SPRING_UI_SNAPPY`, `SPRING_POP`. Do not write a new duration or spring literal
+in `app/` or `components/`. Before this file there were eight spring literals
+across the practice surfaces and no two agreed.
+
+---

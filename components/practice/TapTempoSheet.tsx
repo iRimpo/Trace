@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import Pressable from "@/components/ui/Pressable";
+import { SPRING_UI } from "@/lib/motion";
 
 interface TapTempoSheetProps {
   onConfirm: (bpm: number) => void;
@@ -78,7 +79,7 @@ export default function TapTempoSheet({
         initial={{ y: reduceMotion ? 0 : 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: reduceMotion ? 0 : 24, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 420, damping: 40 }}
+        transition={SPRING_UI}
         role="dialog"
         aria-modal="true"
         aria-label="Set the tempo"

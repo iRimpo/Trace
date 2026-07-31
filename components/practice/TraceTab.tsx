@@ -5,7 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { initPoseDetection, detectPose } from "@/lib/mediapipe";
 import FeedbackCanvas from "@/components/practice/FeedbackCanvas";
 import CountStrip from "@/components/practice/CountStrip";
-import { TOP_STACK, BOTTOM_SAFE } from "@/components/practice/chrome";
+import { TOP_STACK, BOTTOM_SAFE, useIsPortrait } from "@/components/practice/chrome";
+import { SPRING_UI } from "@/lib/motion";
 import TapTempoSheet from "@/components/practice/TapTempoSheet";
 import BpmInput from "@/components/practice/BpmInput";
 import Segmented from "@/components/ui/Segmented";
@@ -1188,7 +1189,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
           // writes the whole transform; a Tailwind translate would be clobbered.
           style={{ bottom: BOTTOM_SAFE, x: "-50%" }}
           animate={{ y: controlsVisible ? 0 : "100%" }}
-          transition={{ type: "spring", stiffness: 420, damping: 42 }}
+          transition={SPRING_UI}
           // Flick or drag the sheet away instead of waiting out a timeout.
           drag="y"
           dragConstraints={{ top: 0, bottom: 0 }}

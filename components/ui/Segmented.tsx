@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useId } from "react";
+import { SPRING_UI_SNAPPY } from "@/lib/motion";
 
 /**
  * A segmented control — pick exactly one of a short, fixed set.
@@ -83,7 +84,7 @@ export default function Segmented<T extends string>({
               <motion.span
                 layoutId={`segmented-${groupId}`}
                 className={`absolute inset-0 rounded-xl ${PILL[tone]}`}
-                transition={{ type: "spring", stiffness: 480, damping: 40 }}
+                transition={SPRING_UI_SNAPPY}
               />
             )}
             <span className="relative z-10 whitespace-nowrap">{o.label}</span>
