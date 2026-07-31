@@ -3,12 +3,13 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import type { ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { initPoseDetection, detectPose, detectAllPosesFromFrame, smoothKeypoints } from "@/lib/mediapipe";
+import {initPoseDetection, detectAllPosesFromFrame, smoothKeypoints, detectPoses} from "@/lib/mediapipe";
 import type { Keypoint } from "@/lib/mediapipe";
 import { extractFaceThumbnail } from "@/lib/faceExtraction";
 import { CUE_PALETTE } from "@/lib/cuePalette";
 import { MIN_TRIM, clampTrim, trimKeyTarget } from "@/lib/trimControls";
 import { videoFit } from "@/lib/videoFit";
+import { pickPrimaryPose } from "@/lib/primaryPose";
 import { confirm as confirmCue } from "@/lib/feedback";
 import { TOP_STACK, BOTTOM_SAFE, useIsPortrait } from "@/components/practice/chrome";
 import { SPRING_UI, SPRING_POP } from "@/lib/motion";
@@ -355,7 +356,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
     const refVideo = refVideoRef.current;
     if (!webcam || !refVideo) { goToTrim({ zoom: 1, offsetXNorm: 0, offsetYNorm: 0 }); return; }
 
-    const refKps = detectPose(refVideo);
+    const refKps = pickPrimaryPose(detectPoses(refVideo), refVideo.videoWidth);
     const wW = webcam.videoWidth || 640, wH = webcam.videoHeight || 480;
     const uStats = torsoStats(userKps, wW, wH);
     const rStats = refKps ? torsoStats(refKps, refVideo.videoWidth, refVideo.videoHeight) : null;
@@ -417,7 +418,8 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (refVideo && refVideo.readyState >= 2) drawRefFrame(ctx, refVideo, canvas.width, canvas.height, overlayOpacity / 100);
       if (webcam && poseReady && webcam.readyState >= 2) {
-        const raw = detectPose(webcam);
+        // Your body, not the mirror behind you — see lib/primaryPose.ts.
+        const raw = pickPrimaryPose(detectPoses(webcam), webcam.videoWidth);
         if (raw) {
           const kps = smoothKeypoints(prevKpsRef.current, raw);
           prevKpsRef.current = kps; lastKps = kps;

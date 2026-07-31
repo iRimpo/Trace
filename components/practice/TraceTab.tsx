@@ -2,12 +2,13 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { initPoseDetection, detectPose } from "@/lib/mediapipe";
+import {initPoseDetection, detectPoses} from "@/lib/mediapipe";
 import FeedbackCanvas from "@/components/practice/FeedbackCanvas";
 import CountStrip from "@/components/practice/CountStrip";
 import { TOP_STACK, BOTTOM_SAFE, useIsPortrait } from "@/components/practice/chrome";
 import { SPRING_UI } from "@/lib/motion";
 import { haptic, sfx } from "@/lib/feedback";
+import { pickPrimaryPose } from "@/lib/primaryPose";
 import { phaseForPass, repsCompleted, canDrill, phaseLabel } from "@/lib/drill";
 import { saveResume, getResume } from "@/lib/videoStore";
 import TapTempoSheet from "@/components/practice/TapTempoSheet";
@@ -651,7 +652,8 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
     if (!poseInitRef.current) { await initPoseDetection(); poseInitRef.current = true; }
     const proVideo = proVideoRef.current, webcam = webcamRef.current, canvas = overlayCanvasRef.current;
     if (!proVideo || !webcam || !canvas) { setAligning(false); return; }
-    const proKps = detectPose(proVideo), userKps = detectPose(webcam);
+    const proKps  = pickPrimaryPose(detectPoses(proVideo), proVideo.videoWidth);
+    const userKps = pickPrimaryPose(detectPoses(webcam),   webcam.videoWidth);
     if (!proKps || !userKps) { setAligning(false); return; }
     const cW = canvas.width, cH = canvas.height;
     const pvW = proVideo.videoWidth, pvH = proVideo.videoHeight;

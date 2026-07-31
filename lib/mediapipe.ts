@@ -89,6 +89,58 @@ export async function retryPoseDetection(variant: ModelVariant = "full"): Promis
 
 /** Detect pose from a video or canvas element. Returns pixel-space keypoints or null. */
 let detectErrorCount = 0;
+/**
+ * Every pose in the frame, in MediaPipe's own order.
+ *
+ * `detectPose` is this plus `[0]`, and that index is the problem: the
+ * landmarker runs with `numPoses: 10` and does not order the results by size,
+ * confidence or anything else stable. On a webcam in a room with a mirror —
+ * which is most rooms a dancer practises in — `[0]` can be the reflection, and
+ * it can swap between frames. Callers that need *the* body should pair this
+ * with `pickPrimaryPose`.
+ *
+ * No intermediate canvas, unlike `detectAllPosesFromFrame`: this is called per
+ * captured frame during a take, so it mirrors `detectPose`'s cost exactly.
+ */
+export function detectPoses(
+  source: HTMLVideoElement | HTMLCanvasElement,
+  variant: ModelVariant = "full",
+): Keypoint[][] | null {
+  const poseLandmarker = pick(variant);
+  if (!poseLandmarker) return null;
+
+  if (source instanceof HTMLVideoElement) {
+    if (source.readyState < 2) return null;
+    if (source.videoWidth === 0) return null;
+  }
+
+  try {
+    const result = poseLandmarker.detect(source);
+    if (!result.landmarks || result.landmarks.length === 0) return null;
+
+    const width  = source instanceof HTMLVideoElement ? source.videoWidth  : source.width;
+    const height = source instanceof HTMLVideoElement ? source.videoHeight : source.height;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return result.landmarks.map((landmarks: any[], personIdx: number) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const world: any[] = result.worldLandmarks?.[personIdx] ?? [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return landmarks.map((lm: any, i: number) => ({
+        x: lm.x * width,
+        y: lm.y * height,
+        z: lm.z,
+        score: lm.visibility ?? 0,
+        wx: world[i]?.x, wy: world[i]?.y, wz: world[i]?.z,
+      }));
+    });
+  } catch (e) {
+    detectErrorCount++;
+    if (detectErrorCount <= 3) console.warn("[Trace] detectPoses error:", e);
+    return null;
+  }
+}
+
 export function detectPose(
   source: HTMLVideoElement | HTMLCanvasElement,
   variant: ModelVariant = "full",

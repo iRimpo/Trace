@@ -2,10 +2,11 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { detectPose, initPoseDetection, detectAllPosesFromFrame } from "@/lib/mediapipe";
+import {initPoseDetection, detectAllPosesFromFrame, detectPoses} from "@/lib/mediapipe";
 import { VideoRecorder } from "@/lib/videoRecorder";
 import { PoseRecorder, type PoseFrame } from "@/lib/poseRecorder";
 import { DancerTracker } from "@/lib/dancerTracker";
+import { pickPrimaryPose } from "@/lib/primaryPose";
 import { createPracticeSession } from "@/lib/uploadRecording";
 import { storeRecordingSession, loadVideoSession, setRecordingSessionId } from "@/lib/sessionVideoStorage";
 import { useAuth } from "@/context/AuthContext";
@@ -311,7 +312,17 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
       frameCount++;
       if (frameCount % 4 === 0) {
         const webcam = webcamRef.current;
-        if (webcam) { const kps = detectPose(webcam); if (kps) pr.capture(kps); }
+        if (webcam) {
+          /*
+            The dancer, not whoever MediaPipe listed first. A home practice
+            space usually has a mirror, so the reflection is a second full
+            body in frame — and `landmarks[0]` could pick it, or alternate
+            with it between frames. The real dancer is nearest the camera and
+            so occupies most of the frame; pickPrimaryPose selects on that.
+          */
+          const kps = pickPrimaryPose(detectPoses(webcam), webcam.videoWidth);
+          if (kps) pr.capture(kps);
+        }
 
         /*
           Reference pose, for scoring.
@@ -346,7 +357,7 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
               if (step.kps) refPoseRecorderRef.current?.capture(step.kps);
             }
           } else {
-            const refKps = detectPose(proVideo);
+            const refKps = pickPrimaryPose(detectPoses(proVideo), proVideo.videoWidth);
             if (refKps) refPoseRecorderRef.current?.capture(refKps);
           }
         }

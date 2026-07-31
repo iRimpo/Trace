@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { initPoseDetection, detectPose, detectAllPosesFromFrame } from "@/lib/mediapipe";
+import { initPoseDetection, detectPose, detectAllPosesFromFrame, detectPoses } from "@/lib/mediapipe";
 import type { PoseFrame } from "@/lib/poseRecorder";
 import type { CalibrationData } from "@/components/practice/CalibrationModal";
 import { saveSyncScore } from "@/lib/uploadRecording";
@@ -12,6 +12,7 @@ import { SPRING_UI, SPRING_POP, SEC, staggerDelay } from "@/lib/motion";
 import { sfx, haptic, registerDuckTarget } from "@/lib/feedback";
 import { scoreRun, MAX_MATCH_MS } from "@/lib/poseScore";
 import { DancerTracker } from "@/lib/dancerTracker";
+import { pickPrimaryPose } from "@/lib/primaryPose";
 import Confetti from "@/components/ui/Confetti";
 import { CelebratingCharacter, ThinkingCharacter } from "@/components/illustrations";
 import Panel from "@/components/ui/Panel";
@@ -262,6 +263,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
    */
   /** Where in the reference video this take began — see RecordingSession. */
   const refStartSecRef = useRef(0);
+  const extractVideoRef = useRef<HTMLVideoElement | null>(null);
   const [extractProgress, setExtractProgress] = useState<number | null>(null);
   const [coverage, setCoverage] = useState(1);
   /** Whether the number is a real comparison or just "did the camera see you". */
@@ -404,6 +406,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
       if (cancelled) return;
 
       const vid = document.createElement("video");
+      extractVideoRef.current = vid;
       vid.src = videoUrl;
       vid.crossOrigin = "anonymous";
       vid.preload = "auto";
@@ -458,7 +461,7 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
             kps = tracker.step(all, vid.videoWidth, vid.videoHeight).kps;
           }
         } else {
-          kps = detectPose(vid);
+          kps = pickPrimaryPose(detectPoses(vid), vid.videoWidth);
         }
 
         if (kps) {
@@ -483,7 +486,16 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
     }
 
     extractRefPoses();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      // The extraction element was left decoding after unmount.
+      if (extractVideoRef.current) {
+        extractVideoRef.current.pause();
+        extractVideoRef.current.removeAttribute("src");
+        extractVideoRef.current.load();
+        extractVideoRef.current = null;
+      }
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recordingUrl, userFrames.length]);
 
