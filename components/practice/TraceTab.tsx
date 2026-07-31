@@ -203,6 +203,17 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
   /** Every layout branch on this screen reads this, never a width breakpoint. */
   const isPortrait       = useIsPortrait();
 
+  /**
+   * "Ready to test" exists twice — a floating satellite in landscape, a
+   * full-width CTA inside the transport in portrait — because those are
+   * genuinely different layouts, not because the control is different. One
+   * handler so the two placements cannot drift on behaviour the way their
+   * markup already has.
+   */
+  const handleReadyForTest = useCallback(() => {
+    onComplete?.(Math.round((Date.now() - traceStartTimeRef.current) / 1000));
+  }, [onComplete]);
+
   const proVideoRef      = useRef<HTMLVideoElement>(null);
   const webcamRef        = useRef<HTMLVideoElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -1238,14 +1249,14 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
             )}
           </AnimatePresence>
 
-          {onComplete && (
-            <div className="hidden sm:flex flex-col items-end gap-1">
+          {/* Landscape only. This was `hidden sm:flex` — a width breakpoint
+              standing in for an orientation decision, with a second, drifted
+              implementation inside the transport for the other case. */}
+          {onComplete && !isPortrait && (
+            <div className="flex flex-col items-end gap-1">
               <button
                 id="trace-ready-btn"
-                onClick={() => {
-                  const elapsed = Math.round((Date.now() - traceStartTimeRef.current) / 1000);
-                  onComplete(elapsed);
-                }}
+                onClick={handleReadyForTest}
                 className="flex h-12 w-12 items-center justify-center rounded-full bg-duo-green text-white shadow-chunk-green transition-[transform,box-shadow] duration-[110ms] ease-out-strong active:translate-y-[4px] active:shadow-none motion-reduce:transition-none motion-reduce:active:translate-y-0"
                 title="Ready for Test"
               >
@@ -1608,14 +1619,12 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
               </div>
             </div>
 
-            {/* Mobile: Ready to test CTA — inside transport panel, hidden on sm+ */}
-            {onComplete && (
+            {/* Portrait only — full width, in the transport, in the bottom third
+                where the thumb already is (contract §7). */}
+            {onComplete && isPortrait && (
               <button
-                onClick={() => {
-                  const elapsed = Math.round((Date.now() - traceStartTimeRef.current) / 1000);
-                  onComplete(elapsed);
-                }}
-                className="mt-3 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-duo-green text-base font-extrabold tracking-tight text-white shadow-chunk-green transition-[transform,box-shadow] duration-[110ms] ease-out-strong active:translate-y-[4px] active:shadow-none motion-reduce:transition-none motion-reduce:active:translate-y-0 sm:hidden"
+                onClick={handleReadyForTest}
+                className="mt-3 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-duo-green text-base font-extrabold tracking-tight text-white shadow-chunk-green transition-[transform,box-shadow] duration-[110ms] ease-out-strong active:translate-y-[4px] active:shadow-none motion-reduce:transition-none motion-reduce:active:translate-y-0"
               >
                 Ready to test
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
