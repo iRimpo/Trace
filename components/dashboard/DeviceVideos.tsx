@@ -5,9 +5,17 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Panel from "@/components/ui/Panel";
 import IconButton from "@/components/ui/IconButton";
-import { listVideos, getVideo, deleteVideo, type StoredVideoMeta } from "@/lib/videoStore";
+import { listVideos, getVideo, deleteVideo, getResume, type StoredVideoMeta, type ResumeState } from "@/lib/videoStore";
 import { storeVideoSession } from "@/lib/sessionVideoStorage";
 import { track } from "@/lib/posthog";
+
+/** `1:04 → 1:12`, or null when there is no section worth naming. */
+function sectionLabel(r: ResumeState | undefined): string | null {
+  if (!r || r.loopStart == null || r.loopEnd == null) return null;
+  if (r.loopEnd - r.loopStart < 0.5) return null;
+  const t = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+  return `${t(r.loopStart)} → ${t(r.loopEnd)}`;
+}
 
 function fmtBytes(bytes: number): string {
   return bytes < 1024 * 1024
@@ -42,9 +50,21 @@ export default function DeviceVideos() {
   const router = useRouter();
   const [videos, setVideos] = useState<StoredVideoMeta[]>([]);
   const [openingKey, setOpeningKey] = useState<string | null>(null);
+  /** Section state per video, so a tile can say what it will drop you back into. */
+  const [resume, setResume] = useState<Record<string, ResumeState>>({});
 
   useEffect(() => {
-    listVideos().then(setVideos);
+    listVideos().then(async list => {
+      setVideos(list);
+      // One read per tile, in parallel, after the list has already painted —
+      // resume is an enhancement and must not delay the tiles themselves.
+      const entries = await Promise.all(
+        list.map(async m => [m.key, await getResume(m.key)] as const),
+      );
+      setResume(Object.fromEntries(
+        entries.filter((e): e is [string, ResumeState] => e[1] !== null),
+      ));
+    });
   }, []);
 
   const openVideo = useCallback(async (meta: StoredVideoMeta) => {
@@ -117,7 +137,26 @@ export default function DeviceVideos() {
                     <p className="truncate text-sm font-extrabold tracking-tight text-ink">
                       {meta.songName || meta.fileName}
                     </p>
-                    <p className="mt-0.5 text-hud text-clay/60">{fmtBytes(meta.bytes)}</p>
+                    {/*
+                      What you will get back, stated rather than implied. P3 —
+                      third session on the same song, wants bars 17–24 — was
+                      re-marking the same section every time because loop points
+                      lived in component state and died with the tab. The tile
+                      now says the section is still there, which is the whole
+                      difference between a tool you drill with and one you set
+                      up. Falls back to the file size when there is nothing to
+                      resume, so the line never goes empty.
+                    */}
+                    {sectionLabel(resume[meta.key]) ? (
+                      <p className="mt-0.5 flex items-center gap-1 text-hud font-bold text-duo-blue">
+                        <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 5v14l11-7z" />
+                        </svg>
+                        Resume {sectionLabel(resume[meta.key])}
+                      </p>
+                    ) : (
+                      <p className="mt-0.5 text-hud text-clay/60">{fmtBytes(meta.bytes)}</p>
+                    )}
                   </div>
                 </button>
               </Panel>
