@@ -1,53 +1,56 @@
-"use client";
+import Link from "next/link";
+import { CUE_ORDER, CUE_PALETTE } from "@/lib/cuePalette";
 
-import { CUE_PALETTE } from "@/lib/cuePalette";
-
-import { motion } from "framer-motion";
-
-const CUE_COLORS = [CUE_PALETTE.hand, CUE_PALETTE.foot, CUE_PALETTE.head, CUE_PALETTE.elbow, CUE_PALETTE.hip, CUE_PALETTE.shoulder, CUE_PALETTE.armBoth];
-
+/**
+ * Deliberately not a client component.
+ *
+ * The only reason the old footer had `"use client"` was a framer fade that
+ * animated its opacity from 0 — a whole footer that existed only if JavaScript
+ * finished. Without that it is static markup, so the year is computed on the
+ * server and there is no hydration mismatch to guard against either.
+ *
+ * The mark matches `app/dashboard/layout.tsx` and `app/login/page.tsx`: the
+ * real logo file and the same uppercase, letterspaced wordmark, rather than a
+ * third hand-drawn hexagon that appeared nowhere else in the app.
+ */
 export default function Footer() {
   return (
-    <footer className="bg-brand-cream py-10">
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 text-center sm:gap-6 sm:px-6 md:flex-row md:text-left lg:px-10"
-      >
-        {/* Logo */}
-        <a href="/" className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 flex-col items-center justify-center rounded-full border-2 border-brand-primary bg-brand-primary shadow">
-            <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-              <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" stroke="white" strokeWidth="1.5" strokeLinejoin="round"/>
-              <circle cx="7" cy="7" r="2" fill="white"/>
-            </svg>
-          </div>
-          <span className="font-calistoga text-lg text-ink">
-            Trace<span className="text-brand-primary">.</span>
+    <footer className="border-t-2 border-duo-edge bg-brand-cream px-4 py-10 sm:px-6 lg:px-10">
+      <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 text-center md:flex-row md:justify-between md:text-left">
+        <Link href="/" className="flex items-center gap-2.5">
+          <img src="/trace_logo.svg" width="32" height="32" alt="" className="rounded-full" />
+          <span className="text-hud-lg font-extrabold uppercase tracking-[0.18em] text-ink">
+            Trace
           </span>
-        </a>
+        </Link>
 
-        {/* Cue color dots */}
-        <div className="flex items-center gap-1.5">
-          {CUE_COLORS.map((c, i) => (
-            <div key={i} className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: c }} />
+        <ul className="flex items-center gap-2" aria-hidden="true">
+          {CUE_ORDER.map(region => (
+            <li
+              key={region}
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: CUE_PALETTE[region] }}
+            />
           ))}
-        </div>
+        </ul>
 
-        <p className="text-xs text-clay/40">
-          &copy; {new Date().getFullYear()} Trace. All rights reserved.
-        </p>
-
-        <div className="flex items-center gap-6">
-          {["Privacy Policy", "Terms of Service"].map(label => (
-            <a key={label} href="#" className="text-xs text-clay/40 transition-colors duration-200 hover:text-ink">
-              {label}
-            </a>
-          ))}
+        <div className="flex flex-col items-center gap-3 md:flex-row md:gap-6">
+          <nav className="flex items-center gap-1" aria-label="Legal">
+            {["Privacy Policy", "Terms of Service"].map(label => (
+              <a
+                key={label}
+                href="#"
+                className="flex h-11 items-center rounded-xl px-3 text-hud font-bold uppercase tracking-[0.12em] text-clay/70 transition-ui duration-150 ease-out-strong hover:bg-ink/[0.06] hover:text-ink"
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
+          <p className="text-hud font-bold uppercase tracking-[0.12em] text-clay/50">
+            &copy; {new Date().getFullYear()} Trace
+          </p>
         </div>
-      </motion.div>
+      </div>
     </footer>
   );
 }

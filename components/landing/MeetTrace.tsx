@@ -1,208 +1,69 @@
-"use client";
+import Panel from "@/components/ui/Panel";
+import StatTile from "@/components/ui/StatTile";
+import Reveal from "./Reveal";
 
-import { CUE_PALETTE } from "@/lib/cuePalette";
+/**
+ * "Meet Trace" — the plain statement of what the thing is.
+ *
+ * This section used to be four lines of 96px word-art with gradient bubbles
+ * ("Skeleton ◼ Tracking", "Beat ◼ Sync") and four raw hex badges, all of it
+ * hidden behind a framer `whileInView` fade. It said almost nothing a dancer
+ * could act on. The claim below is one anybody can check: pose detection runs
+ * in the tab, and no line of this codebase uploads a video.
+ *
+ * The numbers are static text, deliberately. `CountUp` starts at 0 and counts
+ * up on view, so without JavaScript the page would read "0 joints tracked" —
+ * wrong content is worse than no animation.
+ */
 
-import { motion } from "framer-motion";
-
-function Bubble({
-  children,
-  className = "",
-  badge,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  badge?: { color: string; icon: React.ReactNode };
-}) {
-  return (
-    <span className="relative inline-flex align-middle mx-3 shrink-0" style={{ verticalAlign: "-0.25em" }}>
-      <span
-        className={`inline-flex h-[60px] w-[84px] sm:h-[80px] sm:w-[110px] items-center justify-center rounded-[20px] sm:rounded-[28px] overflow-hidden shadow-lg ${className}`}
-      >
-        {children}
-      </span>
-      {badge && (
-        <span
-          className="absolute -top-1.5 -right-1.5 flex h-6 w-6 items-center justify-center rounded-full shadow-md text-white"
-          style={{ background: badge.color, fontSize: 11 }}
-        >
-          {badge.icon}
-        </span>
-      )}
-    </span>
-  );
-}
-
-const lineVariants = {
-  hidden: { opacity: 0, y: 40 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.7, delay: i * 0.12, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
-  }),
-};
+const FACTS = [
+  { value: "33", label: "Joints tracked",  accent: "ink" as const },
+  { value: "7",  label: "Cue colours",     accent: "blue" as const },
+  { value: "0",  label: "Videos uploaded", accent: "green" as const },
+];
 
 export default function MeetTrace() {
   return (
-    <section className="bg-white py-16 px-6 lg:px-10 overflow-hidden">
+    <section className="bg-brand-cream px-4 py-16 sm:px-6 sm:py-24 lg:px-10">
       <div className="mx-auto max-w-5xl">
-        {/* Label */}
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="mb-8 text-center text-base font-semibold text-ink/40 tracking-wide"
-        >
-          Meet Trace
-        </motion.p>
+        <Reveal>
+          <p className="text-hud font-extrabold uppercase tracking-[0.2em] text-clay/60">
+            Meet Trace
+          </p>
+          <h2 className="mt-4 max-w-3xl text-balance text-title font-extrabold leading-tight tracking-tight text-ink sm:text-display">
+            A mirror that already knows the choreography.
+          </h2>
+          <p className="mt-5 max-w-2xl text-pretty text-base font-medium leading-relaxed text-clay/80 sm:text-lg">
+            A mirror shows you what you are doing. It cannot show you what you
+            were supposed to be doing. Trace holds the reference clip and your
+            camera in the same frame, runs pose detection on both, and marks the
+            joints that disagree — on the count, while you are still standing in
+            the position that caused it.
+          </p>
+        </Reveal>
 
-        {/* Feature word lines */}
-        <div className="space-y-2 text-center leading-none">
+        <Reveal delay={0.06} className="mt-10">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            {FACTS.map(fact => (
+              <StatTile key={fact.label} value={fact.value} label={fact.label} accent={fact.accent} />
+            ))}
+          </div>
+        </Reveal>
 
-          {/* Line 1: Skeleton [bubble] Tracking */}
-          <motion.div
-            custom={0}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={lineVariants}
-            className="flex flex-wrap items-center justify-center"
-          >
-            <span className="font-sans font-black text-ink" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
-              Skeleton
-            </span>
-            <Bubble
-              className="bg-gradient-to-br from-indigo-400 to-violet-600"
-              badge={{ color: "#4f46e5", icon: "●" }}
-            >
-              {/* Joint dot pattern */}
-              <svg width="70" height="50" viewBox="0 0 70 50" fill="none">
-                {[[35,8],[20,20],[50,20],[15,38],[35,32],[55,38]].map(([x,y],i)=>(
-                  <circle key={i} cx={x} cy={y} r="5" fill="white" opacity={0.7 + i*0.05}/>
-                ))}
-                <line x1="35" y1="8" x2="20" y2="20" stroke="white" strokeWidth="1.5" opacity="0.4"/>
-                <line x1="35" y1="8" x2="50" y2="20" stroke="white" strokeWidth="1.5" opacity="0.4"/>
-                <line x1="35" y1="32" x2="15" y2="38" stroke="white" strokeWidth="1.5" opacity="0.4"/>
-                <line x1="35" y1="32" x2="55" y2="38" stroke="white" strokeWidth="1.5" opacity="0.4"/>
-              </svg>
-            </Bubble>
-            <span className="font-sans font-black text-ink" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
-              Tracking
-            </span>
-          </motion.div>
-
-          {/* Line 2: Beat [bubble] Sync */}
-          <motion.div
-            custom={1}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={lineVariants}
-            className="flex flex-wrap items-center justify-center"
-          >
-            <span className="font-sans font-black text-ink" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
-              Beat
-            </span>
-            <Bubble
-              className="bg-gradient-to-br from-pink-400 to-rose-600"
-              badge={{ color: "#f43f5e", icon: "♪" }}
-            >
-              {/* Waveform */}
-              <svg width="80" height="44" viewBox="0 0 80 44" fill="none">
-                {[4,8,14,6,18,10,22,8,12,16,6,10].map((h,i)=>(
-                  <rect
-                    key={i}
-                    x={i*6+4}
-                    y={(44-h*1.6)/2}
-                    width="4"
-                    height={h*1.6}
-                    rx="2"
-                    fill="white"
-                    opacity={0.55 + i*0.02}
-                  />
-                ))}
-              </svg>
-            </Bubble>
-            <span className="font-sans font-black text-ink" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
-              Sync
-            </span>
-          </motion.div>
-
-          {/* Line 3: Joint [bubble] Guidance */}
-          <motion.div
-            custom={2}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={lineVariants}
-            className="flex flex-wrap items-center justify-center"
-          >
-            <span className="font-sans font-black text-ink" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
-              Joint
-            </span>
-            <Bubble
-              className="bg-gradient-to-br from-cyan-400 to-blue-600"
-              badge={{ color: "#0891b2", icon: "◆" }}
-            >
-              {/* Color swatches */}
-              <div className="flex flex-wrap justify-center gap-1.5 p-2">
-                {[CUE_PALETTE.hand,CUE_PALETTE.foot,CUE_PALETTE.head,CUE_PALETTE.elbow,CUE_PALETTE.hip,CUE_PALETTE.shoulder,CUE_PALETTE.armBoth].map((c,i)=>(
-                  <div key={i} className="h-4 w-4 rounded-full" style={{background:c,opacity:0.9}}/>
-                ))}
-              </div>
-            </Bubble>
-            <span className="font-sans font-black text-ink" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
-              Guidance
-            </span>
-          </motion.div>
-
-          {/* Line 4: Progress [bubble] */}
-          <motion.div
-            custom={3}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={lineVariants}
-            className="flex flex-wrap items-center justify-center"
-          >
-            <span className="font-sans font-black text-ink" style={{ fontSize: "clamp(2rem,7vw,6rem)" }}>
-              Progress
-            </span>
-            <Bubble
-              className="bg-gradient-to-br from-emerald-400 to-green-600"
-              badge={{ color: "#059669", icon: "↑" }}
-            >
-              {/* Bar chart */}
-              <svg width="70" height="44" viewBox="0 0 70 44" fill="none">
-                {[18,28,22,36,30,40].map((h,i)=>(
-                  <rect
-                    key={i}
-                    x={i*10+4}
-                    y={44-h}
-                    width="7"
-                    height={h}
-                    rx="3"
-                    fill="white"
-                    opacity={0.5+i*0.08}
-                  />
-                ))}
-              </svg>
-            </Bubble>
-          </motion.div>
-
-        </div>
-
-        {/* Sub-caption */}
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="mt-12 text-center text-lg text-ink/40 max-w-lg mx-auto leading-relaxed"
-        >
-          33 keypoints tracked in real-time. Every joint color-coded.
-          Beat-synced so you know exactly when and where to move.
-        </motion.p>
+        <Reveal delay={0.12} className="mt-3">
+          <Panel tone="paper" radius="2xl" className="p-5 sm:p-7">
+            <p className="text-hud font-extrabold uppercase tracking-[0.16em] text-clay/50">
+              Where the work happens
+            </p>
+            <p className="mt-3 text-pretty text-base font-medium leading-relaxed text-clay/80">
+              MediaPipe BlazePose runs inside your browser tab, on your own
+              hardware. Your clip is stored on the device in IndexedDB, and the
+              only thing that ever reaches a server is your account. There is no
+              upload step to wait through, no queue, and nothing to delete
+              afterwards.
+            </p>
+          </Panel>
+        </Reveal>
       </div>
     </section>
   );

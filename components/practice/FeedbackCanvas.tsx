@@ -105,11 +105,19 @@ export default function FeedbackCanvas({
     return () => { running = false; cancelAnimationFrame(rafId); };
   }, [proVideoRef]);
 
+  // No DOM chrome to convert: the only element this component owns is the
+  // canvas itself, and everything visible inside it is painted by
+  // `renderCue` from the `cue-*` palette. The stage/paper distinction has no
+  // surface to apply to here. `aria-hidden` because the cues are a visual
+  // restatement of the reference video, which a screen reader cannot use
+  // either; z-index moves to the Tailwind scale so the stacking order sits
+  // alongside the rest of the practice screen's layers rather than in an
+  // inline style only this file knows about.
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none absolute inset-0 h-full w-full"
-      style={{ zIndex: 20 }}
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-20 h-full w-full"
     />
   );
 }

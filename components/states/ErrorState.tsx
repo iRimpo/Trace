@@ -1,32 +1,56 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { FaExclamationCircle } from "react-icons/fa";
+import Pressable from "@/components/ui/Pressable";
+import StateBlock from "./StateBlock";
+import { AlertIcon } from "./icons";
 
 interface Props {
+  /** What failed, in the user's terms. */
+  title?: string;
   message: string;
   onRetry?: () => void;
+  retryLabel?: string;
+  bare?: boolean;
+  className?: string;
 }
 
-export function ErrorState({ message, onRetry }: Props) {
+/**
+ * The failure state.
+ *
+ * `role="alert"` rather than colour alone — the old version was a red-tinted
+ * strip whose only signal was the tint, which is nothing to a screen reader and
+ * ambiguous to anyone who cannot separate red from brown.
+ *
+ * Retry is `ink`, not `danger`: the *error* is red, the way out of it is a
+ * neutral commit. Colouring the escape hatch red says the button is the
+ * dangerous thing.
+ */
+export function ErrorState({
+  title = "Something went wrong",
+  message,
+  onRetry,
+  retryLabel = "Try again",
+  bare = false,
+  className = "",
+}: Props) {
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col items-center justify-center p-8 text-center"
-    >
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-accent/10 border border-brand-accent/20">
-        <FaExclamationCircle className="text-brand-accent text-2xl" />
-      </div>
-      <p className="mt-4 text-sm font-medium text-brand-dark/70">{message}</p>
-      {onRetry && (
-        <button
-          onClick={onRetry}
-          className="mt-4 rounded-xl bg-brand-dark px-6 py-2.5 text-sm font-semibold text-white transition-ui hover:shadow-lg hover:shadow-brand-dark/10"
-        >
-          Try Again
-        </button>
-      )}
-    </motion.div>
+    <StateBlock
+      bare={bare}
+      tone="danger"
+      live="alert"
+      icon={<AlertIcon />}
+      title={title}
+      body={message}
+      className={className}
+      action={
+        onRetry ? (
+          <Pressable variant="ink" size="md" onClick={onRetry}>
+            {retryLabel}
+          </Pressable>
+        ) : undefined
+      }
+    />
   );
 }
+
+export default ErrorState;

@@ -1,31 +1,43 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { CUE_PALETTE, CUE_ORDER, CUE_LABELS } from "@/lib/cuePalette";
+import Panel from "@/components/ui/Panel";
+import Pressable from "@/components/ui/Pressable";
 
-// ── Cue colors ────────────────────────────────────────────────────────
-// Derived from lib/cuePalette.ts so the landing page can't drift from the
-// colours the practice overlay actually draws.
+/**
+ * The hero.
+ *
+ * Everything here is drawn from `lib/cuePalette.ts`, the same module the
+ * practice overlay draws from, so the picture on the landing page cannot drift
+ * from the colours the product actually paints on your body.
+ *
+ * No entrance animation gates any of this. The old hero staggered five words of
+ * the headline, the sub-headline, both CTAs and seven chips through framer
+ * `initial={{ opacity: 0 }}`, which is 15 separate ways for the fold to render
+ * empty. The only motion left is one beat dot, and it is decoration on top of
+ * text that is already there.
+ */
+
 const CUE = CUE_ORDER.map(region => ({
   label: CUE_LABELS[region],
   color: CUE_PALETTE[region],
 }));
 
-// ── Skeleton data ─────────────────────────────────────────────────────
+// A stick figure at rest, in the joint colours the overlay uses.
 const JOINTS = [
-  { x: 110, y: 28,  r: 18, label: "head",     color: CUE_PALETTE.head },
-  { x: 78,  y: 88,  r: 6,  label: "lShoulder", color: CUE_PALETTE.shoulder },
-  { x: 142, y: 88,  r: 6,  label: "rShoulder", color: CUE_PALETTE.shoulder },
-  { x: 52,  y: 148, r: 5,  label: "lElbow",    color: CUE_PALETTE.elbow },
-  { x: 168, y: 148, r: 5,  label: "rElbow",    color: CUE_PALETTE.elbow },
-  { x: 30,  y: 200, r: 5,  label: "lHand",     color: CUE_PALETTE.hand },
-  { x: 190, y: 200, r: 5,  label: "rHand",     color: CUE_PALETTE.hand },
-  { x: 90,  y: 200, r: 6,  label: "lHip",      color: CUE_PALETTE.hip },
-  { x: 130, y: 200, r: 6,  label: "rHip",      color: CUE_PALETTE.hip },
-  { x: 80,  y: 275, r: 5,  label: "lKnee",     color: CUE_PALETTE.foot },
-  { x: 140, y: 275, r: 5,  label: "rKnee",     color: CUE_PALETTE.foot },
-  { x: 70,  y: 345, r: 5,  label: "lFoot",     color: CUE_PALETTE.foot },
-  { x: 150, y: 345, r: 5,  label: "rFoot",     color: CUE_PALETTE.foot },
+  { x: 110, y: 34,  r: 17, color: CUE_PALETTE.head,     head: true },
+  { x: 78,  y: 92,  r: 7,  color: CUE_PALETTE.shoulder },
+  { x: 142, y: 92,  r: 7,  color: CUE_PALETTE.shoulder },
+  { x: 52,  y: 150, r: 6,  color: CUE_PALETTE.elbow },
+  { x: 168, y: 150, r: 6,  color: CUE_PALETTE.elbow },
+  { x: 30,  y: 202, r: 6,  color: CUE_PALETTE.hand },
+  { x: 190, y: 202, r: 6,  color: CUE_PALETTE.hand },
+  { x: 90,  y: 202, r: 7,  color: CUE_PALETTE.hip },
+  { x: 130, y: 202, r: 7,  color: CUE_PALETTE.hip },
+  { x: 80,  y: 276, r: 6,  color: CUE_PALETTE.foot },
+  { x: 140, y: 276, r: 6,  color: CUE_PALETTE.foot },
+  { x: 70,  y: 346, r: 6,  color: CUE_PALETTE.foot },
+  { x: 150, y: 346, r: 6,  color: CUE_PALETTE.foot },
 ];
 
 const BONES: [number, number][] = [
@@ -33,247 +45,136 @@ const BONES: [number, number][] = [
   [1, 7], [2, 8], [7, 8], [7, 9], [8, 10], [9, 11], [10, 12],
 ];
 
-// ── Skeleton SVG ──────────────────────────────────────────────────────
-// Non-dimmed joints animate in via CSS (GPU-composited, no React re-renders).
-function DancerSvg({ dimmed }: { dimmed?: boolean }) {
+/**
+ * `currentColor` throughout rather than an rgba literal, so the figure inherits
+ * its ink from the class on the wrapper and adds nothing to the hex budget.
+ */
+function Dancer({ reference = false }: { reference?: boolean }) {
   return (
-    <svg width="200" height="360" viewBox="0 0 220 380" fill="none">
-      {BONES.map(([a, b], i) => {
-        const ja = JOINTS[a], jb = JOINTS[b];
-        return (
-          <line key={i}
-            x1={ja.x} y1={ja.y} x2={jb.x} y2={jb.y}
-            stroke={dimmed ? "rgba(26,15,0,0.08)" : "rgba(26,15,0,0.22)"}
-            strokeWidth={2}
-            strokeLinecap="round"
-            style={dimmed ? undefined : {
-              animation: "skel-in 0.5s ease-out both",
-              animationDelay: `${0.4 + i * 0.04}s`,
-            }}
-          />
-        );
-      })}
-      {JOINTS.map((j, i) => {
-        const isHead = j.label === "head";
-        return (
-          <g key={i} style={dimmed ? undefined : {
-            animation: "skel-in 0.5s ease-out both",
-            animationDelay: `${0.5 + i * 0.06}s`,
-          }}>
-            {!dimmed && (
-              <circle cx={j.x} cy={j.y} r={j.r + 9} fill={j.color} opacity={0.18} />
-            )}
-            <circle cx={j.x} cy={j.y} r={j.r}
-              fill={dimmed ? "rgba(26,15,0,0.12)" : j.color}
-              opacity={dimmed ? 1 : 0.95}
-            />
-            {isHead && (
-              <circle cx={j.x} cy={j.y} r={j.r - 7}
-                fill={dimmed ? "rgba(26,15,0,0.05)" : j.color}
-                opacity={0.4}
-              />
-            )}
+    <svg
+      viewBox="0 0 220 380"
+      fill="none"
+      aria-hidden="true"
+      className={`h-auto w-full ${reference ? "text-ink/20" : "text-ink/30"}`}
+    >
+      {BONES.map(([a, b], i) => (
+        <line
+          key={i}
+          x1={JOINTS[a].x} y1={JOINTS[a].y}
+          x2={JOINTS[b].x} y2={JOINTS[b].y}
+          stroke="currentColor"
+          strokeWidth={reference ? 3 : 4}
+          strokeLinecap="round"
+        />
+      ))}
+      {JOINTS.map((j, i) =>
+        reference ? (
+          <circle key={i} cx={j.x} cy={j.y} r={j.r} fill="currentColor" />
+        ) : (
+          <g key={i}>
+            <circle cx={j.x} cy={j.y} r={j.r + 9} fill={j.color} opacity={0.2} />
+            <circle cx={j.x} cy={j.y} r={j.r} fill={j.color} />
           </g>
-        );
-      })}
+        ),
+      )}
     </svg>
   );
 }
 
-
-// ── Hero ──────────────────────────────────────────────────────────────
 export default function Hero() {
-
   return (
-    <section className="relative min-h-screen overflow-hidden bg-brand-cream flex items-center">
+    <section className="bg-brand-cream px-4 pb-16 pt-24 sm:px-6 sm:pb-24 sm:pt-32 lg:px-10">
+      <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
 
-      {/* Background orbs — CSS-only animation, hidden on mobile */}
-      <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-slow motion-reduce:animate-none"
-        style={{ width: 340, height: 340, left: "65%", top: "10%", backgroundColor: CUE_PALETTE.hip, filter: "blur(60px)", opacity: 0.12 }} />
-      <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-reverse motion-reduce:animate-none"
-        style={{ width: 260, height: 260, left: "72%", top: "50%", backgroundColor: CUE_PALETTE.hand, filter: "blur(60px)", opacity: 0.12 }} />
-      <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-slow motion-reduce:animate-none"
-        style={{ width: 200, height: 200, left: "55%", top: "70%", backgroundColor: CUE_PALETTE.foot, filter: "blur(60px)", opacity: 0.12 }} />
-      <div className="hidden sm:block pointer-events-none absolute rounded-full animate-float-reverse motion-reduce:animate-none"
-        style={{ width: 180, height: 180, left: "5%", top: "60%", backgroundColor: CUE_PALETTE.head, filter: "blur(60px)", opacity: 0.12 }} />
+        {/* ── Copy ─────────────────────────────────────────────── */}
+        <div>
+          <p className="text-hud font-extrabold uppercase tracking-[0.2em] text-clay/70">
+            On-device pose detection
+          </p>
 
-      {/* Subtle dot grid */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          backgroundImage: "radial-gradient(circle, rgba(26,15,0,0.04) 1px, transparent 1px)",
-          backgroundSize: "36px 36px",
-        }}
-      />
-
-      <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center gap-10 px-4 py-16 sm:gap-16 sm:px-6 sm:py-24 lg:flex-row lg:items-center lg:gap-12 lg:px-10">
-
-        {/* ── Left: Text ───────────────────────────────────────── */}
-        <div className="flex-1">
-
-          {/* Eyebrow */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.05 }}
-            className="mb-5 flex items-center gap-2"
-          >
-            <motion.div
-              className="h-2 w-2 rounded-full bg-cue-foot"
-              animate={{ scale: [1, 1.4, 1] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-clay/45">
-              AI-Powered Dance Analysis
-            </span>
-          </motion.div>
-
-          {/* Headline — staggered words */}
-          <h1 className="font-calistoga text-[clamp(2.2rem,5.5vw,5rem)] leading-[1.06] tracking-tight text-ink">
-            {["Dance", "smarter.", "Move", "without", "limits."].map((word, i) => (
-              <motion.span
-                key={i}
-                initial={{ opacity: 0, y: 28 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.65, delay: 0.15 + i * 0.09, ease: [0.22, 1, 0.36, 1] as [number,number,number,number] }}
-                className="inline-block mr-[0.22em]"
-              >
-                {word}
-              </motion.span>
-            ))}
+          <h1 className="mt-4 text-balance text-title font-extrabold leading-[1.05] tracking-tight text-ink sm:text-display lg:text-hero">
+            See exactly where your body is off.
           </h1>
 
-          {/* Sub-headline */}
-          <motion.p
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, delay: 0.65 }}
-            className="mt-5 max-w-sm text-base leading-relaxed text-clay/55"
-          >
-            Trace maps every joint, syncs every beat, and shows you exactly when and where to move — in real time.
-          </motion.p>
+          <p className="mt-5 max-w-lg text-pretty text-base font-medium leading-relaxed text-clay/80 sm:text-lg">
+            Prop your phone across the room and dance. Trace draws the reference
+            dancer over your camera, tracks 33 joints on both of you, and colours
+            the parts of your body that are late or out of place.
+          </p>
 
-          {/* CTA buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.82 }}
-            className="mt-8 flex flex-wrap items-start gap-3"
-          >
-            <a
-              href="#waitlist"
-              className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-primary px-7 text-sm font-semibold text-white shadow-sm transition-ui duration-200 hover:bg-brand-accent active:scale-95"
-            >
-              Sign up
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <Pressable href="#waitlist" variant="primary" size="lg">
+              Get Started
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
-            </a>
-            <a
-              href="/login"
-              className="inline-flex h-11 items-center rounded-full border border-ink/14 px-7 text-sm font-medium text-ink/55 transition-ui duration-200 hover:bg-ink/[0.06]"
-            >
-              Log in
-            </a>
-            <a
-              href="#how-it-works"
-              className="inline-flex h-11 items-center rounded-full border border-ink/14 px-5 sm:px-7 text-sm font-medium text-ink/55 transition-ui duration-200 hover:bg-ink/[0.06] active:scale-95"
-            >
-              See how it works
-            </a>
-          </motion.div>
-
-          {/* Joint cue chips */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.7, delay: 1.05 }}
-            className="mt-9 flex flex-wrap items-center gap-1.5"
-          >
-            {CUE.map(({ label, color }, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4, delay: 1.1 + i * 0.06 }}
-                className="flex items-center gap-1.5 rounded-full px-2.5 py-1"
-                style={{ backgroundColor: `${color}18` }}
-              >
-                <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
-                <span className="text-[10px] font-semibold" style={{ color }}>{label}</span>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-
-        {/* ── Right: Skeleton comparison ───────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.25, ease: [0.22, 1, 0.36, 1] as [number,number,number,number] }}
-          className="relative flex-shrink-0"
-        >
-          {/* Soft glow behind skeleton */}
-          <div className="absolute inset-0 -m-12 rounded-full bg-cue-hip/12 blur-3xl" />
-
-          <div className="relative flex items-center gap-4 sm:gap-8">
-
-            {/* Reference dancer — hidden on mobile to avoid overflow */}
-            <div className="relative hidden sm:block">
-              <DancerSvg dimmed />
-              <p className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.2em] text-ink/25">Reference</p>
-            </div>
-
-            {/* Seam divider with animated cue dots — hidden on mobile */}
-            <div className="relative hidden sm:block h-60 w-px sm:h-80">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-ink/12 to-transparent" />
-              {CUE.map(({ color }, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full"
-                  style={{ top: `${8 + i * 12}%`, backgroundColor: color, boxShadow: `0 0 6px ${color}` }}
-                  animate={{ opacity: [0.3, 1, 0.3], scale: [1, 1.5, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, delay: i * 0.25, ease: "easeInOut" }}
-                />
-              ))}
-            </div>
-
-            {/* Analyzed dancer */}
-            <div className="relative">
-              <DancerSvg />
-              <p className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.2em] text-ink/25">You</p>
-            </div>
+            </Pressable>
+            <Pressable href="#how-it-works" variant="quiet" size="lg">
+              How It Works
+            </Pressable>
           </div>
 
-          {/* BPM / beat floating badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 1.4 }}
-            className="absolute -top-4 right-0 flex items-center gap-1.5 rounded-full border border-ink/[0.08] bg-white/80 px-3 py-1.5 backdrop-blur-sm"
-          >
-            <motion.div
-              className="h-1.5 w-1.5 rounded-full bg-cue-foot"
-              animate={{ scale: [1, 1.6, 1] }}
-              transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <span className="font-mono text-[11px] font-semibold text-ink/60">120 BPM</span>
-          </motion.div>
+          {/*
+            The honest differentiator, stated as fact rather than as a badge.
+            Nothing is uploaded because there is no upload call in the codebase.
+          */}
+          <ul className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-hud font-extrabold uppercase tracking-[0.14em] text-clay/60">
+            {["Runs in your browser", "Nothing is uploaded", "Works offline"].map(fact => (
+              <li key={fact} className="flex items-center gap-2">
+                <svg className="h-3.5 w-3.5 shrink-0 text-duo-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={4} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                {fact}
+              </li>
+            ))}
+          </ul>
+        </div>
 
-          {/* Count badge */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 1.6 }}
-            className="absolute -bottom-2 right-4 flex h-10 w-10 items-center justify-center rounded-full border border-ink/[0.08] bg-white/80 backdrop-blur-sm"
-          >
-            <span className="font-calistoga text-lg font-bold text-ink">3</span>
-          </motion.div>
-        </motion.div>
+        {/* ── The comparison, which is the whole product ───────── */}
+        <Panel tone="paper" radius="2xl" className="p-4 sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-hud font-extrabold uppercase tracking-[0.16em] text-clay/60">
+              Side by side
+            </p>
+            <span className="flex items-center gap-2 rounded-full border-2 border-duo-edge px-2.5 py-1">
+              <span className="h-2 w-2 shrink-0 rounded-full bg-duo-green animate-pulse motion-reduce:animate-none" />
+              <span className="text-hud font-extrabold tabular-nums text-clay">120 BPM</span>
+            </span>
+          </div>
+
+          <div className="mt-4 flex items-end gap-2 sm:gap-4">
+            <figure className="min-w-0 flex-1">
+              <Dancer reference />
+              <figcaption className="mt-2 text-center text-hud font-extrabold uppercase tracking-[0.16em] text-clay/50">
+                Reference
+              </figcaption>
+            </figure>
+
+            <div className="h-64 w-0.5 shrink-0 self-center rounded-full bg-duo-edge sm:h-80" />
+
+            <figure className="min-w-0 flex-1">
+              <Dancer />
+              <figcaption className="mt-2 text-center text-hud font-extrabold uppercase tracking-[0.16em] text-ink">
+                You
+              </figcaption>
+            </figure>
+          </div>
+
+          <div className="mt-5 border-t-2 border-duo-edge pt-4">
+            <p className="text-hud font-extrabold uppercase tracking-[0.16em] text-clay/50">
+              One colour per body region
+            </p>
+            <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-2">
+              {CUE.map(({ label, color }) => (
+                <li key={label} className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                  <span className="text-hud font-bold text-clay">{label}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Panel>
       </div>
-
-      {/* Checkered stripe */}
-      <div className="absolute bottom-0 inset-x-0 h-6 checkered-brown opacity-35" />
     </section>
   );
 }

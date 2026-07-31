@@ -5,7 +5,8 @@ import type { RefObject } from "react";
 import { CUE_PALETTE } from "@/lib/cuePalette";
 import type { CountGrid } from "@/lib/countGrid";
 import type { CueScript } from "@/lib/cueScript";
-import { TOP_STACK } from "@/components/practice/chrome";
+import { TOP_STACK_ROW2 } from "@/components/practice/chrome";
+import { sfx } from "@/lib/feedback";
 
 interface CountStripProps {
   proVideoRef: RefObject<HTMLVideoElement | null>;
@@ -21,11 +22,35 @@ interface CountStripProps {
  * cue canvas, and it only rendered when a BPM existed — so on a phone with no
  * detected tempo there was no way to tell which move belonged to which count.
  *
+ * ── Why the current count is drawn the way it is ─────────────────────────
+ *
+ * This is the readout the dancer is actually reading, from ten feet, mid-move,
+ * in peripheral vision. So the active count differs from the other seven on
+ * three axes at once — **fill** (a solid cream plate against near-empty glass),
+ * **size** (the digit is ~1.7× the resting digits), and **weight/contrast**
+ * (near-black on cream against 45%-alpha cream on dark). Opacity alone was the
+ * old signal and it is the weakest of the three: at distance a 45% digit and a
+ * 100% digit on the same dark plate are the same grey smudge. Colour alone
+ * fails for the same reason it fails on the toggles — hue survives distance far
+ * worse than luminance does.
+ *
+ * Counts 1 and 5 carry a violet tick (violet = counts and tempo everywhere in
+ * the app). Eight identical cells give you no way to tell which half of the bar
+ * you are in without reading a digit; the tick answers that pre-attentively.
+ *
+ * The size change is a `scale` on the digit rather than a font-size swap: it
+ * composites on the GPU, and a metronome that snaps rather than eases is the
+ * honest reading of a beat landing.
+ *
  * Cells carrying a cue show a dot in that body region's colour, so the shape
  * of the measure is readable before it arrives. Driven by rAF against the
  * video clock rather than React state: this updates every frame, and
  * re-rendering the practice tree at 60fps would cost more than the strip is
  * worth.
+ *
+ * One blur for the whole strip, not one per cell. `backdrop-blur-xl` is the
+ * most expensive thing on this screen and eight of them stacked over a live
+ * camera feed is eight times the cost for no visual difference.
  */
 export default function CountStrip({ proVideoRef, grid, script, visible }: CountStripProps) {
   const cellRefs  = useRef<(HTMLDivElement | null)[]>([]);
@@ -50,8 +75,21 @@ export default function CountStrip({ proVideoRef, grid, script, visible }: Count
       if (!info) return;
       // Only touch the DOM when the count actually advances.
       if (info.count === lastCount && info.measureIndex === lastMeasure) return;
+      const advanced = lastCount !== -1;
       lastCount   = info.count;
       lastMeasure = info.measureIndex;
+
+      /*
+        The count you can hear. This is the single highest-value line in the
+        audio work: P1 is looking away from the phone for most of a run, so a
+        visual count strip reaches him only when he happens to glance at it,
+        while a tick reaches him always. `sfx` is a no-op when muted or before
+        the audio unlock, and it never awaits — this is inside a rAF loop and a
+        cue that blocks a frame is worse than a cue that is missed.
+
+        Guarded on `advanced` so mounting mid-bar does not fire a stray tick.
+      */
+      if (advanced) sfx(info.count === 1 ? "countInGo" : "tick");
 
       // Which counts in THIS measure carry a cue.
       const s = scriptRef.current;
@@ -84,24 +122,29 @@ export default function CountStrip({ proVideoRef, grid, script, visible }: Count
   return (
     <div
       className="pointer-events-none absolute left-0 right-0 z-30 flex justify-center px-3"
-      style={{ top: TOP_STACK }}
+      style={{ top: TOP_STACK_ROW2 }}
+      aria-hidden="true"
     >
-      <div className="flex w-full max-w-sm gap-1">
+      <div className="flex w-full max-w-sm gap-1 rounded-2xl border border-white/10 bg-stage-glass p-1.5 shadow-stage backdrop-blur-xl">
         {[1, 2, 3, 4, 5, 6, 7, 8].map((n, i) => (
           <div
             key={n}
             data-active="0"
             ref={el => { cellRefs.current[i] = el; }}
-            className="group flex h-10 flex-1 flex-col items-center justify-center rounded-lg bg-black/35 backdrop-blur-sm transition-transform duration-100 data-[active='1']:scale-110 data-[active='1']:bg-white"
+            className="group relative flex h-14 flex-1 flex-col items-center justify-center rounded-xl bg-white/[0.06] transition-ui duration-100 ease-out-strong data-[active='1']:bg-stage-text data-[active='1']:shadow-stage-sm motion-reduce:transition-none"
           >
-            <span className="text-[13px] font-extrabold leading-none text-white/45 group-data-[active='1']:text-black">
+            {/* Downbeat tick — which half of the bar you are in, without reading. */}
+            {(n === 1 || n === 5) && (
+              <span className="absolute inset-x-2 top-1.5 h-[3px] rounded-full bg-cue-hip/70 group-data-[active='1']:bg-cue-hip" />
+            )}
+            <span className="scale-[0.6] text-2xl font-extrabold leading-none tabular-nums text-stage-text/45 transition-transform duration-100 ease-out-strong group-data-[active='1']:scale-100 group-data-[active='1']:text-stage motion-reduce:transition-none">
               {n}
             </span>
             {/* Colour is dynamic, so it must be an inline style — an
                 interpolated `bg-${colour}` class emits no CSS at all. */}
             <span
               data-dot
-              className="mt-1 h-1.5 w-1.5 rounded-full transition-opacity duration-100"
+              className="mt-1.5 h-2 w-2 rounded-full transition-opacity duration-100"
               style={{ opacity: 0 }}
             />
           </div>

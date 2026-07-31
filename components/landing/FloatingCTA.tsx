@@ -1,36 +1,65 @@
 "use client";
 
-import Link from "next/link";
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
+import Pressable from "@/components/ui/Pressable";
 
+/**
+ * A thumb-reachable "Get Started" once the hero's copy has scrolled away.
+ *
+ * Two rules keep it from being noise. It does not appear while the hero's own
+ * CTA is still on screen, and it gets out of the way once the invite form it
+ * points at is visible — a floating button that covers the form it scrolls you
+ * to is a trap. Both are decided by an IntersectionObserver on `#waitlist`
+ * rather than by a pixel guess about page height.
+ *
+ * It is redundant chrome, not content: the header carries the same action at
+ * every scroll position, so nothing is lost if this never mounts.
+ */
 export default function FloatingCTA() {
   const { user, loading } = useAuth();
+  const [pastHero, setPastHero] = useState(false);
+  const [atForm, setAtForm] = useState(false);
 
-  if (loading || user) return null;
+  useEffect(() => {
+    const onScroll = () => setPastHero(window.scrollY > window.innerHeight * 0.75);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const target = document.getElementById("waitlist");
+    if (!target) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setAtForm(entry.isIntersecting),
+      { threshold: 0.15 },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
+
+  const show = !loading && !user && pastHero && !atForm;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 1.2, duration: 0.5, ease: "backOut" }}
-      className="fixed bottom-6 left-6 z-50 hidden sm:flex items-center gap-2"
-    >
-      <Link
-        href="/login"
-        className="rounded-full border-2 border-ink bg-white px-3 py-2 text-xs font-bold text-ink shadow-xl transition-ui duration-200 hover:bg-ink hover:text-white sm:px-4 sm:py-2.5 sm:text-sm"
-      >
-        Log in
-      </Link>
-      <Link
-        href="#waitlist"
-        className="group flex items-center gap-2 rounded-full border-2 border-ink bg-brand-primary px-4 py-2 text-white shadow-xl transition-ui duration-200 hover:bg-brand-accent sm:gap-2.5 sm:px-5 sm:py-3"
-      >
-        <span className="text-xs font-bold sm:text-sm">Sign up</span>
-        <div className="touch-target flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-sm font-bold transition-transform duration-200 group-hover:scale-110">
-          +
-        </div>
-      </Link>
-    </motion.div>
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 12 }}
+          transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+          className="pb-safe fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:px-0"
+        >
+          <Pressable href="#waitlist" variant="primary" size="md">
+            Get Started
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+            </svg>
+          </Pressable>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

@@ -21,6 +21,7 @@ export type StoredVideoMeta = Omit<StoredVideo, "blob">;
 
 const DB_NAME = "trace-videos";
 const STORE   = "videos";
+const RESUME  = "resume";
 const DEFAULT_BUDGET_BYTES = 2 * 1024 * 1024 * 1024; // 2GB
 
 export function idbAvailable(): boolean {
@@ -33,10 +34,15 @@ export function idbAvailable(): boolean {
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
+    // v2 adds the `resume` store. Existing v1 databases upgrade in place and
+    // keep every stored video — the handler only creates what is missing.
+    const req = indexedDB.open(DB_NAME, 2);
     req.onupgradeneeded = () => {
       if (!req.result.objectStoreNames.contains(STORE)) {
         req.result.createObjectStore(STORE, { keyPath: "key" });
+      }
+      if (!req.result.objectStoreNames.contains(RESUME)) {
+        req.result.createObjectStore(RESUME, { keyPath: "key" });
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -47,10 +53,11 @@ function openDb(): Promise<IDBDatabase> {
 function tx<T>(
   mode: IDBTransactionMode,
   run: (store: IDBObjectStore) => IDBRequest<T>,
+  storeName: string = STORE,
 ): Promise<T> {
   return openDb().then(db => new Promise<T>((resolve, reject) => {
-    const t = db.transaction(STORE, mode);
-    const req = run(t.objectStore(STORE));
+    const t = db.transaction(storeName, mode);
+    const req = run(t.objectStore(storeName));
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
     t.oncomplete = () => db.close();
@@ -174,4 +181,82 @@ export async function evictionCandidates(
     excess -= m.bytes;
   }
   return candidates;
+}
+
+
+// ── Resume state ───────────────────────────────────────────────────────────
+
+/**
+ * Everything needed to drop straight back into the section you were last
+ * drilling: the trim, the framing, the loop points, who you were following.
+ *
+ * ── Why it lives here and not in Supabase ────────────────────────────────
+ *
+ * Zero-server-storage is an architectural commitment, not an optimisation
+ * (README, "Remaster Phase 1"). Resume state is per-device by nature anyway —
+ * the framing is *where you stand in your room*, and the video it refers to
+ * only exists in this browser's IndexedDB. A Supabase table would add a
+ * migration, a network round-trip on dashboard load, and a row that is
+ * meaningless on any other device.
+ *
+ * ── Why its own object store ─────────────────────────────────────────────
+ *
+ * The obvious thing is a field on the video record. But that record holds the
+ * video bytes, and IndexedDB has no partial update — writing one number back
+ * would read and rewrite a multi-hundred-megabyte ArrayBuffer. A separate
+ * store keyed the same way makes a save a few dozen bytes.
+ */
+export interface ResumeState {
+  /** Trim bounds from calibration. */
+  trimStart?: number;
+  trimEnd?: number;
+  /** A/B loop points inside the trim — the section actually being drilled. */
+  loopStart?: number | null;
+  loopEnd?: number | null;
+  /** Reference framing, normalised so it survives a screen-size change. */
+  offsetXNorm?: number;
+  offsetYNorm?: number;
+  zoom?: number;
+  /** Which dancer was being followed. */
+  personCenter?: { x: number; y: number };
+  solo?: boolean;
+  /** Epoch ms. Lets the dashboard say "last practised …" honestly. */
+  updatedAt: number;
+}
+
+interface ResumeRecord extends ResumeState {
+  key: string;
+}
+
+/** Best-effort. A failed resume save must never interrupt a practice session. */
+export async function saveResume(key: string, state: Omit<ResumeState, "updatedAt">): Promise<void> {
+  if (!idbAvailable() || !key) return;
+  try {
+    const record: ResumeRecord = { ...state, key, updatedAt: Date.now() };
+    await tx("readwrite", s => s.put(record), RESUME);
+  } catch {
+    // Quota, private browsing, or a blocked upgrade — resume is a convenience.
+  }
+}
+
+export async function getResume(key: string): Promise<ResumeState | null> {
+  if (!idbAvailable() || !key) return null;
+  try {
+    const rec = await tx<ResumeRecord | undefined>("readonly", s => s.get(key), RESUME);
+    if (!rec) return null;
+    const state: ResumeState = { ...rec };
+    delete (state as Partial<ResumeRecord>).key;
+    return state;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearResume(key: string): Promise<void> {
+  if (!idbAvailable() || !key) return;
+  try {
+    await tx("readwrite", s => s.delete(key), RESUME);
+  } catch {
+    /* noop */
+  }
 }

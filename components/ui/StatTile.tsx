@@ -33,10 +33,10 @@ export default function StatTile({ value, label, accent = "ink", icon }: Props) 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl bg-white px-2 py-3 shadow-card">
       {icon && <div className="mb-0.5">{icon}</div>}
-      <p className={`text-2xl font-extrabold leading-none tabular-nums sm:text-3xl ${ACCENT[accent]}`}>
+      <p className={`font-display text-2xl font-extrabold leading-none tabular-nums sm:text-3xl ${ACCENT[accent]}`}>
         {value}
       </p>
-      <p className="text-[10px] font-bold uppercase tracking-widest text-clay/50">
+      <p className="text-hud uppercase tracking-[0.18em] text-clay/60">
         {label}
       </p>
     </div>

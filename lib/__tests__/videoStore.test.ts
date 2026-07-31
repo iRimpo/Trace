@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { IDBFactory } from "fake-indexeddb";
 import {
   putVideo, getVideo, listVideos, deleteVideo, evictionCandidates, idbAvailable,
+  saveResume, getResume, clearResume,
 } from "../videoStore";
 
 beforeEach(() => {
@@ -70,5 +71,56 @@ describe("videoStore", () => {
     expect(cands.map(c => c.key)).toEqual(["lru-old"]);
     // Generous budget → nothing to evict
     expect(await evictionCandidates(1000)).toEqual([]);
+  });
+});
+
+// ── Resume state ───────────────────────────────────────────────────────────
+
+describe("resume state", () => {
+  it("round-trips a section", async () => {
+    await saveResume("k1", {
+      trimStart: 12.5, trimEnd: 48,
+      loopStart: 20, loopEnd: 28,
+      offsetXNorm: -0.1, offsetYNorm: 0.05, zoom: 1.4,
+      solo: true,
+    });
+    const got = await getResume("k1");
+    expect(got).toMatchObject({
+      trimStart: 12.5, trimEnd: 48, loopStart: 20, loopEnd: 28, zoom: 1.4, solo: true,
+    });
+    expect(got!.updatedAt).toBeGreaterThan(0);
+  });
+
+  it("returns null for a key that was never saved", async () => {
+    expect(await getResume("nope")).toBeNull();
+  });
+
+  it("overwrites rather than accumulating", async () => {
+    await saveResume("k1", { loopStart: 1, loopEnd: 2 });
+    await saveResume("k1", { loopStart: 9, loopEnd: 10 });
+    const got = await getResume("k1");
+    expect(got).toMatchObject({ loopStart: 9, loopEnd: 10 });
+  });
+
+  it("clears", async () => {
+    await saveResume("k1", { loopStart: 1, loopEnd: 2 });
+    await clearResume("k1");
+    expect(await getResume("k1")).toBeNull();
+  });
+
+  it("does not disturb the stored video, and survives beside it", async () => {
+    // The whole reason resume has its own object store: saving it must not
+    // touch the record holding the video bytes.
+    await putVideo(sample("k1"));
+    await saveResume("k1", { loopStart: 3, loopEnd: 4 });
+    const v = await getVideo("k1");
+    expect(v).not.toBeNull();
+    expect(await v!.blob.text()).toBe("video-bytes");
+    expect(await getResume("k1")).toMatchObject({ loopStart: 3, loopEnd: 4 });
+  });
+
+  it("ignores an empty key rather than writing a junk row", async () => {
+    await saveResume("", { loopStart: 1 });
+    expect(await getResume("")).toBeNull();
   });
 });

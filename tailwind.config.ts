@@ -42,7 +42,62 @@ const config: Config = {
           goldDark:  "#E5A600",
           red:       "#FF4B4B",
           redDark:   "#E23A3A",
+          /**
+           * The cue system's own accent.
+           *
+           * `DESIGN_SYSTEM.md` §2 claims four accent meanings — blue for
+           * view/framing, emerald for cues, violet for counts, amber for
+           * looping — but there was no emerald, so the cue toggle was drawn in
+           * `duo.green`. That is the one "go / commit" colour, which meant the
+           * practice screen had two different greens meaning two different
+           * things, and the one that means *start* was the one being used
+           * ambiently. Teal-green rather than another blue: it has to be
+           * separable from `duo.blue` at ten feet, and hue survives distance
+           * far worse than luminance does.
+           */
+          teal:      "#00C2A8",
+          tealDark:  "#00A38D",
           edge:      "#E0DCC8",
+        },
+        /**
+         * Whose body is this — the reference dancer's, or yours.
+         *
+         * An identity axis, not a UI accent, so it is deliberately not
+         * `duo.blue` (which means view/framing everywhere else). Mirrors
+         * `IDENTITY` in `lib/brandTokens.ts`, which is the source the canvas
+         * renderer reads — the badge and the ring drawn around a body have to
+         * agree, and they cannot if one of them is a raw palette class.
+         */
+        identity: {
+          reference: "#FF5FA2",
+          you:       "#38D9F5",
+        },
+        /**
+         * The Stage — the second ground.
+         *
+         * The app has two surfaces, not one. `brand.cream` is *paper*: auth,
+         * dashboard, anything you read at arm's length. The practice screen is
+         * a *stage*: a live camera feed at full bleed, looked at from ten feet
+         * away while dancing.
+         *
+         * Practice chrome used to be white glass (`bg-white/90`) floating over
+         * that feed. Two problems, both only visible on a phone: white glass in
+         * a bright room is the brightest thing on screen, so the eye lands on
+         * the controls instead of the dancer, and the 10px ink-on-white labels
+         * inside it are unreadable at dancing distance. Dark glass inverts
+         * both — the video stays the brightest element, and white-on-dark holds
+         * contrast against whatever is behind it.
+         */
+        stage: {
+          DEFAULT: "#0B0B0C",
+          raised:  "#17171A",
+          /** Floating panel fill. Pair with `backdrop-blur-xl`. */
+          glass:   "rgba(11,11,12,0.66)",
+          /** Same, one step lighter, for a control nested inside glass. */
+          inset:   "rgba(255,255,255,0.08)",
+          edge:    "#33333A",
+          text:    "#F7F5EE",
+          muted:   "#A3A099",
         },
         cue: {
           hand:     "#00D4FF",
@@ -72,6 +127,11 @@ const config: Config = {
         mono:      ["var(--font-mono)", "monospace"],
         logo:      ["var(--font-outfit)", "sans-serif"],
         hero:      ["var(--font-dm-sans)", "sans-serif"],
+        /**
+         * Headings and big numbers. Rounded and warm where DM Sans is cool and
+         * geometric. Never the stage HUD — see app/layout.tsx.
+         */
+        display:   ["var(--font-nunito)", "var(--font-dm-sans)", "sans-serif"],
         noname:    ["var(--font-jakarta)", "sans-serif"],
         helvetica: ["var(--font-raleway)", "sans-serif"],
         calistoga: ["var(--font-calistoga)", "serif"],
@@ -80,6 +140,14 @@ const config: Config = {
         hero:    ["4rem",  { lineHeight: "1.1", fontWeight: "800" }],
         display: ["3rem",  { lineHeight: "1.2", fontWeight: "800" }],
         title:   ["2rem",  { lineHeight: "1.3", fontWeight: "700" }],
+        /**
+         * The legibility floor for anything on the practice stage. The screen
+         * is propped several feet away, so 12px bold is the smallest thing that
+         * survives the distance — the old chrome ran down to `text-[8px]`.
+         * Anything smaller than `hud` on the stage is a bug, not a style.
+         */
+        hud:      ["0.75rem",  { lineHeight: "1",    fontWeight: "700", letterSpacing: "0.02em" }],
+        "hud-lg": ["0.875rem", { lineHeight: "1.15", fontWeight: "700", letterSpacing: "0.01em" }],
       },
       spacing: {
         18: "4.5rem",
@@ -99,6 +167,17 @@ const config: Config = {
         "chunk-gold-sm": "0 3px 0 0 #E5A600",
         /** Resting card lift on cream. */
         card:          "0 2px 0 0 #E0DCC8",
+        /** Chunk variants for pressables that live on the dark stage. */
+        "chunk-ink":   "0 4px 0 0 #000000",
+        "chunk-stage": "0 4px 0 0 #33333A",
+        /**
+         * Stage panels do get a blurred shadow, unlike paper cards. On cream a
+         * solid chunk reads as a physical edge; over a moving video there is no
+         * stable ground to cast onto, so a soft drop is what separates panel
+         * from feed.
+         */
+        stage:         "0 8px 28px -10px rgba(0,0,0,0.75)",
+        "stage-sm":    "0 4px 14px -6px rgba(0,0,0,0.7)",
       },
       transitionProperty: {
         /**

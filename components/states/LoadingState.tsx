@@ -1,37 +1,44 @@
 "use client";
 
-import { motion } from "framer-motion";
+import type { ReactNode } from "react";
+import StateBlock from "./StateBlock";
+import { Spinner } from "./icons";
 
 interface Props {
   message?: string;
+  /** Second line — what is happening, when the wait is long enough to explain. */
+  detail?: string;
+  /**
+   * A determinate meter, when the wait has a number attached to it. The upload
+   * page had drawn its own centred heading, sub-line and bar rather than use
+   * this shell, so "preparing your session" and "video ready" — two frames of
+   * one moment — arrived at different type sizes and different vertical rhythm.
+   */
+  action?: ReactNode;
+  bare?: boolean;
+  className?: string;
 }
 
-export function LoadingState({ message = "Loading..." }: Props) {
+/**
+ * The waiting state. Same 64px plate and same bold heading as the empty and
+ * error states — only the glyph and the tone change, so a page moving between
+ * them does not appear to change layout.
+ *
+ * Two counter-rotating rings were the old spinner. One ring is enough: it is a
+ * progress indicator, not a feature.
+ */
+export function LoadingState({ message = "Loading…", detail, action, bare = true, className = "" }: Props) {
   return (
-    <div className="flex flex-col items-center justify-center p-8 text-center">
-      <div className="relative h-12 w-12">
-        <motion.div
-          className="absolute inset-0 rounded-full border-2 border-brand-primary/20"
-        />
-        <motion.div
-          className="absolute inset-0 rounded-full border-2 border-transparent border-t-brand-primary"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }}
-        />
-        <motion.div
-          className="absolute inset-2 rounded-full border-2 border-transparent border-t-brand-accent"
-          animate={{ rotate: -360 }}
-          transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
-        />
-      </div>
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className="mt-4 text-sm text-brand-dark/40"
-      >
-        {message}
-      </motion.p>
-    </div>
+    <StateBlock
+      bare={bare}
+      live="status"
+      icon={<Spinner />}
+      title={message}
+      body={detail}
+      action={action}
+      className={className}
+    />
   );
 }
+
+export default LoadingState;

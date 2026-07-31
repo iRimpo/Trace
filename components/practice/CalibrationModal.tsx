@@ -1,10 +1,20 @@
 "use client";
 
 import { useRef, useEffect, useCallback, useState } from "react";
+import type { ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { initPoseDetection, detectPose, detectAllPosesFromFrame, smoothKeypoints } from "@/lib/mediapipe";
 import type { Keypoint } from "@/lib/mediapipe";
 import { extractFaceThumbnail } from "@/lib/faceExtraction";
+import { CUE_PALETTE } from "@/lib/cuePalette";
+import { MIN_TRIM, clampTrim, trimKeyTarget } from "@/lib/trimControls";
+import { videoFit } from "@/lib/videoFit";
+import { confirm as confirmCue } from "@/lib/feedback";
+import { TOP_STACK, BOTTOM_SAFE, useIsPortrait } from "@/components/practice/chrome";
+import { SPRING_UI, SPRING_POP } from "@/lib/motion";
+import Panel from "@/components/ui/Panel";
+import Pressable from "@/components/ui/Pressable";
+import IconButton from "@/components/ui/IconButton";
 
 // ── BlazePose indices ────────────────────────────────────────────────────────
 const NOSE = 0;
@@ -90,12 +100,30 @@ function drawRefFrame(ctx: CanvasRenderingContext2D, video: HTMLVideoElement, cW
   ctx.restore();
 }
 
+/**
+ * Canvas cannot take a Tailwind class, so these come from `lib/cuePalette` —
+ * the module that exists precisely so colours living in data structures are
+ * still defined once (see `docs/DESIGN_SYSTEM.md` §2). They were two raw hex
+ * literals here.
+ *
+ * Blue while you are framing, green the moment the palm is up: blue means
+ * view/framing everywhere in the app, and green is the one "committing" colour.
+ */
+const SKELETON_IDLE   = CUE_PALETTE.shoulder;
+const SKELETON_ARMED  = CUE_PALETTE.foot;
+/** Person-picker rings — four palette colours, one per detected dancer. */
+const PERSON_COLORS = [CUE_PALETTE.hand, CUE_PALETTE.foot, CUE_PALETTE.head, CUE_PALETTE.armBoth];
+
 function drawSkeleton(ctx: CanvasRenderingContext2D, kps: Keypoint[], cW: number, cH: number, vW: number, vH: number, palmRaised: boolean) {
-  const px = (kp: Keypoint) => (1 - kp.x / vW) * cW;
-  const py = (kp: Keypoint) => (kp.y / vH) * cH;
-  const accent = palmRaised ? "#10B981" : "#60A5FA";
+  // The webcam is object-cover and mirrored, so the skeleton must be too.
+  const { dw, dh, ox, oy } = videoFit(cW, cH, vW, vH, "cover");
+  const px = (kp: Keypoint) => ox + (1 - kp.x / vW) * dw;
+  const py = (kp: Keypoint) => oy + (kp.y / vH) * dh;
+  const accent = palmRaised ? SKELETON_ARMED : SKELETON_IDLE;
   ctx.save();
-  ctx.lineWidth   = 2;
+  // 2px reads as a hairline on a phone held at arm's length and disappears
+  // entirely across a room; the skeleton is the thing being aligned.
+  ctx.lineWidth   = 3;
   ctx.strokeStyle = accent;
   ctx.globalAlpha = 0.75;
   for (const [a, b] of SKELETON_EDGES) {
@@ -106,7 +134,7 @@ function drawSkeleton(ctx: CanvasRenderingContext2D, kps: Keypoint[], cW: number
   ctx.globalAlpha = 1;
   for (const kp of kps) {
     if (!kp || (kp.score ?? 0) < 0.3) continue;
-    ctx.beginPath(); ctx.arc(px(kp), py(kp), 3, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(px(kp), py(kp), 4, 0, Math.PI * 2);
     ctx.fillStyle = accent; ctx.fill();
   }
   ctx.restore();
@@ -118,12 +146,81 @@ function fmt(s: number): string {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
+/**
+ * Tenths, for the two trim readouts only.
+ *
+ * The keyboard's fine step is 0.1s, and `fmt` floors to whole seconds — so a
+ * keyboard user pressing → would watch the number sit still for ten presses,
+ * which is indistinguishable from a dead control. The readout has to resolve
+ * whatever the control's smallest step is. The playhead and duration stay on
+ * `fmt`: nothing steps those by a tenth.
+ */
+function fmtPrecise(s: number): string {
+  if (!isFinite(s) || s < 0) return "0:00.0";
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toFixed(1).padStart(4, "0")}`;
+}
+
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 type FrameState = "loading" | "ready" | "palm" | "calibrating" | "done";
 type CalibStep  = "frame" | "trim" | "mode" | "dancer";
 
+/**
+ * Every step is the same card. `stage-solid`, not `stage` glass: there is a
+ * scrim behind it, so this is a real surface rather than something floating
+ * over video, and translucency stacked on translucency is exactly the
+ * legibility failure apple-design §12 warns about.
+ *
+ * The last three steps were still cream cards with ink-on-white type — a
+ * different *ground* mid-flow, three sentences after step 1 handed you off.
+ * They share this card, `StepHeader` and `StepFooter` now, so back is always
+ * bottom-left, forward is always bottom-right, and the progress rail is the
+ * same object moving rather than four differently-worded step labels.
+ */
+const STEP_CARD =
+  "relative w-full max-w-2xl overflow-hidden rounded-3xl border border-stage-edge bg-stage-raised shadow-stage";
+
+/**
+ * ── The portrait form of the same card ───────────────────────────────────
+ *
+ * In landscape the card-with-rows shape above is right: there is horizontal
+ * room, so a header row, a 16:9 pane and a footer row all fit.
+ *
+ * On a portrait phone that same shape is the single worst layout in the app.
+ * All three media panes are `aspect-video`, so on a 393×852 screen the thing
+ * you are actually judging gets ~40% of the viewport and the rest goes to a
+ * header and a footer. Steps 1 and 4 are *visual judgement tasks performed
+ * from several feet away* — "is my skeleton on the reference?", "which of
+ * these is the dancer?" — and they were being asked in a 221px-tall box.
+ *
+ * So in portrait the media goes full-bleed and the chrome floats over it as
+ * stage-glass, which is the pattern the practice stage already uses correctly.
+ * The header and footer keep their DOM order (so focus order and screen-reader
+ * order are unchanged) and are lifted with `relative z-10` over an
+ * `absolute inset-0` media pane.
+ */
+const STEP_CARD_PORTRAIT =
+  "relative flex h-full w-full flex-col overflow-hidden bg-stage";
+
+/** The portrait card for a step with no media pane — normal flow, scrollable. */
+const STEP_CARD_PORTRAIT_FLOW =
+  "relative flex h-full w-full flex-col overflow-y-auto bg-stage";
+
 export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: CalibrationModalProps) {
+  /** Layout branches on orientation, never on a width breakpoint (§7). */
+  const isPortrait   = useIsPortrait();
+  /** The step shell: full-bleed media with floating chrome in portrait. */
+  const stepCard     = isPortrait ? STEP_CARD_PORTRAIT : STEP_CARD;
+  /** The same, for the one step that has no media pane to bleed. */
+  const stepCardFlow = isPortrait ? STEP_CARD_PORTRAIT_FLOW : STEP_CARD;
+  /** Media fills the card in portrait; keeps its 16:9 box in landscape. */
+  const mediaPane    = isPortrait
+    ? "absolute inset-0 z-0 overflow-hidden bg-black"
+    : "relative aspect-video overflow-hidden bg-black";
+
   const webcamRef    = useRef<HTMLVideoElement>(null);
   const refVideoRef  = useRef<HTMLVideoElement>(null);
   const canvasRef    = useRef<HTMLCanvasElement>(null);
@@ -245,6 +342,14 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
 
   // ── Calibration math ──────────────────────────────────────────────────────
   const triggerCalibration = useCallback((userKps: Keypoint[], cW: number, cH: number) => {
+    /*
+      The most important cue in the app. Locking your framing is performed from
+      eight feet away with a raised palm — you are not touching the phone and
+      you cannot read a 12px status line from there, so a sound is the only
+      confirmation that the hold actually took. Without it the honest user
+      behaviour is to walk over and check.
+    */
+    confirmCue("commit");
     setFrameState("calibrating");
     const webcam   = webcamRef.current;
     const refVideo = refVideoRef.current;
@@ -475,25 +580,35 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
 
     if (persons.length === 0) return;
 
-    const COLORS = ["#00D4FF", "#34D399", "#FBBF24", "#F472B6"];
+    // The reference video is object-contain, so the rings have to letterbox
+    // with it. A plain x*width mapping only agreed while the pane was 16:9.
+    const v = refVideoRef.current;
+    const fit = videoFit(
+      canvas.width, canvas.height,
+      v?.videoWidth || 16, v?.videoHeight || 9,
+      "contain",
+    );
+
     persons.forEach(({ x, y }, i) => {
-      const cx = x * canvas.width, cy = y * canvas.height;
+      const cx = fit.ox + x * fit.dw, cy = fit.oy + y * fit.dh;
       const isSelected = i === selectedPerson;
-      const c = COLORS[i % COLORS.length];
+      const c = PERSON_COLORS[i % PERSON_COLORS.length];
       ctx.beginPath();
-      ctx.arc(cx, cy, isSelected ? 22 : 18, 0, Math.PI * 2);
+      ctx.arc(cx, cy, isSelected ? 26 : 20, 0, Math.PI * 2);
       ctx.strokeStyle = c;
-      ctx.lineWidth   = isSelected ? 3 : 1.5;
-      ctx.globalAlpha = isSelected ? 0.9 : 0.5;
+      ctx.lineWidth   = isSelected ? 4 : 2;
+      ctx.globalAlpha = isSelected ? 0.95 : 0.55;
       ctx.stroke();
       ctx.beginPath();
-      ctx.arc(cx, cy, isSelected ? 14 : 11, 0, Math.PI * 2);
+      ctx.arc(cx, cy, isSelected ? 17 : 13, 0, Math.PI * 2);
       ctx.fillStyle = c;
-      ctx.globalAlpha = isSelected ? 0.3 : 0.15;
+      ctx.globalAlpha = isSelected ? 0.45 : 0.2;
       ctx.fill();
       ctx.globalAlpha = 1;
-      ctx.fillStyle   = "#ffffff";
-      ctx.font        = `bold ${isSelected ? 13 : 11}px system-ui`;
+      ctx.fillStyle   = "white";
+      // 11px was below the stage's type floor even on the label of a tap
+      // target you are meant to hit from across the room.
+      ctx.font        = `bold ${isSelected ? 16 : 13}px system-ui`;
       ctx.textAlign   = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(String(i + 1), cx, cy);
@@ -540,18 +655,24 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
     const canvas = personCanvasRef.current;
     if (!canvas || persons.length <= 1 || personsLoading) return;
     const rect = canvas.getBoundingClientRect();
-    const mx = (e.clientX - rect.left) / rect.width;
-    const my = (e.clientY - rect.top)  / rect.height;
+    // Same contain-fit as the rings are drawn with — a hit test in box space
+    // against rings drawn in letterboxed space picks the wrong dancer.
+    const v = refVideoRef.current;
+    const fit = videoFit(rect.width, rect.height, v?.videoWidth || 16, v?.videoHeight || 9, "contain");
+    const mx = (e.clientX - rect.left - fit.ox) / fit.dw;
+    const my = (e.clientY - rect.top  - fit.oy) / fit.dh;
     let closest = 0, bestDist = Infinity;
     persons.forEach(({ x, y }, i) => {
       const d = (x - mx) ** 2 + (y - my) ** 2;
       if (d < bestDist) { bestDist = d; closest = i; }
     });
     setSelectedPerson(closest);
+    confirmCue("commit");
   }
 
   // ── Transition to mode step (trim → solo/group choice) ───────────────────
   function goToMode() {
+    confirmCue("commit");
     const v = refVideoRef.current;
     if (v) { v.pause(); v.currentTime = trimStart; }
     setTrimPlaying(false);
@@ -593,6 +714,40 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calibStep, personsLoading, persons]);
 
+  // ── Trim handle movement ──────────────────────────────────────────────────
+  /**
+   * The one place a trim handle moves.
+   *
+   * Pointer-down, pointer-drag and every key below funnel through here, so the
+   * `MIN_TRIM` floor and the "seek the reference to the handle you just moved"
+   * behaviour cannot drift apart between input methods. The clamp had been
+   * written out three times, which is precisely how that drift starts.
+   */
+  function applyTrim(which: "start" | "end", seconds: number) {
+    const range = liveTrimRange();
+    if (range.duration <= 0) return;
+
+    const next = clampTrim(which, seconds, range);
+    if (which === "start") {
+      setTrimStart(next);
+      trimStartRef.current = next;
+    } else {
+      setTrimEnd(next);
+      trimEndRef.current = next;
+    }
+    const v = refVideoRef.current;
+    if (v) v.currentTime = next;
+  }
+
+  /** Refs, not state — a drag moves faster than React re-renders. */
+  function liveTrimRange() {
+    return {
+      start:    trimStartRef.current,
+      end:      trimEndRef.current,
+      duration: trimDurationRef.current,
+    };
+  }
+
   // ── Timeline drag handlers ────────────────────────────────────────────────
   function handleTimelinePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (trimDurationRef.current <= 0) return;
@@ -604,44 +759,46 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
     trimDragRef.current = which;
     e.currentTarget.setPointerCapture(e.pointerId);
 
-    const t = pct * trimDurationRef.current;
-    const v = refVideoRef.current;
-    if (which === "start") {
-      const newStart = Math.max(0, Math.min(t, trimEndRef.current - 0.5));
-      setTrimStart(newStart);
-      trimStartRef.current = newStart;
-      if (v) { v.pause(); v.currentTime = newStart; }
-    } else {
-      const newEnd = Math.min(trimDurationRef.current, Math.max(t, trimStartRef.current + 0.5));
-      setTrimEnd(newEnd);
-      trimEndRef.current = newEnd;
-      if (v) { v.pause(); v.currentTime = newEnd; }
-    }
+    refVideoRef.current?.pause();
     setTrimPlaying(false);
+    applyTrim(which, pct * trimDurationRef.current);
   }
 
   function handleTimelinePointerMove(e: React.PointerEvent<HTMLDivElement>) {
     if (!trimDragRef.current || trimDurationRef.current <= 0) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const t   = pct * trimDurationRef.current;
-    const v   = refVideoRef.current;
-
-    if (trimDragRef.current === "start") {
-      const newStart = Math.max(0, Math.min(t, trimEndRef.current - 0.5));
-      setTrimStart(newStart);
-      trimStartRef.current = newStart;
-      if (v) v.currentTime = newStart;
-    } else {
-      const newEnd = Math.min(trimDurationRef.current, Math.max(t, trimStartRef.current + 0.5));
-      setTrimEnd(newEnd);
-      trimEndRef.current = newEnd;
-      if (v) v.currentTime = newEnd;
-    }
+    applyTrim(trimDragRef.current, pct * trimDurationRef.current);
   }
 
   function handleTimelinePointerUp() {
     trimDragRef.current = null;
+  }
+
+  /**
+   * Keyboard access for the trim handles — §5.1 of the design handoff.
+   *
+   * The handles had been pointer-only, so the trim step could not be completed
+   * from a keyboard at all. Two `role="slider"` thumbs is the WAI-ARIA
+   * dual-thumb pattern, and it fits what is already here: the `role="group"`
+   * wrapper becomes their labelled container.
+   *
+   * Semantics follow the platform slider convention rather than inventing one:
+   * arrows nudge, Shift and Page jump, Home/End run to the limit. "The limit"
+   * is deliberately each handle's *live* constraint, not 0 and duration — End
+   * on the in-point means "as late as this handle may legally go", which keeps
+   * `MIN_TRIM` an invariant the user cannot fight rather than a wall they hit.
+   */
+  function handleTrimKeyDown(which: "start" | "end", e: React.KeyboardEvent<HTMLDivElement>) {
+    const target = trimKeyTarget(e, which, liveTrimRange());
+    // `null` means the key is not ours — let Tab and Escape through untouched.
+    if (target === null) return;
+
+    // Arrows scroll and Page/Home/End jump the modal otherwise.
+    e.preventDefault();
+    refVideoRef.current?.pause();
+    setTrimPlaying(false);
+    applyTrim(which, target);
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -657,7 +814,33 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
   const trimLengthSec = trimEnd - trimStart;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">
+    /*
+      The stage ground, not paper — see `docs/DESIGN_SYSTEM.md` §1. This modal
+      was a cream card with ink-on-white text, but it is the first surface of
+      the practice session: it holds a live camera feed, and its first step is
+      performed standing several feet back with a palm in the air. White chrome
+      there is the brightest thing in the room and the 9–11px labels were
+      unreadable from where the user actually is.
+
+      Scrim + solid dark surface, per apple-design §12: a modal task dims what
+      is behind it rather than floating translucently over it.
+
+      `TOP_STACK` owns the top edge — see contract §5. PracticeView's floating
+      header is rendered *after* this modal at the same z-index, so it paints
+      over the scrim; a bare `p-2` put the card's own header underneath the
+      back button and the tab bar on a Dynamic Island iPhone. Top-aligned on a
+      phone (where that collision is real) and centred once there is room.
+    */
+    <div
+      className={
+        isPortrait
+          // Full-bleed: the card *is* the screen, so the scrim keeps only the
+          // safe-area padding and gives up its own gutters and centring.
+          ? "fixed inset-0 z-50 flex items-stretch justify-center bg-stage"
+          : "fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 px-2 backdrop-blur-sm sm:items-center sm:px-4"
+      }
+      style={{ paddingTop: TOP_STACK, paddingBottom: isPortrait ? BOTTOM_SAFE : `calc(0.75rem + ${BOTTOM_SAFE})` }}
+    >
       <AnimatePresence mode="wait">
 
         {/* ── Step 1: Frame ──────────────────────────────────────────── */}
@@ -667,30 +850,23 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="relative w-full max-w-2xl overflow-hidden rounded-xl bg-brand-cream shadow-2xl sm:rounded-2xl"
+            transition={SPRING_UI}
+            className={stepCard}
           >
-            {/* Header */}
-            <div className="flex items-start justify-between border-b border-ink/[0.08] bg-white px-3 py-3 sm:px-5 sm:py-4">
-              <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-ink/30">Step 1 of 3</span>
-                  <div className="hidden h-px flex-1 bg-ink/[0.08] w-12 sm:block" />
-                  <span className="hidden text-[10px] text-ink/20 sm:inline">Trim →</span>
-                </div>
-                <h2 className="font-bold text-sm text-ink sm:text-base">Frame Yourself</h2>
-                <p className="mt-0.5 text-[11px] text-ink/40 max-w-xs leading-relaxed sm:text-xs">
-                  Position yourself so your skeleton aligns with the reference, then raise your palm to lock in the framing.
-                </p>
-              </div>
-              <button onClick={() => goToTrim({ zoom: 1, offsetXNorm: 0, offsetYNorm: 0 })}
-                className="ml-4 mt-0.5 shrink-0 rounded-lg bg-ink/[0.06] px-3 py-1.5 text-xs font-medium text-ink/40 hover:bg-ink/10 hover:text-ink/60 transition-ui">
-                Skip
-              </button>
-            </div>
+            <StepHeader
+              step={1}
+              next="Trim next"
+              title="Frame yourself"
+              subtitle="Stand so your skeleton lands on the reference, then raise a palm above your face to lock it in."
+              action={
+                <Pressable variant="stage" size="sm" className="shrink-0" onClick={() => goToTrim({ zoom: 1, offsetXNorm: 0, offsetYNorm: 0 })}>
+                  Skip
+                </Pressable>
+              }
+            />
 
             {/* Camera view */}
-            <div className="relative aspect-video bg-black overflow-hidden">
+            <div className={mediaPane}>
               <video ref={webcamRef} playsInline muted
                 className="absolute inset-0 h-full w-full object-cover"
                 style={{ transform: "scaleX(-1)" }}
@@ -703,13 +879,13 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                   <div className="flex flex-col items-center gap-3">
                     {loadingItems.map(item => (
                       <div key={item.label} className="flex items-center gap-2.5">
-                        <div className={`h-4 w-4 rounded-full flex items-center justify-center ${item.done ? "bg-emerald-500" : "border border-white/20"}`}>
+                        <div className={`flex h-5 w-5 items-center justify-center rounded-full ${item.done ? "bg-duo-green" : "border border-white/25"}`}>
                           {item.done
-                            ? <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                            : <div className="h-2 w-2 animate-spin motion-reduce:animate-pulse rounded-full border border-white/20 border-t-white/60" />
+                            ? <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                            : <div className="h-2.5 w-2.5 animate-spin motion-reduce:animate-pulse rounded-full border border-white/20 border-t-white/60" />
                           }
                         </div>
-                        <span className={`text-xs ${item.done ? "text-white/70" : "text-white/40"}`}>{item.label}</span>
+                        <span className={`text-hud font-bold ${item.done ? "text-stage-text" : "text-stage-text/55"}`}>{item.label}</span>
                       </div>
                     ))}
                   </div>
@@ -720,83 +896,93 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
               <AnimatePresence>
                 {palmProgress > 0 && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="relative h-28 w-28">
+                    className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <div className="relative h-32 w-32">
                       <svg className="absolute inset-0 -rotate-90" viewBox="0 0 112 112">
-                        <circle cx="56" cy="56" r="50" fill="none" stroke="white" strokeWidth="4" strokeOpacity="0.15" />
-                        <circle cx="56" cy="56" r="50" fill="none" stroke="#10B981" strokeWidth="4"
+                        <circle cx="56" cy="56" r="50" fill="none" stroke="white" strokeWidth="6" strokeOpacity="0.18" />
+                        <circle cx="56" cy="56" r="50" fill="none" className="stroke-duo-green" strokeWidth="6"
                           strokeDasharray={`${Math.PI * 2 * 50 * palmProgress} 999`} strokeLinecap="round" />
                       </svg>
-                      <div className="absolute inset-0 flex items-center justify-center text-3xl select-none">✋</div>
+                      <div className="absolute inset-0 flex select-none items-center justify-center text-4xl">✋</div>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
               {frameState === "calibrating" && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                  <div className="rounded-xl bg-white/10 px-5 py-3 backdrop-blur">
-                    <p className="text-sm font-semibold text-white">Calibrating…</p>
-                  </div>
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                  <Panel tone="stage" className="px-6 py-3.5">
+                    <p className="text-hud-lg font-extrabold text-stage-text">Calibrating…</p>
+                  </Panel>
                 </div>
               )}
 
               <AnimatePresence>
                 {frameState === "done" && (
-                  <motion.div initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }}
-                    className="absolute inset-0 flex items-center justify-center bg-emerald-900/30">
-                    <div className="flex items-center gap-2.5 rounded-xl bg-emerald-500/80 px-6 py-3 backdrop-blur">
-                      <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                    transition={SPRING_POP}
+                    className="absolute inset-0 flex items-center justify-center bg-black/45">
+                    <div className="flex items-center gap-3 rounded-2xl bg-duo-green px-7 py-4 shadow-stage">
+                      <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                       </svg>
-                      <p className="text-sm font-bold text-white">Framed!</p>
+                      <p className="text-lg font-extrabold text-white">Framed</p>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
               {(frameState === "ready" || frameState === "palm") && (
-                <div className="absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-lg bg-black/50 px-2.5 py-1 backdrop-blur">
-                  <div className={`h-1.5 w-1.5 rounded-full ${bodyDetected ? "bg-emerald-400 animate-pulse motion-reduce:animate-none" : "bg-amber-400 animate-pulse"}`} />
-                  <span className="text-[10px] font-semibold tracking-wide text-white/70">
+                <div className="absolute left-3 top-3 z-10 flex items-center gap-2 rounded-full bg-stage-glass px-3 py-2 backdrop-blur-xl">
+                  <div className={`h-2.5 w-2.5 animate-pulse motion-reduce:animate-pulse rounded-full ${bodyDetected ? "bg-duo-green" : "bg-duo-gold"}`} />
+                  <span className="text-hud font-extrabold tracking-wide text-stage-text/85">
                     {bodyDetected ? "Body detected" : "Looking for body…"}
                   </span>
                 </div>
               )}
             </div>
 
-            {/* Footer */}
-            <div className="flex items-center justify-between gap-4 px-5 py-3.5 bg-white border-t border-ink/[0.08]">
-              <div className="flex items-center gap-2 min-w-0">
-                {frameState === "loading" && <p className="text-xs text-ink/40">Initialising…</p>}
+            {/* Footer. Hand-rolled rather than StepFooter because this step
+                carries live status copy, so it takes the portrait glass
+                treatment explicitly — otherwise it is transparent over the
+                full-bleed camera feed. */}
+            <div className={`flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-4 py-3.5 sm:px-5 ${
+              isPortrait ? "relative z-10 bg-stage-glass backdrop-blur-xl" : "bg-white/[0.04]"
+            }`}>
+              <div className="flex min-w-0 items-center gap-2">
+                {frameState === "loading" && <p className="text-hud font-bold text-stage-text/60">Initialising…</p>}
                 {(frameState === "ready" || frameState === "palm") && !bodyDetected && (
-                  <p className="text-xs text-ink/50">Position yourself so your shoulders are visible</p>
+                  <p className="text-hud font-bold text-stage-text/70">Step back until your shoulders are in frame</p>
                 )}
                 {(frameState === "ready" || frameState === "palm") && bodyDetected && palmProgress === 0 && (
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">👋</span>
-                    <p className="text-xs text-ink/60">Raise your palm above your face to calibrate</p>
+                    <span className="text-xl">👋</span>
+                    <p className="text-hud font-bold text-stage-text/80">Raise your palm above your face</p>
                   </div>
                 )}
-                {palmProgress > 0 && <p className="text-xs font-medium text-emerald-600">Hold still… {Math.round(palmProgress * 100)}%</p>}
+                {palmProgress > 0 && (
+                  <p className="text-hud-lg font-extrabold text-duo-green">Hold still… {Math.round(palmProgress * 100)}%</p>
+                )}
               </div>
-              <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              <div className="flex shrink-0 items-center gap-3">
                 {(frameState === "ready" || frameState === "palm") && (
-                  <div className="hidden items-center gap-2 sm:flex">
-                    <span className="text-[10px] text-ink/30">Overlay</span>
+                  /* The ghost is the only thing you can adjust on this step and
+                     it was `hidden sm:flex` — i.e. absent on the one device the
+                     step is actually performed on. The footer wraps, so it
+                     costs a line rather than the Next button's room. */
+                  <div className="flex items-center gap-2">
+                    <span className="text-hud font-bold text-stage-text/60">Ghost</span>
                     <input type="range" min={0} max={80} value={overlayOpacity}
                       onChange={e => setOverlayOpacity(parseInt(e.target.value))}
-                      className="h-1 w-16 cursor-pointer appearance-none rounded-full bg-ink/[0.08] accent-emerald-500" />
+                      aria-label="Reference overlay opacity"
+                      className="slider slider-stage w-24" />
                   </div>
                 )}
                 {(frameState === "ready" || frameState === "palm") && (
-                  <button onClick={() => goToTrim({ zoom: 1, offsetXNorm: 0, offsetYNorm: 0 })}
-                    className="flex items-center gap-1.5 rounded-full bg-brand-primary px-4 py-1.5 text-xs font-semibold text-white transition-ui hover:bg-brand-accent">
+                  <Pressable variant="secondary" size="md" onClick={() => goToTrim({ zoom: 1, offsetXNorm: 0, offsetYNorm: 0 })}>
                     Next
-                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                    </svg>
-                  </button>
+                    <ArrowRightIcon />
+                  </Pressable>
                 )}
               </div>
             </div>
@@ -810,34 +996,23 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             initial={{ opacity: 0, scale: 0.96, x: 20 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.3 }}
-            className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-brand-cream shadow-2xl"
+            transition={{ duration: 0.24, ease: "easeOut" }}
+            className={stepCard}
           >
-            {/* Header */}
-            <div className="flex items-start justify-between border-b border-ink/[0.08] bg-white px-5 py-4">
-              <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <button onClick={() => setCalibStep("frame")} className="text-[10px] font-bold uppercase tracking-widest text-ink/30 hover:text-ink/60 transition-colors">
-                    ← Frame
-                  </button>
-                  <div className="h-px w-8 bg-ink/[0.08]" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-ink/60">Step 2 of 3</span>
-                  <div className="h-px w-8 bg-ink/[0.08]" />
-                  <span className="text-[10px] text-ink/20">Mode →</span>
-                </div>
-                <h2 className="font-bold text-base text-ink">Trim Video</h2>
-                <p className="mt-0.5 text-xs text-ink/40 leading-relaxed">
-                  Drag the green and orange handles to set the section you want to practice.
-                </p>
-              </div>
-              <button onClick={onSkip}
-                className="ml-4 mt-0.5 shrink-0 rounded-lg bg-ink/[0.06] px-3 py-1.5 text-xs font-medium text-ink/40 hover:bg-ink/10 hover:text-ink/60 transition-ui">
-                Skip All
-              </button>
-            </div>
+            <StepHeader
+              step={2}
+              next="Dancers next"
+              title="Trim to the part you'll drill"
+              subtitle="Drag the two handles to the section you want to practise. Everything outside it is ignored."
+              action={
+                <Pressable variant="stage" size="sm" className="shrink-0" onClick={onSkip}>
+                  Skip setup
+                </Pressable>
+              }
+            />
 
             {/* Video preview */}
-            <div className="relative aspect-video bg-black overflow-hidden">
+            <div className={mediaPane}>
               <video ref={refVideoRef} src={videoUrl} playsInline preload="auto" crossOrigin="anonymous"
                 className="h-full w-full object-contain"
                 onLoadedMetadata={() => {
@@ -849,98 +1024,139 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                 }}
               />
 
-              {/* Play/pause overlay button */}
-              <button onClick={toggleTrimPlay}
-                className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/10 transition-colors group">
+              {/* Whole frame is the play target — the smallest thing worth
+                  hitting on this screen is still the size of the video. */}
+              <button
+                type="button"
+                onClick={toggleTrimPlay}
+                aria-label={trimPlaying ? "Pause preview" : "Play preview"}
+                className="group absolute inset-0 flex items-center justify-center"
+              >
                 {!trimPlaying && (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm group-hover:bg-white/30 transition-ui">
-                    <svg className="h-5 w-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-stage-glass shadow-stage backdrop-blur-xl transition-transform duration-150 ease-out-strong group-active:scale-95 motion-reduce:transition-none motion-reduce:group-active:scale-100">
+                    <PlayIcon className="ml-1 h-7 w-7 text-stage-text" />
+                  </span>
                 )}
               </button>
 
-              {/* Time badges */}
-              <div className="pointer-events-none absolute left-3 bottom-3 flex items-center gap-2">
-                <div className="rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-mono text-white/80 backdrop-blur">{fmt(trimTime)}</div>
-              </div>
-              <div className="pointer-events-none absolute right-3 bottom-3">
-                <div className="rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-mono text-white/50 backdrop-blur">{fmt(trimDuration)}</div>
+              {/* Time readout — on video with no panel, so `.hud-text`. */}
+              <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between">
+                <span className="hud-text font-mono text-hud tabular-nums text-stage-text">{fmt(trimTime)}</span>
+                <span className="hud-text font-mono text-hud tabular-nums text-stage-text/70">{fmt(trimDuration)}</span>
               </div>
             </div>
 
-            {/* Timeline scrubber with drag handles */}
-            <div className="px-5 pt-5 pb-2">
-              {/* Handle timestamp labels */}
-              <div className="relative h-5 mb-1 select-none">
-                <span
-                  className="absolute -translate-x-1/2 text-[10px] font-mono font-semibold text-cue-foot"
-                  style={{ left: `${trimStartPct}%` }}
-                >
-                  {fmt(trimStart)}
+            {/* Timeline scrubber with drag handles. In portrait it floats over
+                full-bleed video, so it carries its own glass — a control with no
+                ground over a moving image is unreadable. */}
+            <div className={`px-4 pb-2 pt-4 sm:px-5 ${isPortrait ? "relative z-10 bg-stage-glass backdrop-blur-xl" : ""}`}>
+              {/*
+                In / out / length as words and numbers rather than two 10px
+                timestamps floating over the handles. Amber is the app's
+                region colour (contract §2), so both handles share it and the
+                labels carry which end is which — a colour difference is not
+                what tells you left from right at dancing distance.
+              */}
+              <div className="mb-2 flex items-baseline justify-between gap-2">
+                <span className="text-hud font-extrabold uppercase tracking-widest text-stage-text/55">
+                  In <span className="font-mono tabular-nums text-stage-text">{fmtPrecise(trimStart)}</span>
                 </span>
-                <span
-                  className="absolute -translate-x-1/2 text-[10px] font-mono font-semibold text-cue-elbow"
-                  style={{ left: `${trimEndPct}%` }}
-                >
-                  {fmt(trimEnd)}
+                <span className="text-hud font-extrabold tabular-nums text-duo-gold">{fmt(trimLengthSec)} selected</span>
+                <span className="text-hud font-extrabold uppercase tracking-widest text-stage-text/55">
+                  Out <span className="font-mono tabular-nums text-stage-text">{fmtPrecise(trimEnd)}</span>
                 </span>
               </div>
 
-              {/* Drag timeline */}
+              {/*
+                A 44px-tall track, not the old 16px one. The whole bar is the
+                pointer target — pointer-down grabs whichever handle is nearer —
+                so the bar's height *is* the touch target, and 16px of it was
+                a coin flip while standing back from the phone.
+              */}
               <div
-                className="relative h-4 rounded-full bg-ink/[0.08] touch-none select-none cursor-ew-resize"
+                role="group"
+                aria-label="Trim range"
+                className="relative h-11 cursor-ew-resize touch-none select-none"
                 onPointerDown={handleTimelinePointerDown}
                 onPointerMove={handleTimelinePointerMove}
                 onPointerUp={handleTimelinePointerUp}
               >
-                {/* Playhead progress */}
-                <div className="pointer-events-none absolute top-0 h-full rounded-full bg-brand-primary/20"
-                  style={{ width: `${trimTimePct}%` }} />
-                {/* Trim region highlight */}
-                <div className="pointer-events-none absolute top-0 h-full bg-cue-foot/20 rounded"
-                  style={{ left: `${trimStartPct}%`, width: `${trimEndPct - trimStartPct}%` }} />
-                {/* Start handle */}
+                {/*
+                  The clip lives on an inner layer, not on the group. The fills
+                  have to be cut to the track's rounding, but a focus ring on a
+                  handle sitting at 0% or 100% would be cut with them — an
+                  invisible focus indicator is the same bug as no focus at all.
+                */}
+                <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl bg-white/10">
+                  {/* Selected region */}
+                  <div
+                    className="absolute inset-y-0 bg-duo-gold/25"
+                    style={{ left: `${trimStartPct}%`, width: `${trimEndPct - trimStartPct}%` }}
+                  />
+                  {/* Playhead */}
+                  <div
+                    className="absolute inset-y-1.5 w-0.5 rounded-full bg-white/70"
+                    style={{ left: `${trimTimePct}%` }}
+                  />
+                </div>
+
+                {/*
+                  Handles. `pointer-events-none` stays on purpose: pointer input
+                  belongs to the whole 44px bar, which grabs whichever handle is
+                  nearer — a far better target while standing back from the
+                  phone than two 12px slivers. Keyboard focus is unaffected by
+                  pointer-events, so Tab still reaches both thumbs. Pointer gets
+                  the bar, keyboard gets the thumbs, and neither is degraded to
+                  serve the other.
+                */}
                 <div
-                  className="pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-5 w-2.5 rounded shadow-md bg-cue-foot"
+                  role="slider"
+                  tabIndex={0}
+                  aria-label="Trim in point"
+                  aria-valuemin={0}
+                  aria-valuemax={Math.max(0, trimEnd - MIN_TRIM)}
+                  aria-valuenow={trimStart}
+                  aria-valuetext={`In ${fmtPrecise(trimStart)}`}
+                  onKeyDown={(e) => handleTrimKeyDown("start", e)}
+                  className="pointer-events-none absolute inset-y-0 w-3 -translate-x-1/2 rounded-full bg-duo-gold outline-none focus-visible:ring-2 focus-visible:ring-stage-text focus-visible:ring-offset-2 focus-visible:ring-offset-stage"
                   style={{ left: `${trimStartPct}%` }}
                 />
-                {/* End handle */}
                 <div
-                  className="pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-5 w-2.5 rounded shadow-md bg-cue-elbow"
+                  role="slider"
+                  tabIndex={0}
+                  aria-label="Trim out point"
+                  aria-valuemin={Math.min(trimDuration, trimStart + MIN_TRIM)}
+                  aria-valuemax={trimDuration}
+                  aria-valuenow={trimEnd}
+                  aria-valuetext={`Out ${fmtPrecise(trimEnd)}`}
+                  onKeyDown={(e) => handleTrimKeyDown("end", e)}
+                  className="pointer-events-none absolute inset-y-0 w-3 -translate-x-1/2 rounded-full bg-duo-gold outline-none focus-visible:ring-2 focus-visible:ring-stage-text focus-visible:ring-offset-2 focus-visible:ring-offset-stage"
                   style={{ left: `${trimEndPct}%` }}
                 />
               </div>
 
               {/* Playback controls */}
               <div className="mt-3 flex items-center gap-3">
-                <button onClick={toggleTrimPlay}
-                  className="touch-target flex h-8 w-8 items-center justify-center rounded-full bg-ink/[0.08] text-ink/60 transition-ui hover:bg-ink/14 hover:text-ink">
+                <IconButton
+                  tone="stage"
+                  visual="md"
+                  aria-label={trimPlaying ? "Pause preview" : "Play preview"}
+                  onClick={toggleTrimPlay}
+                >
                   {trimPlaying
-                    ? <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4Zm8 0h4v16h-4V4Z" /></svg>
-                    : <svg className="h-3.5 w-3.5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                  }
-                </button>
-                <span className="text-xs font-mono text-ink/40">
-                  {fmt(trimLengthSec)} selected
-                </span>
+                    ? <PauseIcon className="h-4 w-4" />
+                    : <PlayIcon className="ml-0.5 h-4 w-4" />}
+                </IconButton>
+                <p className="text-hud font-bold text-stage-text/70">
+                  Preview plays the selection only
+                </p>
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="flex items-center justify-between gap-4 px-5 py-4 bg-white border-t border-ink/[0.08]">
-              <p className="text-xs text-ink/40">
-                Scan <span className="font-semibold text-ink/60">{fmt(trimStart)}</span> → <span className="font-semibold text-ink/60">{fmt(trimEnd)}</span>
-              </p>
-              <button onClick={goToMode}
-                className="flex items-center gap-2 rounded-full bg-brand-primary px-5 py-2 text-sm font-semibold text-white shadow-sm transition-ui hover:bg-brand-accent active:scale-95">
-                Next
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                </svg>
-              </button>
-            </div>
+            <StepFooter
+              back={<Pressable variant="stage" size="sm" onClick={() => setCalibStep("frame")}><ArrowLeftIcon />Back</Pressable>}
+              next={<Pressable variant="secondary" size="md" onClick={goToMode}>Next<ArrowRightIcon /></Pressable>}
+            />
           </motion.div>
         )}
 
@@ -951,64 +1167,44 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             initial={{ opacity: 0, scale: 0.96, x: 20 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.3 }}
-            className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-brand-cream shadow-2xl"
+            transition={{ duration: 0.24, ease: "easeOut" }}
+            className={stepCardFlow}
           >
-            {/* Header */}
-            <div className="flex items-start justify-between border-b border-ink/[0.08] bg-white px-5 py-4">
-              <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <button onClick={() => setCalibStep("trim")} className="text-[10px] font-bold uppercase tracking-widest text-ink/30 hover:text-ink/60 transition-colors">
-                    ← Trim
-                  </button>
-                  <div className="h-px w-8 bg-ink/[0.08]" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-ink/60">Step 3 of 3</span>
-                </div>
-                <h2 className="font-bold text-base text-ink">How many dancers are in the video?</h2>
-                <p className="mt-0.5 text-xs text-ink/40 leading-relaxed">
-                  Choose based on the video you uploaded.
-                </p>
-              </div>
-            </div>
+            <StepHeader
+              step={3}
+              next="Last step"
+              title="How many dancers are in the video?"
+              subtitle="Pick the one that matches the clip you uploaded."
+            />
 
-            {/* Mode selection */}
-            <div className="flex flex-col gap-3 p-5">
-              {/* Solo option */}
-              <button
+            {/*
+              The two options *are* the screen, so they are the size of the
+              screen. Solo is the common path and it commits immediately —
+              green, with the chunk, because it is this screen's one "go".
+              Group is the same object on the stage ground, because it leads to
+              another step rather than starting anything.
+            */}
+            <div className="flex flex-col gap-3 p-4 sm:p-5">
+              <ChoiceCard
+                tone="go"
+                title="Solo"
+                desc="One dancer. Trace follows them automatically."
                 onClick={() => {
                   onCalibrated({ ...pendingFrame, trimStart, trimEnd, personCenter: undefined, solo: true });
                 }}
-                className="flex flex-col gap-0.5 rounded-2xl border-2 border-ink/[0.08] bg-white px-5 py-4 text-left transition-ui hover:border-ink/20 hover:shadow-sm active:scale-[0.99]"
-              >
-                <span className="font-bold text-sm text-ink">Solo</span>
-                <span className="text-xs text-ink/50">One dancer — tracking is automatic</span>
-              </button>
-
-              {/* Group option */}
-              <button
+              />
+              <ChoiceCard
+                tone="stage"
+                title="Group"
+                desc="Several dancers. You'll pick who to follow on the next screen."
+                badge={<BetaBadge />}
                 onClick={goToDancer}
-                className="flex items-center gap-3 rounded-2xl border-2 border-ink/[0.08] bg-white px-5 py-4 text-left transition-ui hover:border-ink/20 hover:shadow-sm active:scale-[0.99]"
-              >
-                <div className="flex flex-col gap-0.5 flex-1">
-                  <span className="font-bold text-sm text-ink">Group</span>
-                  <span className="text-xs text-ink/50">Multiple dancers — you&apos;ll select who to follow</span>
-                </div>
-                <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700">
-                  EXPERIMENTAL
-                </span>
-              </button>
+              />
             </div>
 
-            {/* Footer */}
-            <div className="flex items-center justify-start gap-4 px-5 py-3.5 bg-white border-t border-ink/[0.08]">
-              <button onClick={() => setCalibStep("trim")}
-                className="flex items-center gap-1.5 rounded-full bg-ink/[0.06] px-4 py-1.5 text-xs font-medium text-ink/50 hover:bg-ink/10 hover:text-ink/70 transition-ui">
-                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                </svg>
-                Back
-              </button>
-            </div>
+            <StepFooter
+              back={<Pressable variant="stage" size="sm" onClick={() => setCalibStep("trim")}><ArrowLeftIcon />Back</Pressable>}
+            />
           </motion.div>
         )}
 
@@ -1019,31 +1215,36 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             initial={{ opacity: 0, scale: 0.96, x: 20 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.3 }}
-            className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-brand-cream shadow-2xl"
+            transition={{ duration: 0.24, ease: "easeOut" }}
+            className={stepCard}
           >
-            {/* Header */}
-            <div className="flex items-start justify-between border-b border-ink/[0.08] bg-white px-5 py-4">
-              <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <button onClick={() => setCalibStep("mode")} className="text-[10px] font-bold uppercase tracking-widest text-ink/30 hover:text-ink/60 transition-colors">
-                    ← Mode
-                  </button>
-                  <div className="h-px w-8 bg-ink/[0.08]" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-ink/60">Step 3 of 3</span>
-                  <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700">EXPERIMENTAL</span>
-                </div>
-                <h2 className="font-bold text-base text-ink">Select Dancer</h2>
-                <p className="mt-0.5 text-xs text-ink/40 leading-relaxed">
-                  {persons.length > 1
-                    ? "Tap the dancer you want Trace to track and give feedback on."
-                    : "Trace will automatically track the dancer in frame."}
-                </p>
-              </div>
-            </div>
+            <StepHeader
+              step={3}
+              next="Group"
+              badge={<BetaBadge />}
+              /* §3.4(1): with exactly one dancer the picker never renders — the
+                 step auto-advances 800ms after a solo detection and the
+                 thumbnail row is gated on persons.length > 1. So titling this
+                 "Pick the dancer to follow" described a screen the user was
+                 never shown, which reads as "it didn't show me anyone's faces".
+                 Say what actually happened instead. */
+              title={
+                personsLoading      ? "Looking for dancers"
+                : persons.length === 1 ? "Found your dancer"
+                : persons.length === 0 ? "No dancer found"
+                : "Pick the dancer to follow"
+              }
+              subtitle={
+                personsLoading
+                  ? "Trace is sampling the section you trimmed."
+                  : persons.length > 1
+                    ? "Tap a face below, or tap their ring on the video."
+                    : "Trace will automatically track the dancer in frame."
+              }
+            />
 
             {/* Video area */}
-            <div className="relative aspect-video bg-black overflow-hidden">
+            <div className={mediaPane}>
               <video ref={refVideoRef} src={videoUrl} playsInline preload="auto" crossOrigin="anonymous"
                 className="h-full w-full object-contain"
                 onLoadedData={() => {
@@ -1060,21 +1261,17 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                 onClick={handlePersonCanvasClick}
               />
 
-              {/* Loading overlay */}
+              {/* Scanning. The bar is determinate, so it replaces the spinner
+                  outright rather than sitting next to one. */}
               {personsLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                  <div className="flex flex-col items-center gap-3 w-48">
-                    <div className="h-6 w-6 animate-spin motion-reduce:animate-pulse rounded-full border-2 border-white/20 border-t-white" />
-                    <span className="text-xs font-medium text-white/70">Scanning video for dancers…</span>
-                    {/* Progress bar */}
-                    <div className="w-full h-1.5 rounded-full bg-white/20 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-white transition-ui duration-150"
-                        style={{ width: `${Math.round(scanProgress * 100)}%` }}
-                      />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/60 px-6">
+                  <Panel tone="stage" className="flex w-full max-w-xs flex-col items-center gap-3 px-5 py-4">
+                    <p className="text-hud-lg font-extrabold text-stage-text">Scanning for dancers…</p>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-white/20">
+                      <div className="h-full rounded-full bg-duo-blue" style={{ width: `${Math.round(scanProgress * 100)}%` }} />
                     </div>
-                    <span className="text-[11px] text-white/40">{Math.round(scanProgress * 100)}%</span>
-                  </div>
+                    <p className="text-hud font-bold tabular-nums text-stage-text/70">{Math.round(scanProgress * 100)}%</p>
+                  </Panel>
                 </div>
               )}
 
@@ -1083,66 +1280,84 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
                   className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/30"
                 >
-                  <div className="flex items-center gap-2.5 rounded-xl bg-emerald-500/80 px-5 py-3 backdrop-blur">
-                    <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                    </svg>
-                    <p className="text-sm font-semibold text-white">1 dancer found — starting…</p>
+                  <div className="flex items-center gap-3 rounded-2xl bg-duo-green px-6 py-4 shadow-stage">
+                    <CheckIcon className="h-6 w-6 text-white" />
+                    <p className="text-hud-lg font-extrabold text-white">1 dancer found — starting…</p>
                   </div>
                 </motion.div>
               )}
 
-              {/* 0 dancers → error */}
+              {/* 0 dancers → the trim range is the thing to change */}
               {!personsLoading && persons.length === 0 && scanProgress >= 1 && (
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                  <div className="flex flex-col items-center gap-2 rounded-2xl bg-black/75 px-6 py-4 backdrop-blur text-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/20">
-                      <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-6">
+                  <Panel tone="stage" className="flex max-w-xs flex-col items-center gap-2 px-6 py-5 text-center">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-duo-gold/20">
+                      <svg className="h-6 w-6 text-duo-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 15.75h.007v.008H12v-.008z" />
                       </svg>
-                    </div>
-                    <p className="text-sm font-semibold text-white">No dancer detected</p>
-                    <p className="text-[11px] leading-relaxed text-white/50">Try adjusting the trim range to a section<br />with clearly visible movement</p>
-                  </div>
+                    </span>
+                    <p className="text-hud-lg font-extrabold text-stage-text">No dancer detected</p>
+                    <p className="text-hud font-bold leading-relaxed text-stage-text/70">
+                      Go back and trim to a section with clearly visible movement.
+                    </p>
+                  </Panel>
                 </div>
               )}
 
-              {/* Small play button (bottom-left) — doesn't block canvas clicks */}
+              {/* Play control — sits in the corner so it never eats a tap
+                  meant for a dancer's ring. */}
               {!personsLoading && (
-                <button onClick={toggleTrimPlay}
-                  className="touch-target absolute bottom-3 left-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors">
-                  {trimPlaying
-                    ? <svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4Zm8 0h4v16h-4V4Z" /></svg>
-                    : <svg className="h-3.5 w-3.5 ml-0.5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                  }
-                </button>
+                <div className="absolute bottom-3 left-3 z-10">
+                  <IconButton
+                    tone="stage"
+                    visual="md"
+                    aria-label={trimPlaying ? "Pause preview" : "Play preview"}
+                    onClick={toggleTrimPlay}
+                  >
+                    {trimPlaying
+                      ? <PauseIcon className="h-4 w-4" />
+                      : <PlayIcon className="ml-0.5 h-4 w-4" />}
+                  </IconButton>
+                </div>
               )}
             </div>
 
-            {/* Dancer face-thumbnail cards (shown when 2+ dancers detected) */}
+            {/* Dancer face-thumbnail cards (shown when 2+ dancers detected).
+                In portrait this row floats over full-bleed video, so it carries
+                its own glass rather than being transparent over a moving image. */}
             {!personsLoading && persons.length > 1 && (
-              <div className="px-5 py-4">
-                <p className="text-xs font-semibold text-ink/60 mb-3">Who should Trace focus on?</p>
-                <div className="flex flex-wrap gap-3">
+              <div className={`px-4 py-4 sm:px-5 ${isPortrait ? "relative z-10 bg-stage-glass backdrop-blur-xl" : ""}`}>
+                <p className="mb-3 text-hud font-extrabold uppercase tracking-widest text-stage-text/55">
+                  Who should Trace follow?
+                </p>
+                {/* One scrolling row, not a wrap: wrapping changed the card's
+                    height as dancers were found and shoved the footer under
+                    the thumb. Same fix as TestTab's framing row. */}
+                <div className="scrollbar-hide -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
                   {persons.map((p, i) => {
                     const posLabel     = p.x < 0.33 ? "Left" : p.x > 0.66 ? "Right" : "Center";
+                    /* Matches `PERSON_COLORS`, the ring drawn on the video, so
+                       the card and the ring are the same dancer at a glance. */
                     const BORDER_COLORS = ["border-cue-hand", "border-cue-foot", "border-cue-head", "border-cue-arm"];
                     const isSelected   = i === selectedPerson;
                     return (
                       <button
                         key={i}
+                        type="button"
+                        aria-pressed={isSelected}
                         onClick={() => setSelectedPerson(i)}
-                        className={`flex flex-col items-center gap-1.5 rounded-2xl border-2 p-2 transition-ui ${
+                        className={`flex shrink-0 flex-col items-center gap-2 rounded-2xl border-2 p-2 transition-ui duration-150 ease-out-strong active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100 outline-none focus-visible:ring-2 focus-visible:ring-duo-blue ${
                           isSelected
-                            ? `${BORDER_COLORS[i % BORDER_COLORS.length]} bg-white shadow-md scale-[1.04]`
-                            : "border-ink/[0.08] bg-white hover:border-ink/20 hover:shadow-sm"
+                            ? `${BORDER_COLORS[i % BORDER_COLORS.length]} bg-white/10`
+                            : "border-white/10 bg-white/[0.04] hover:border-white/25"
                         }`}
                       >
                         {/* Thumbnail or stick-figure fallback */}
-                        <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-ink/[0.05]">
+                        <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-white/[0.06]">
                           {faceThumbnails[i] ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -1152,7 +1367,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                             />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center">
-                              <svg className="h-10 w-10 text-ink/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
+                              <svg className="h-10 w-10 text-stage-text/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.4}>
                                 <circle cx="12" cy="5" r="2.5" />
                                 <line x1="12" y1="7.5" x2="12" y2="15" />
                                 <line x1="8"  y1="11" x2="16" y2="11" />
@@ -1162,52 +1377,47 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
                             </div>
                           )}
                           {isSelected && (
-                            <div className="absolute inset-0 flex items-end justify-end p-1 bg-gradient-to-t from-black/20 to-transparent">
-                              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 shadow-sm">
-                                <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                                </svg>
-                              </div>
+                            <div className="absolute inset-0 flex items-end justify-end bg-gradient-to-t from-black/30 to-transparent p-1">
+                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-duo-green">
+                                <CheckIcon className="h-3.5 w-3.5 text-white" />
+                              </span>
                             </div>
                           )}
                         </div>
-                        <span className="text-[11px] font-semibold text-ink/60">{posLabel}</span>
+                        <span className={`text-hud font-extrabold ${isSelected ? "text-stage-text" : "text-stage-text/60"}`}>
+                          {posLabel}
+                        </span>
                       </button>
                     );
                   })}
                 </div>
-                <p className="mt-2.5 text-[11px] text-ink/40">
-                  Trace will analyze this dancer&apos;s movements to give you feedback
+                <p className="mt-3 text-hud font-bold text-stage-text/60">
+                  Trace analyses this dancer&apos;s movement to give you feedback.
                 </p>
               </div>
             )}
 
-            {/* Spacer when 0 or 1 dancer (keeps footer height stable) */}
+            {/* Keeps the footer in the same place whether or not cards render */}
             {!personsLoading && persons.length <= 1 && (
-              <div className="px-5 py-3">
-                <p className="text-[11px] text-ink/40">
-                  You can re‑calibrate later from the Trace screen if needed.
+              <div className="px-4 py-3 sm:px-5">
+                <p className="text-hud font-bold text-stage-text/55">
+                  You can re-calibrate later from the Trace screen.
                 </p>
               </div>
             )}
 
-            {/* Footer */}
-            <div className="flex items-center justify-between gap-4 px-5 py-3.5 bg-white border-t border-ink/[0.08]">
-              <button onClick={() => setCalibStep("mode")}
-                className="flex items-center gap-1.5 rounded-full bg-ink/[0.06] px-4 py-1.5 text-xs font-medium text-ink/50 hover:bg-ink/10 hover:text-ink/70 transition-ui">
-                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                </svg>
-                Back
-              </button>
-              <button onClick={handleStartFromDancer} disabled={personsLoading}
-                className="flex items-center gap-2 rounded-full bg-brand-primary px-5 py-2 text-sm font-semibold text-white shadow-sm transition-ui hover:bg-brand-accent active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
-                Start Trace & Pre‑scan
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                </svg>
-              </button>
-            </div>
+            <StepFooter
+              back={<Pressable variant="stage" size="sm" onClick={() => setCalibStep("mode")}><ArrowLeftIcon />Back</Pressable>}
+              next={
+                /* `loading` is the primitive's own in-flight state — it
+                   disables the button and carries a reduced-motion-safe
+                   spinner, replacing a hand-rolled `disabled` + inline SVG. */
+                <Pressable variant="primary" size="md" loading={personsLoading} onClick={handleStartFromDancer}>
+                  {personsLoading ? "Scanning…" : "Start practising"}
+                  {!personsLoading && <ArrowRightIcon />}
+                </Pressable>
+              }
+            />
           </motion.div>
         )}
 
@@ -1222,5 +1432,171 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
         />
       )}
     </div>
+  );
+}
+
+// ── Step chrome ──────────────────────────────────────────────────────────────
+
+/**
+ * Every step wore a different header: three variants of a 10px `← Frame` link,
+ * two different "Step 3 of 3" labels, and no way to see how far through you
+ * were without reading. One header, one rail.
+ *
+ * The rail is the whole card's width because it is the only thing on the screen
+ * whose job is "how much of this is left", and it answers that without being
+ * read. The `dancer` step is the group branch of step 3, not a fourth step, so
+ * it shares step 3's fill.
+ */
+function StepHeader({
+  step, next, title, subtitle, badge, action,
+}: {
+  step: 1 | 2 | 3;
+  /** What comes after this — "Trim next", "Last step". */
+  next?: string;
+  title: string;
+  subtitle: string;
+  badge?: ReactNode;
+  action?: ReactNode;
+}) {
+  const isPortrait = useIsPortrait();
+  return (
+    <div
+      className={
+        isPortrait
+          // Floats over full-bleed media, so it is glass and it is above it.
+          // `mb-auto` pushes every later flow child to the bottom edge, so a
+          // step with a timeline between the media and the footer stacks it
+          // above the footer rather than centring it in dead space.
+          ? "relative z-10 mb-auto border-b border-white/10 bg-stage-glass backdrop-blur-xl"
+          : "border-b border-white/10 bg-white/[0.04]"
+      }
+    >
+      <div className="flex gap-1.5 px-4 pt-3 sm:px-5" aria-hidden>
+        {[1, 2, 3].map(n => (
+          <span
+            key={n}
+            className={`h-1.5 flex-1 rounded-full ${n <= step ? "bg-duo-blue" : "bg-white/15"}`}
+          />
+        ))}
+      </div>
+      <div className="flex items-start justify-between gap-3 px-4 py-4 sm:px-5">
+        <div className="min-w-0">
+          <div className="mb-1.5 flex flex-wrap items-center gap-2">
+            <span className="text-hud font-extrabold uppercase tracking-widest text-duo-blue">
+              Step {step} of 3
+            </span>
+            {next && <span className="hidden text-hud font-bold text-stage-text/45 sm:inline">{next}</span>}
+            {badge}
+          </div>
+          <h2 className="text-lg font-extrabold leading-tight tracking-tight text-stage-text">{title}</h2>
+          <p className="mt-1 max-w-sm text-hud font-medium leading-relaxed text-stage-text/70">{subtitle}</p>
+        </div>
+        {action}
+      </div>
+    </div>
+  );
+}
+
+/** Back on the left, forward on the right, in the same place on every step. */
+function StepFooter({ back, next }: { back: ReactNode; next?: ReactNode }) {
+  const isPortrait = useIsPortrait();
+  return (
+    <div
+      className={`flex items-center justify-between gap-3 border-t border-white/10 px-4 py-3.5 sm:px-5 ${
+        isPortrait ? "relative z-10 bg-stage-glass backdrop-blur-xl" : "bg-white/[0.04]"
+      }`}
+    >
+      {back}
+      {next}
+    </div>
+  );
+}
+
+/**
+ * A full-width choice that is also the commit. `go` wears the green face and
+ * the chunk because picking Solo *starts the session* — it is not a navigation
+ * step dressed as one. `stage` is the same object on the dark ground.
+ */
+function ChoiceCard({
+  tone, title, desc, badge, onClick,
+}: {
+  tone: "go" | "stage";
+  title: string;
+  desc: string;
+  badge?: ReactNode;
+  onClick: () => void;
+}) {
+  const go = tone === "go";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "flex w-full items-center gap-3 rounded-2xl px-5 py-4 text-left",
+        go
+          ? "bg-duo-green text-white shadow-chunk-green"
+          : "border border-stage-edge bg-stage-inset text-stage-text shadow-chunk-stage",
+        // The press collapses the chunk, exactly as Pressable does — this is
+        // the same object, only taller.
+        "transition-[transform,box-shadow] duration-[110ms] ease-out-strong",
+        "active:translate-y-[4px] active:shadow-none",
+        "motion-reduce:transition-none motion-reduce:active:translate-y-0",
+        "outline-none focus-visible:ring-2 focus-visible:ring-duo-blue focus-visible:ring-offset-2",
+      ].join(" ")}
+    >
+      <span className="min-w-0 flex-1">
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="text-base font-extrabold tracking-tight">{title}</span>
+          {badge}
+        </span>
+        <span className={`mt-1 block text-hud font-bold leading-relaxed ${go ? "text-white/85" : "text-stage-text/60"}`}>
+          {desc}
+        </span>
+      </span>
+      <ArrowRightIcon className="h-5 w-5 shrink-0 opacity-75" />
+    </button>
+  );
+}
+
+/** Matches the cue system's own Beta tag — same word, same weight, same pill. */
+function BetaBadge() {
+  return (
+    <span className="rounded-full bg-duo-gold px-2 py-0.5 text-hud font-extrabold uppercase tracking-wide text-ink">
+      Beta
+    </span>
+  );
+}
+
+// ── Icons ────────────────────────────────────────────────────────────────────
+
+function PlayIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden><path d="M8 5v14l11-7z" /></svg>;
+}
+
+function PauseIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden><path d="M6 4h4v16H6V4Zm8 0h4v16h-4V4Z" /></svg>;
+}
+
+function CheckIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    </svg>
+  );
+}
+
+function ArrowRightIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+    </svg>
+  );
+}
+
+function ArrowLeftIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+    </svg>
   );
 }
