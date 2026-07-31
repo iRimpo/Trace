@@ -9,6 +9,7 @@ import { saveSyncScore } from "@/lib/uploadRecording";
 import { loadRecordingSession, clearRecordingSession } from "@/lib/sessionVideoStorage";
 import { TOP_STACK, BOTTOM_SAFE, useIsPortrait } from "@/components/practice/chrome";
 import { SPRING_UI, SEC } from "@/lib/motion";
+import { sfx, haptic, registerDuckTarget } from "@/lib/feedback";
 import Panel from "@/components/ui/Panel";
 import Pressable from "@/components/ui/Pressable";
 import IconButton from "@/components/ui/IconButton";
@@ -638,6 +639,29 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
   const overallScore = frameScores.length > 0
     ? Math.round(frameScores.reduce((s, f) => s + f.score, 0) / frameScores.length)
     : null;
+
+  /*
+    The score reveal gets a sound. This is the payoff moment — you have just
+    finished dancing and the number is the reason the tab exists — and it
+    landed in silence. Banded rather than pass/fail: `almost` is the same
+    rising shape as `success` a third lower, because the number is already the
+    honest signal and a descending buzzer on top of it is just piling on.
+
+    Fires once per score, on the transition out of null, not on every render.
+  */
+  const announcedRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (overallScore === null) { announcedRef.current = null; return; }
+    if (announcedRef.current === overallScore) return;
+    announcedRef.current = overallScore;
+    sfx(overallScore >= 80 ? "success" : "almost");
+    haptic("success");
+  }, [overallScore]);
+
+  useEffect(() => {
+    registerDuckTarget(userVideoRef.current);
+    return () => registerDuckTarget(null);
+  }, []);
 
   const feedbackTips = regionScores !== null && overallScore !== null
     ? generateFeedback(regionScores, overallScore)

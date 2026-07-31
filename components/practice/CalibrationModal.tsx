@@ -9,6 +9,7 @@ import { extractFaceThumbnail } from "@/lib/faceExtraction";
 import { CUE_PALETTE } from "@/lib/cuePalette";
 import { MIN_TRIM, clampTrim, trimKeyTarget } from "@/lib/trimControls";
 import { videoFit } from "@/lib/videoFit";
+import { confirm as confirmCue } from "@/lib/feedback";
 import { TOP_STACK, BOTTOM_SAFE, useIsPortrait } from "@/components/practice/chrome";
 import { SPRING_UI, SPRING_POP } from "@/lib/motion";
 import Panel from "@/components/ui/Panel";
@@ -341,6 +342,14 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
 
   // ── Calibration math ──────────────────────────────────────────────────────
   const triggerCalibration = useCallback((userKps: Keypoint[], cW: number, cH: number) => {
+    /*
+      The most important cue in the app. Locking your framing is performed from
+      eight feet away with a raised palm — you are not touching the phone and
+      you cannot read a 12px status line from there, so a sound is the only
+      confirmation that the hold actually took. Without it the honest user
+      behaviour is to walk over and check.
+    */
+    confirmCue("commit");
     setFrameState("calibrating");
     const webcam   = webcamRef.current;
     const refVideo = refVideoRef.current;
@@ -658,10 +667,12 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
       if (d < bestDist) { bestDist = d; closest = i; }
     });
     setSelectedPerson(closest);
+    confirmCue("commit");
   }
 
   // ── Transition to mode step (trim → solo/group choice) ───────────────────
   function goToMode() {
+    confirmCue("commit");
     const v = refVideoRef.current;
     if (v) { v.pause(); v.currentTime = trimStart; }
     setTrimPlaying(false);

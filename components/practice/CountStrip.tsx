@@ -6,6 +6,7 @@ import { CUE_PALETTE } from "@/lib/cuePalette";
 import type { CountGrid } from "@/lib/countGrid";
 import type { CueScript } from "@/lib/cueScript";
 import { TOP_STACK_ROW2 } from "@/components/practice/chrome";
+import { sfx } from "@/lib/feedback";
 
 interface CountStripProps {
   proVideoRef: RefObject<HTMLVideoElement | null>;
@@ -74,8 +75,21 @@ export default function CountStrip({ proVideoRef, grid, script, visible }: Count
       if (!info) return;
       // Only touch the DOM when the count actually advances.
       if (info.count === lastCount && info.measureIndex === lastMeasure) return;
+      const advanced = lastCount !== -1;
       lastCount   = info.count;
       lastMeasure = info.measureIndex;
+
+      /*
+        The count you can hear. This is the single highest-value line in the
+        audio work: P1 is looking away from the phone for most of a run, so a
+        visual count strip reaches him only when he happens to glance at it,
+        while a tick reaches him always. `sfx` is a no-op when muted or before
+        the audio unlock, and it never awaits — this is inside a rAF loop and a
+        cue that blocks a frame is worse than a cue that is missed.
+
+        Guarded on `advanced` so mounting mid-bar does not fire a stray tick.
+      */
+      if (advanced) sfx(info.count === 1 ? "countInGo" : "tick");
 
       // Which counts in THIS measure carry a cue.
       const s = scriptRef.current;

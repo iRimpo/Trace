@@ -10,6 +10,7 @@ import { storeRecordingSession, loadVideoSession } from "@/lib/sessionVideoStora
 import { useAuth } from "@/context/AuthContext";
 import type { CalibrationData } from "@/components/practice/CalibrationModal";
 import { TOP_STACK, BOTTOM_SAFE } from "@/components/practice/chrome";
+import { sfx, haptic, confirm as confirmCue, registerDuckTarget } from "@/lib/feedback";
 import Panel from "@/components/ui/Panel";
 import Pressable from "@/components/ui/Pressable";
 import TogglePill from "@/components/ui/TogglePill";
@@ -225,10 +226,17 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
   // ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (testState !== "countdown") return;
+    /*
+      The count-in is audible. You are walking back to your mark while this
+      runs, which is exactly when you cannot see the screen — a silent 3-2-1
+      leaves you guessing at the one moment the app knows the answer. "GO"
+      gets its own higher pitch so it is not heard as a fourth number.
+    */
     setCountdownNum(3);
-    const t1 = setTimeout(() => setCountdownNum(2), 1000);
-    const t2 = setTimeout(() => setCountdownNum(1), 2000);
-    const t3 = setTimeout(() => setCountdownNum(0), 3000);
+    sfx("countIn");
+    const t1 = setTimeout(() => { setCountdownNum(2); sfx("countIn"); }, 1000);
+    const t2 = setTimeout(() => { setCountdownNum(1); sfx("countIn"); }, 2000);
+    const t3 = setTimeout(() => { setCountdownNum(0); sfx("countInGo"); haptic("commit"); }, 3000);
     const t4 = setTimeout(() => {
       const stream = webcamStreamRef.current;
       if (!stream) { setTestState("framing"); return; }
@@ -247,10 +255,19 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
       refPoseRecorderRef.current = refPoseRec;
       refPoseRec.start();
       setElapsedSec(0);
+      // You are across the room and cannot see the red ring.
+      confirmCue("recordStart");
       setTestState("recording");
     }, 3500);
     return () => { [t1, t2, t3, t4].forEach(clearTimeout); };
   }, [testState, refTime]);
+
+  /* Cues duck the reference track for their own length. A metronome mixed on
+     top of a song at equal level is harder to follow than no metronome. */
+  useEffect(() => {
+    registerDuckTarget(proVideoRef.current);
+    return () => registerDuckTarget(null);
+  }, []);
 
   // ─────────────────────────────────────────────────────────────────
   // Recording: pose capture rAF + display timer + auto-stop
@@ -314,6 +331,7 @@ export default function TestTab({ videoUrl, videoId, videoSource, videoTitle, tr
         pr.stop();
         refPoseRecorderRef.current?.stop();
       }
+      confirmCue("recordStop");
       setTestState("preview");
     }
     stopTriggerRef.current = doStop;
