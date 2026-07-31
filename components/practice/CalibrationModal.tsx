@@ -8,6 +8,7 @@ import type { Keypoint } from "@/lib/mediapipe";
 import { extractFaceThumbnail } from "@/lib/faceExtraction";
 import { CUE_PALETTE } from "@/lib/cuePalette";
 import { MIN_TRIM, clampTrim, trimKeyTarget } from "@/lib/trimControls";
+import { videoFit } from "@/lib/videoFit";
 import { TOP_STACK, BOTTOM_SAFE, useIsPortrait } from "@/components/practice/chrome";
 import { SPRING_UI, SPRING_POP } from "@/lib/motion";
 import Panel from "@/components/ui/Panel";
@@ -113,8 +114,10 @@ const SKELETON_ARMED  = CUE_PALETTE.foot;
 const PERSON_COLORS = [CUE_PALETTE.hand, CUE_PALETTE.foot, CUE_PALETTE.head, CUE_PALETTE.armBoth];
 
 function drawSkeleton(ctx: CanvasRenderingContext2D, kps: Keypoint[], cW: number, cH: number, vW: number, vH: number, palmRaised: boolean) {
-  const px = (kp: Keypoint) => (1 - kp.x / vW) * cW;
-  const py = (kp: Keypoint) => (kp.y / vH) * cH;
+  // The webcam is object-cover and mirrored, so the skeleton must be too.
+  const { dw, dh, ox, oy } = videoFit(cW, cH, vW, vH, "cover");
+  const px = (kp: Keypoint) => ox + (1 - kp.x / vW) * dw;
+  const py = (kp: Keypoint) => oy + (kp.y / vH) * dh;
   const accent = palmRaised ? SKELETON_ARMED : SKELETON_IDLE;
   ctx.save();
   // 2px reads as a hairline on a phone held at arm's length and disappears
@@ -568,8 +571,17 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
 
     if (persons.length === 0) return;
 
+    // The reference video is object-contain, so the rings have to letterbox
+    // with it. A plain x*width mapping only agreed while the pane was 16:9.
+    const v = refVideoRef.current;
+    const fit = videoFit(
+      canvas.width, canvas.height,
+      v?.videoWidth || 16, v?.videoHeight || 9,
+      "contain",
+    );
+
     persons.forEach(({ x, y }, i) => {
-      const cx = x * canvas.width, cy = y * canvas.height;
+      const cx = fit.ox + x * fit.dw, cy = fit.oy + y * fit.dh;
       const isSelected = i === selectedPerson;
       const c = PERSON_COLORS[i % PERSON_COLORS.length];
       ctx.beginPath();
@@ -634,8 +646,12 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
     const canvas = personCanvasRef.current;
     if (!canvas || persons.length <= 1 || personsLoading) return;
     const rect = canvas.getBoundingClientRect();
-    const mx = (e.clientX - rect.left) / rect.width;
-    const my = (e.clientY - rect.top)  / rect.height;
+    // Same contain-fit as the rings are drawn with — a hit test in box space
+    // against rings drawn in letterboxed space picks the wrong dancer.
+    const v = refVideoRef.current;
+    const fit = videoFit(rect.width, rect.height, v?.videoWidth || 16, v?.videoHeight || 9, "contain");
+    const mx = (e.clientX - rect.left - fit.ox) / fit.dw;
+    const my = (e.clientY - rect.top  - fit.oy) / fit.dh;
     let closest = 0, bestDist = Infinity;
     persons.forEach(({ x, y }, i) => {
       const d = (x - mx) ** 2 + (y - my) ** 2;
