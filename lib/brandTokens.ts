@@ -67,3 +67,13 @@ export const IDENTITY = {
   /** You — the body from the camera. */
   you:       "#38D9F5",
 } as const;
+
+
+/**
+ * The stage ground, for the same contexts `BRAND` exists for — SVG attributes,
+ * canvas, inline style. Mirrors `colors.stage` in `tailwind.config.ts`.
+ */
+export const STAGE = {
+  base: "#0B0B0C",
+  text: "#F7F5EE",
+} as const;

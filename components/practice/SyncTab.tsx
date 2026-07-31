@@ -1230,9 +1230,13 @@ export default function SyncTab({ videoUrl, sessionId, initialFraming, onPractic
                   transition={SPRING_POP}
                   aria-hidden="true"
                 >
+                  {/* tone="stage": the art is black line-work with white fills,
+                      which is correct on paper and invisible on this card —
+                      black strokes on #0B0B0C leave the head and body floating
+                      as unattached blobs. */}
                   {overallScore >= 80
-                    ? <CelebratingCharacter size="sm" />
-                    : <ThinkingCharacter size="sm" />}
+                    ? <CelebratingCharacter size="sm" tone="stage" />
+                    : <ThinkingCharacter size="sm" tone="stage" />}
                 </motion.div>
 
                 <motion.div

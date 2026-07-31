@@ -1,3 +1,5 @@
+import { BRAND, STAGE } from "@/lib/brandTokens";
+
 /**
  * Trace character style — LINE DRAWING with consistent thick stroke.
  *
@@ -68,4 +70,26 @@ export const SCALES: Record<string, number> = {
 export function dims(size: string) {
   const sc = SCALES[size] ?? 1;
   return { w: S.vw * sc, h: S.vh * sc };
+}
+
+
+/**
+ * Which ground the character is standing on.
+ *
+ * The art is black line-work with white fills, which is correct on *paper* and
+ * invisible on the *stage*: black strokes on a #0B0B0C card leave nothing but
+ * the white head and body floating as unattached blobs. Same failure as the
+ * TRACE badge drawing its mark in the paper ink colour over a camera feed.
+ *
+ * So stroke and eyes are `currentColor` and the fills read a CSS variable, and
+ * a tone sets both. Two values, one per ground, rather than a colour prop that
+ * every call site guesses at.
+ */
+export type CharacterTone = "paper" | "stage";
+
+export function toneStyle(tone: CharacterTone): React.CSSProperties {
+  const t = tone === "stage"
+    ? { color: STAGE.text, fill: STAGE.base }
+    : { color: BRAND.primary, fill: BRAND.white };
+  return { color: t.color, ["--character-fill" as string]: t.fill } as React.CSSProperties;
 }
