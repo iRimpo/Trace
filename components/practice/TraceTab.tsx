@@ -66,6 +66,54 @@ function torsoLength(kps: Keypoint[]): number | null {
 // Cache pre-scan results per video + trim range so users don't need to rescan
 const preScanCache = new Map<string, PreScanResult>();
 
+/**
+ * ── How the ghost is composited over your camera feed ────────────────────
+ *
+ * Alpha is the wrong tool for this and it is why the ghost has never been
+ * readable. `drawProVideo` draws the *entire reference frame, background
+ * included*, and the canvas carried a flat `opacity`. So at 50% you are not
+ * seeing "the reference dancer at half strength" — you are seeing the
+ * reference dancer's whole room at half strength, alpha-blended over your
+ * whole room. Two mid-grey scenes average to mid-grey, and the dancer's body
+ * competes against their sofa, their wall and their lighting at equal weight.
+ * Raising opacity does not fix it; it hides your own body instead. That is why
+ * the slider was clamped 10–90: neither end was usable.
+ *
+ * A blend mode drops the background out for free, without hiding you.
+ *
+ * **This is a CSS `mix-blend-mode`, not `ctx.globalCompositeOperation`.** The
+ * distinction is load-bearing and easy to get wrong: a canvas composite op
+ * blends against what is already *in that canvas*, and this canvas is cleared
+ * to transparent every frame. The webcam is a separate sibling `<video>`
+ * element, so nothing inside the 2D context can reach it. Only a CSS blend on
+ * the canvas *element* composites against the video behind it. The parent
+ * carries `isolation: isolate` so the blend stops at the webcam and does not
+ * reach through to the page beneath.
+ *
+ * The mode that works depends on the reference video's ground, so both
+ * polarities are offered rather than guessing. `screen` drops a *dark* ground
+ * out and `multiply` drops a *light* one out — and a K-pop practice video is
+ * usually a bright studio, which is the case `screen` alone would blow out to
+ * white. `difference` is ground-agnostic and is the one to reach for when
+ * neither helps.
+ */
+export type GhostBlend = "normal" | "screen" | "multiply" | "difference";
+
+const GHOST_BLEND_OPTIONS: readonly { value: GhostBlend; label: string }[] = [
+  /** Straight alpha. The old behaviour, kept as an escape hatch — and as the
+   *  fallback if a browser refuses to blend a canvas over a video. */
+  { value: "normal",     label: "Solid" },
+  /** Dark pixels drop out, light pixels glow. For a reference shot in a dark
+   *  studio: a lit dancer becomes a genuine ghost, background gone for free. */
+  { value: "screen",     label: "Dark bg" },
+  /** Light pixels drop out. For the bright white studio most dance practice
+   *  videos are actually shot in. */
+  { value: "multiply",   label: "Light bg" },
+  /** Any mismatch lights up; perfect alignment reads as black. Turns the
+   *  overlay into a live error signal rather than a picture. */
+  { value: "difference", label: "Diff" },
+];
+
 function drawProVideo(
   ctx: CanvasRenderingContext2D,
   pro: HTMLVideoElement,
@@ -193,6 +241,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
   // ── Overlay ─────────────────────────────────────────────────────
   const [viewMode,       setViewMode]       = useState<ViewMode>("overlay");
   const [overlayOpacity, setOverlayOpacity] = useState(50);
+  const [ghostBlend,     setGhostBlend]     = useState<GhostBlend>("screen");
   const [mirrored,       setMirrored]       = useState(true);
 
   // ── Framing ─────────────────────────────────────────────────────
@@ -797,7 +846,10 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
       {/* ══════════════════ FULL-BLEED VIDEO AREA ══════════════════ */}
 
       {viewMode === "overlay" ? (
-        <div className="absolute inset-0">
+        /* `isolation: isolate` makes this the blend group for the ghost: the
+           canvas's mix-blend-mode composites against the webcam below it and
+           stops there, rather than reaching through to the page. */
+        <div className="absolute inset-0" style={{ isolation: "isolate" }}>
           {webcamError ? (
             <div className="absolute inset-0 flex items-center justify-center">
               <p className="text-xs text-white/40">{webcamError}</p>
@@ -809,7 +861,12 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
           <canvas
             ref={overlayCanvasRef}
             className="absolute inset-0 h-full w-full"
-            style={{ opacity: overlayOpacity / 100, cursor: isDragging ? "grabbing" : "grab", touchAction: "none" }}
+            style={{
+              opacity: overlayOpacity / 100,
+              mixBlendMode: ghostBlend,
+              cursor: isDragging ? "grabbing" : "grab",
+              touchAction: "none",
+            }}
             onPointerDown={handleCanvasPointerDown}
             onTouchStart={handleCanvasPinchStart}
             onTouchMove={handleCanvasPinchMove}
@@ -1233,6 +1290,39 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
             >
               <div className="h-1 w-10 rounded-full bg-white/35" />
             </button>
+            {/* ── Ghost row ──────────────────────────────────────────────────
+                Its own row, deliberately NOT inside the horizontally-scrolling
+                row below. The ghost is the feature the practice screen exists
+                for, and its controls could previously be scrolled off-screen —
+                the single most-used control on the stage, reachable only by
+                remembering to swipe a toolbar sideways mid-song.
+
+                Blend mode leads and opacity follows, because blend is the
+                control that actually makes the reference readable; opacity is
+                the fine adjustment on top of it. */}
+            {viewMode === "overlay" && (
+              <div className="mb-2 flex flex-col gap-1.5 sm:mb-3 sm:flex-row sm:items-center sm:gap-3">
+                <Segmented
+                  tone="stage"
+                  label="Ghost blend mode"
+                  options={GHOST_BLEND_OPTIONS}
+                  value={ghostBlend}
+                  onChange={setGhostBlend}
+                  className="shrink-0"
+                />
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span className="shrink-0 text-hud font-bold text-stage-text/70">Ghost</span>
+                  <input
+                    type="range" min="10" max="90" value={overlayOpacity}
+                    onChange={e => setOverlayOpacity(parseInt(e.target.value))}
+                    aria-label="Reference ghost opacity"
+                    className="slider slider-stage min-w-0 flex-1"
+                  />
+                  <span className="w-9 shrink-0 text-right text-hud tabular-nums text-stage-text/70">{overlayOpacity}%</span>
+                </div>
+              </div>
+            )}
+
             {/* ── Secondary controls row ─────────────────────────────────────── */}
             {/* Horizontal scroll rather than `flex-wrap`. The full set needs
                 ~445px and a 375px phone has ~336px; wrapping turned that into a
@@ -1290,18 +1380,6 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
                   Beta
                 </span>
               </button>
-
-              {/* Opacity slider (overlay only, hidden on very small screens) */}
-              {viewMode === "overlay" && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-hud font-bold text-stage-text/70">Opacity</span>
-                  <input type="range" min="10" max="90" value={overlayOpacity}
-                    onChange={e => setOverlayOpacity(parseInt(e.target.value))}
-                    aria-label="Reference overlay opacity"
-                    className="slider slider-stage w-20 sm:w-24" />
-                  <span className="w-9 text-right text-hud tabular-nums text-stage-text/70">{overlayOpacity}%</span>
-                </div>
-              )}
 
               {/* Divider */}
               <div className="h-5 w-px shrink-0 bg-white/15" />
