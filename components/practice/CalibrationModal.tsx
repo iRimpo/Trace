@@ -8,7 +8,7 @@ import type { Keypoint } from "@/lib/mediapipe";
 import { extractFaceThumbnail } from "@/lib/faceExtraction";
 import { CUE_PALETTE } from "@/lib/cuePalette";
 import { MIN_TRIM, clampTrim, trimKeyTarget } from "@/lib/trimControls";
-import { TOP_STACK, BOTTOM_SAFE } from "@/components/practice/chrome";
+import { TOP_STACK, BOTTOM_SAFE, useIsPortrait } from "@/components/practice/chrome";
 import { SPRING_UI, SPRING_POP } from "@/lib/motion";
 import Panel from "@/components/ui/Panel";
 import Pressable from "@/components/ui/Pressable";
@@ -179,7 +179,44 @@ type CalibStep  = "frame" | "trim" | "mode" | "dancer";
 const STEP_CARD =
   "relative w-full max-w-2xl overflow-hidden rounded-3xl border border-stage-edge bg-stage-raised shadow-stage";
 
+/**
+ * ── The portrait form of the same card ───────────────────────────────────
+ *
+ * In landscape the card-with-rows shape above is right: there is horizontal
+ * room, so a header row, a 16:9 pane and a footer row all fit.
+ *
+ * On a portrait phone that same shape is the single worst layout in the app.
+ * All three media panes are `aspect-video`, so on a 393×852 screen the thing
+ * you are actually judging gets ~40% of the viewport and the rest goes to a
+ * header and a footer. Steps 1 and 4 are *visual judgement tasks performed
+ * from several feet away* — "is my skeleton on the reference?", "which of
+ * these is the dancer?" — and they were being asked in a 221px-tall box.
+ *
+ * So in portrait the media goes full-bleed and the chrome floats over it as
+ * stage-glass, which is the pattern the practice stage already uses correctly.
+ * The header and footer keep their DOM order (so focus order and screen-reader
+ * order are unchanged) and are lifted with `relative z-10` over an
+ * `absolute inset-0` media pane.
+ */
+const STEP_CARD_PORTRAIT =
+  "relative flex h-full w-full flex-col overflow-hidden bg-stage";
+
+/** The portrait card for a step with no media pane — normal flow, scrollable. */
+const STEP_CARD_PORTRAIT_FLOW =
+  "relative flex h-full w-full flex-col overflow-y-auto bg-stage";
+
 export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: CalibrationModalProps) {
+  /** Layout branches on orientation, never on a width breakpoint (§7). */
+  const isPortrait   = useIsPortrait();
+  /** The step shell: full-bleed media with floating chrome in portrait. */
+  const stepCard     = isPortrait ? STEP_CARD_PORTRAIT : STEP_CARD;
+  /** The same, for the one step that has no media pane to bleed. */
+  const stepCardFlow = isPortrait ? STEP_CARD_PORTRAIT_FLOW : STEP_CARD;
+  /** Media fills the card in portrait; keeps its 16:9 box in landscape. */
+  const mediaPane    = isPortrait
+    ? "absolute inset-0 z-0 overflow-hidden bg-black"
+    : "relative aspect-video overflow-hidden bg-black";
+
   const webcamRef    = useRef<HTMLVideoElement>(null);
   const refVideoRef  = useRef<HTMLVideoElement>(null);
   const canvasRef    = useRef<HTMLCanvasElement>(null);
@@ -768,8 +805,14 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
       phone (where that collision is real) and centred once there is room.
     */
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 px-2 backdrop-blur-sm sm:items-center sm:px-4"
-      style={{ paddingTop: TOP_STACK, paddingBottom: `calc(0.75rem + ${BOTTOM_SAFE})` }}
+      className={
+        isPortrait
+          // Full-bleed: the card *is* the screen, so the scrim keeps only the
+          // safe-area padding and gives up its own gutters and centring.
+          ? "fixed inset-0 z-50 flex items-stretch justify-center bg-stage"
+          : "fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 px-2 backdrop-blur-sm sm:items-center sm:px-4"
+      }
+      style={{ paddingTop: TOP_STACK, paddingBottom: isPortrait ? BOTTOM_SAFE : `calc(0.75rem + ${BOTTOM_SAFE})` }}
     >
       <AnimatePresence mode="wait">
 
@@ -781,7 +824,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, x: -20 }}
             transition={SPRING_UI}
-            className={STEP_CARD}
+            className={stepCard}
           >
             <StepHeader
               step={1}
@@ -796,7 +839,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             />
 
             {/* Camera view */}
-            <div className="relative aspect-video bg-black overflow-hidden">
+            <div className={mediaPane}>
               <video ref={webcamRef} playsInline muted
                 className="absolute inset-0 h-full w-full object-cover"
                 style={{ transform: "scaleX(-1)" }}
@@ -872,8 +915,13 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
               )}
             </div>
 
-            {/* Footer */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 bg-white/[0.04] px-4 py-3.5 sm:px-5">
+            {/* Footer. Hand-rolled rather than StepFooter because this step
+                carries live status copy, so it takes the portrait glass
+                treatment explicitly — otherwise it is transparent over the
+                full-bleed camera feed. */}
+            <div className={`flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-4 py-3.5 sm:px-5 ${
+              isPortrait ? "relative z-10 bg-stage-glass backdrop-blur-xl" : "bg-white/[0.04]"
+            }`}>
               <div className="flex min-w-0 items-center gap-2">
                 {frameState === "loading" && <p className="text-hud font-bold text-stage-text/60">Initialising…</p>}
                 {(frameState === "ready" || frameState === "palm") && !bodyDetected && (
@@ -922,7 +970,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.96 }}
             transition={{ duration: 0.24, ease: "easeOut" }}
-            className={STEP_CARD}
+            className={stepCard}
           >
             <StepHeader
               step={2}
@@ -937,7 +985,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             />
 
             {/* Video preview */}
-            <div className="relative aspect-video overflow-hidden bg-black">
+            <div className={mediaPane}>
               <video ref={refVideoRef} src={videoUrl} playsInline preload="auto" crossOrigin="anonymous"
                 className="h-full w-full object-contain"
                 onLoadedMetadata={() => {
@@ -971,8 +1019,10 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
               </div>
             </div>
 
-            {/* Timeline scrubber with drag handles */}
-            <div className="px-4 pb-2 pt-4 sm:px-5">
+            {/* Timeline scrubber with drag handles. In portrait it floats over
+                full-bleed video, so it carries its own glass — a control with no
+                ground over a moving image is unreadable. */}
+            <div className={`px-4 pb-2 pt-4 sm:px-5 ${isPortrait ? "relative z-10 bg-stage-glass backdrop-blur-xl" : ""}`}>
               {/*
                 In / out / length as words and numbers rather than two 10px
                 timestamps floating over the handles. Amber is the app's
@@ -1091,7 +1141,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.96 }}
             transition={{ duration: 0.24, ease: "easeOut" }}
-            className={STEP_CARD}
+            className={stepCardFlow}
           >
             <StepHeader
               step={3}
@@ -1139,13 +1189,24 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.96 }}
             transition={{ duration: 0.24, ease: "easeOut" }}
-            className={STEP_CARD}
+            className={stepCard}
           >
             <StepHeader
               step={3}
               next="Group"
               badge={<BetaBadge />}
-              title={personsLoading ? "Looking for dancers" : "Pick the dancer to follow"}
+              /* §3.4(1): with exactly one dancer the picker never renders — the
+                 step auto-advances 800ms after a solo detection and the
+                 thumbnail row is gated on persons.length > 1. So titling this
+                 "Pick the dancer to follow" described a screen the user was
+                 never shown, which reads as "it didn't show me anyone's faces".
+                 Say what actually happened instead. */
+              title={
+                personsLoading      ? "Looking for dancers"
+                : persons.length === 1 ? "Found your dancer"
+                : persons.length === 0 ? "No dancer found"
+                : "Pick the dancer to follow"
+              }
               subtitle={
                 personsLoading
                   ? "Trace is sampling the section you trimmed."
@@ -1156,7 +1217,7 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
             />
 
             {/* Video area */}
-            <div className="relative aspect-video overflow-hidden bg-black">
+            <div className={mediaPane}>
               <video ref={refVideoRef} src={videoUrl} playsInline preload="auto" crossOrigin="anonymous"
                 className="h-full w-full object-contain"
                 onLoadedData={() => {
@@ -1238,9 +1299,11 @@ export default function CalibrationModal({ videoUrl, onCalibrated, onSkip }: Cal
               )}
             </div>
 
-            {/* Dancer face-thumbnail cards (shown when 2+ dancers detected) */}
+            {/* Dancer face-thumbnail cards (shown when 2+ dancers detected).
+                In portrait this row floats over full-bleed video, so it carries
+                its own glass rather than being transparent over a moving image. */}
             {!personsLoading && persons.length > 1 && (
-              <div className="px-4 py-4 sm:px-5">
+              <div className={`px-4 py-4 sm:px-5 ${isPortrait ? "relative z-10 bg-stage-glass backdrop-blur-xl" : ""}`}>
                 <p className="mb-3 text-hud font-extrabold uppercase tracking-widest text-stage-text/55">
                   Who should Trace follow?
                 </p>
@@ -1368,8 +1431,19 @@ function StepHeader({
   badge?: ReactNode;
   action?: ReactNode;
 }) {
+  const isPortrait = useIsPortrait();
   return (
-    <div className="border-b border-white/10 bg-white/[0.04]">
+    <div
+      className={
+        isPortrait
+          // Floats over full-bleed media, so it is glass and it is above it.
+          // `mb-auto` pushes every later flow child to the bottom edge, so a
+          // step with a timeline between the media and the footer stacks it
+          // above the footer rather than centring it in dead space.
+          ? "relative z-10 mb-auto border-b border-white/10 bg-stage-glass backdrop-blur-xl"
+          : "border-b border-white/10 bg-white/[0.04]"
+      }
+    >
       <div className="flex gap-1.5 px-4 pt-3 sm:px-5" aria-hidden>
         {[1, 2, 3].map(n => (
           <span
@@ -1398,8 +1472,13 @@ function StepHeader({
 
 /** Back on the left, forward on the right, in the same place on every step. */
 function StepFooter({ back, next }: { back: ReactNode; next?: ReactNode }) {
+  const isPortrait = useIsPortrait();
   return (
-    <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-white/[0.04] px-4 py-3.5 sm:px-5">
+    <div
+      className={`flex items-center justify-between gap-3 border-t border-white/10 px-4 py-3.5 sm:px-5 ${
+        isPortrait ? "relative z-10 bg-stage-glass backdrop-blur-xl" : "bg-white/[0.04]"
+      }`}
+    >
       {back}
       {next}
     </div>
