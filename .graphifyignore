@@ -1,0 +1,3 @@
+# Vendored MediaPipe WASM glue. Machine-generated and enormous; it dominated
+# the graph's top hubs (180 and 179 nodes) and crowded out real Trace source.
+public/mediapipe-wasm/

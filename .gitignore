@@ -37,3 +37,6 @@ next-env.d.ts
 
 # verification build output (build:check)
 /.next-check/
+
+# Generated knowledge graph (regenerate: graphify update .)
+graphify-out/
