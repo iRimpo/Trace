@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-24T16:18:10-07:00",
+  "manager": "accountable-development-manager",
+  "activeRun": null,
+  "baseline": {
+    "localHead": "65cfa4659279d9dfb763e57fb028b1764b596eed",
+    "localBranch": "main",
+    "githubMain": "e27c02e5b9c61e66a299821ccaed4f841ad90bbc",
+    "productionCommit": "e27c02e5b9c61e66a299821ccaed4f841ad90bbc",
+    "productionState": "READY",
+    "localAheadBy": 36,
+    "ws0FoundationsIsAncestor": true,
+    "cueRunsFloor": 50000,
+    "realPhoneValidation": "not documented"
+  },
+  "checks": {
+    "commit": "65cfa4659279d9dfb763e57fb028b1764b596eed",
+    "typecheck": {"executed": true, "command": "npx tsc --noEmit --incremental false", "exitCode": 0},
+    "unit": {"executed": true, "command": "npm test", "exitCode": 0, "tests": 196, "files": 15},
+    "buildCheck": {"executed": true, "command": "npm run build:check", "exitCode": 0, "note": "Initial isolated attempt failed because ignored .env.local was absent; rerun used a local-only symlink to the existing env file."},
+    "loopVerifier": {"executed": false, "reason": "Would mutate ratchet files; existing 50000 floor preserved."}
+  },
+  "pilots": {
+    "TRACE-001": "planned",
+    "TRACE-002": "planned",
+    "TRACE-003": "blocked-human-device"
+  },
+  "recurrence": {
+    "status": "inactive",
+    "reason": "Manual pilots not yet complete; phone validation and credential rotation remain blocked.",
+    "approvedSchedule": "weekdays 09:00 America/Los_Angeles"
+  },
+  "unchangedBlockers": {
+    "credential-rotation-unconfirmed:2026-09-24": "Do not retry without new provider/account-owner evidence.",
+    "phone-human-required:2026-09-24": "Do not claim validation without a physical-device run."
+  }
+}

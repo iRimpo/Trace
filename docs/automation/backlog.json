@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-24T16:18:10-07:00",
+  "priorities": ["reproduced-core-workflow", "approved-requirement", "safety-accessibility", "evidence-gap", "speculative"],
+  "items": [
+    {
+      "id": "TRACE-001",
+      "title": "Restore the complete saved practice state",
+      "priority": "P0",
+      "status": "eligible",
+      "kind": "implementation",
+      "evidence": ["components/dashboard/DeviceVideos.tsx", "lib/videoStore.ts", "components/practice/PracticeView.tsx", "components/practice/TraceTab.tsx"],
+      "userOutcome": "A returning dancer resumes the same section, framing, and dancer without repeating setup.",
+      "acceptanceCriteria": [
+        "Valid on-device resume state bypasses repeat calibration while an explicit recalibrate path remains.",
+        "Trim, A/B loop, normalized offsets, zoom, personCenter, and solo selection restore before save effects can overwrite them.",
+        "Missing or corrupt state follows the existing calibration path.",
+        "State remains on-device and usable offline.",
+        "Focused tests cover full restoration and the empty-write race."
+      ],
+      "dependencies": [],
+      "blockedBy": []
+    },
+    {
+      "id": "TRACE-002",
+      "title": "Make practice-stage controls accessible and at least 44px",
+      "priority": "P1",
+      "status": "eligible",
+      "kind": "implementation",
+      "evidence": ["docs/DESIGN_SYSTEM.md", "components/practice/TraceTab.tsx", "components/ui/IconButton.tsx"],
+      "userOutcome": "Stage controls are identifiable and operable by touch, keyboard, and assistive technology.",
+      "acceptanceCriteria": [
+        "Every icon-only stage control has a stable accessible name and state where applicable.",
+        "Every stage target is at least 44x44 CSS pixels in portrait and landscape/desktop.",
+        "Focus remains visible and keyboard activation works.",
+        "No new top-chrome or video/canvas geometry regression.",
+        "Focused regression coverage is added without changing the verifier."
+      ],
+      "dependencies": ["TRACE-001 completes or releases TraceTab ownership"],
+      "blockedBy": []
+    },
+    {
+      "id": "TRACE-003",
+      "title": "Run the real-phone core journey",
+      "priority": "P0-release",
+      "status": "blocked",
+      "kind": "validation",
+      "evidence": ["docs/HANDOFF-DESIGN.md", "docs/superpowers/specs/2026-07-10-trace-remaster-design.md"],
+      "userOutcome": "Trace is evaluated on the actual rehearsal device for setup, distance use, saved return, drilling, orientation, scan responsiveness, and group dancer selection.",
+      "acceptanceCriteria": [
+        "Record phone, OS, browser versus installed PWA, commit, and source clips.",
+        "Exercise first-time setup and judge controls/readouts from 8-10 feet.",
+        "Rotate orientations and confirm video/canvas landmarks remain aligned.",
+        "Run A/B WATCH/DANCE drill and return to the saved section after reload.",
+        "Record scan timing/responsiveness and real group-footage identity through crossings.",
+        "Attach screenshots/timings and explicit pass/fail observations."
+      ],
+      "dependencies": ["reviewable build at a recorded commit"],
+      "blockedBy": ["physical phone and human observer required"],
+      "blockerFingerprint": "phone-human-required:2026-09-24"
+    },
+    {
+      "id": "TRACE-004",
+      "title": "Confirm exposed Vercel and Supabase credentials were rotated",
+      "priority": "P0-security",
+      "status": "blocked",
+      "kind": "external-validation",
+      "evidence": ["docs/HANDOFF.md", ".env.local variable names only"],
+      "dependencies": [],
+      "blockedBy": ["requires account-owner confirmation or provider-side evidence"],
+      "blockerFingerprint": "credential-rotation-unconfirmed:2026-09-24"
+    },
+    {
+      "id": "TRACE-005",
+      "title": "Reconcile privacy language and data inventory",
+      "priority": "P1-privacy",
+      "status": "proposed",
+      "kind": "decision",
+      "evidence": ["lib/scanCache.ts", "lib/movementEventDetector.ts", "lib/uploadRecording.ts", "lib/posthog.ts"],
+      "dependencies": ["product owner retention and consent decision"],
+      "blockedBy": []
+    }
+  ]
+}
