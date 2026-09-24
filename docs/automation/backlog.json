@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-24T16:18:10-07:00",
+  "updatedAt": "2026-09-24T16:24:00-07:00",
   "priorities": ["reproduced-core-workflow", "approved-requirement", "safety-accessibility", "evidence-gap", "speculative"],
   "items": [
     {
       "id": "TRACE-001",
       "title": "Restore the complete saved practice state",
       "priority": "P0",
-      "status": "eligible",
+      "status": "implementing",
       "kind": "implementation",
       "evidence": ["components/dashboard/DeviceVideos.tsx", "lib/videoStore.ts", "components/practice/PracticeView.tsx", "components/practice/TraceTab.tsx"],
       "userOutcome": "A returning dancer resumes the same section, framing, and dancer without repeating setup.",
