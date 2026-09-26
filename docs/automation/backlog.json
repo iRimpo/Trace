@@ -19,8 +19,8 @@
         "Focused tests cover full restoration and the empty-write race."
       ],
       "dependencies": [],
-      "blockedBy": []
-      ,"result": {
+      "blockedBy": [],
+      "result": {
         "branch": "codex/pilot-resume-state",
         "head": "c9742ba735129f74a45eb0a43f505607eba95c13",
         "deployed": false,
