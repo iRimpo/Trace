@@ -1,20 +1,8 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-25T17:06:43-07:00",
+  "updatedAt": "2026-09-26T10:31:59-07:00",
   "manager": "accountable-development-manager",
-  "activeRun": {
-    "id": "pilot-TRACE-001-20260924T1624",
-    "taskId": "TRACE-001",
-    "owner": "accountable-development-manager",
-    "branch": "codex/pilot-resume-state",
-    "worktree": "/Users/richard/Documents/GitHub/claude/Trace-worktrees/pilot-resume",
-    "baseCommit": "3d3302a",
-    "startedAt": "2026-09-24T16:24:00-07:00",
-    "heartbeatAt": "2026-09-25T17:06:43-07:00",
-    "status": "repair-round-2",
-    "runtimeBudget": "45-minute checkpoint (prompt-level, not tool-enforced)",
-    "repairRoundsUsed": 2
-  },
+  "activeRun": null,
   "baseline": {
     "localHead": "65cfa4659279d9dfb763e57fb028b1764b596eed",
     "localBranch": "main",
@@ -34,7 +22,7 @@
     "loopVerifier": {"executed": false, "reason": "Would mutate ratchet files; existing 50000 floor preserved."}
   },
   "pilots": {
-    "TRACE-001": "implementing",
+    "TRACE-001": "complete-reviewable",
     "TRACE-002": "planned",
     "TRACE-003": "blocked-human-device"
   },
