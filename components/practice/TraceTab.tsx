@@ -10,7 +10,11 @@ import { SPRING_UI } from "@/lib/motion";
 import { haptic, sfx } from "@/lib/feedback";
 import { pickPrimaryPose } from "@/lib/primaryPose";
 import { phaseForPass, repsCompleted, canDrill, phaseLabel } from "@/lib/drill";
-import { saveResume, getResume } from "@/lib/videoStore";
+import {
+  resumeSnapshotWhenReady,
+  saveResume,
+  type RestorableResumeState,
+} from "@/lib/videoStore";
 import TapTempoSheet from "@/components/practice/TapTempoSheet";
 import BpmInput from "@/components/practice/BpmInput";
 import Segmented from "@/components/ui/Segmented";
@@ -198,13 +202,14 @@ interface TraceTabProps {
   videoUrl:       string;
   onComplete?:    (traceTimeSeconds: number) => void;
   initialFraming?: CalibrationData;
+  initialResume?: RestorableResumeState;
   /** Stable identity for the video (enables the shared scan cache). */
   videoIdentity?: VideoIdentity | null;
 }
 
 // ── Component ──────────────────────────────────────────────────────────
 
-export default function TraceTab({ videoUrl, onComplete, initialFraming, videoIdentity }: TraceTabProps) {
+export default function TraceTab({ videoUrl, onComplete, initialFraming, initialResume, videoIdentity }: TraceTabProps) {
   /** Every layout branch on this screen reads this, never a width breakpoint. */
   const isPortrait       = useIsPortrait();
 
@@ -231,10 +236,11 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
   /** Last known canvas size — offsets are normalised against it so a
    *  resumed framing survives a different screen. */
   const canvasSizeRef    = useRef({ w: 0, h: 0 });
-  const trimBoundsRef    = useRef<{ start?: number; end?: number; personCenter?: { x: number; y: number } }>({
+  const trimBoundsRef    = useRef<{ start?: number; end?: number; personCenter?: { x: number; y: number }; solo?: boolean }>({
     start:        initialFraming?.trimStart,
     end:          initialFraming?.trimEnd,
     personCenter: initialFraming?.personCenter,
+    solo: initialFraming?.solo,
   });
   const autoScanFiredRef      = useRef(false);
   const tutorialTriggeredRef  = useRef(false);
@@ -301,12 +307,16 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
   const [proZoom,    setProZoom]    = useState(1.0);
   const [aligning,   setAligning]   = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [restoreReady, setRestoreReady] = useState(!initialFraming);
 
   // ── Loop ────────────────────────────────────────────────────────
   const [loopAll,           setLoopAll]           = useState(true);
-  const [loopStart,         setLoopStart]         = useState<number | null>(null);
-  const [loopEnd,           setLoopEnd]           = useState<number | null>(null);
-  const [loopSectionActive, setLoopSectionActive] = useState(false);
+  const [loopStart,         setLoopStart]         = useState<number | null>(initialResume?.loopStart ?? initialFraming?.trimStart ?? null);
+  const [loopEnd,           setLoopEnd]           = useState<number | null>(initialResume?.loopEnd ?? initialFraming?.trimEnd ?? null);
+  const [loopSectionActive, setLoopSectionActive] = useState(
+    initialResume !== undefined ||
+    (initialFraming?.trimStart !== undefined && initialFraming?.trimEnd !== undefined),
+  );
 
   // ── Feedback ────────────────────────────────────────────────────
   const [feedbackEnabled, setFeedbackEnabled] = useState(false);
@@ -593,17 +603,25 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
   // ── Apply framing + trim from calibration data ───────────────────
   useEffect(() => {
     calibAppliedRef.current = false;
+    setRestoreReady(!initialFraming);
     setProOffsetX(0); setProOffsetY(0);
     setProZoom(initialFraming?.zoom ?? 1.0);
 
     // Apply trim bounds as loop points
-    trimBoundsRef.current = { start: initialFraming?.trimStart, end: initialFraming?.trimEnd, personCenter: initialFraming?.personCenter };
-    if (initialFraming?.trimStart !== undefined) setLoopStart(initialFraming.trimStart);
-    if (initialFraming?.trimEnd   !== undefined) setLoopEnd(initialFraming.trimEnd);
-    if (initialFraming?.trimStart !== undefined && initialFraming?.trimEnd !== undefined) {
+    trimBoundsRef.current = {
+      start: initialFraming?.trimStart,
+      end: initialFraming?.trimEnd,
+      personCenter: initialFraming?.personCenter,
+      solo: initialFraming?.solo,
+    };
+    const restoredStart = initialResume?.loopStart ?? initialFraming?.trimStart;
+    const restoredEnd = initialResume?.loopEnd ?? initialFraming?.trimEnd;
+    setLoopStart(restoredStart ?? null);
+    setLoopEnd(restoredEnd ?? null);
+    if (restoredStart !== undefined && restoredEnd !== undefined) {
       setLoopSectionActive(true);
     }
-  }, [videoUrl, initialFraming]);
+  }, [videoUrl, initialFraming, initialResume]);
 
   // ── Canvas drawing loop ─────────────────────────────────────────
   useEffect(() => {
@@ -620,6 +638,7 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
       }
       if (initialFraming && !calibAppliedRef.current && canvas.width > 0 && canvas.height > 0) {
         calibAppliedRef.current = true;
+        setRestoreReady(true);
         setProOffsetX(initialFraming.offsetXNorm * canvas.width);
         setProOffsetY(initialFraming.offsetYNorm * canvas.height);
         setProZoom(initialFraming.zoom);
@@ -963,37 +982,6 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
   // ── Derived ─────────────────────────────────────────────────────
   const progressPct  = duration > 0 ? (currentTime / duration) * 100 : 0;
   /**
-   * Restore the section on mount, once. Without this the dashboard tile
-   * advertises a resume it cannot deliver.
-   *
-   * The save effect below is gated on this having finished — otherwise its
-   * first (empty) run would race the read and wipe the very state being
-   * restored, which is the classic way a "resume" feature quietly erases
-   * itself on the second session.
-   */
-  const resumeLoadedRef = useRef(false);
-  useEffect(() => {
-    const key = videoIdentity ? identityKey(videoIdentity) : null;
-    if (!key) { resumeLoadedRef.current = true; return; }
-    let cancelled = false;
-    void getResume(key).then(r => {
-      if (cancelled) return;
-      if (r) {
-        if (r.loopStart != null && r.loopEnd != null && r.loopEnd > r.loopStart) {
-          setLoopStart(r.loopStart);
-          setLoopEnd(r.loopEnd);
-        }
-        // Framing only when calibration did not already supply one — a fresh
-        // calibration is a deliberate act and must win over a remembered pose.
-        if (!initialFraming && r.zoom) setProZoom(r.zoom);
-      }
-      resumeLoadedRef.current = true;
-    });
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoIdentity]);
-
-  /**
    * ── Persist the section, so it can be resumed ───────────────────────
    *
    * Loop points lived only in this component's state and died with the tab, so
@@ -1007,20 +995,23 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
    */
   useEffect(() => {
     const key = videoIdentity ? identityKey(videoIdentity) : null;
-    if (!key || !resumeLoadedRef.current) return;
+    if (!key) return;
+    const snapshot = resumeSnapshotWhenReady(restoreReady, {
+      trimStart:    trimBoundsRef.current.start,
+      trimEnd:      trimBoundsRef.current.end,
+      loopStart, loopEnd,
+      offsetXNorm:  canvasSizeRef.current.w ? proOffsetX / canvasSizeRef.current.w : undefined,
+      offsetYNorm:  canvasSizeRef.current.h ? proOffsetY / canvasSizeRef.current.h : undefined,
+      zoom:         proZoom,
+      personCenter: trimBoundsRef.current.personCenter,
+      solo:         trimBoundsRef.current.solo,
+    });
+    if (!snapshot) return;
     const t = setTimeout(() => {
-      void saveResume(key, {
-        trimStart:    trimBoundsRef.current.start,
-        trimEnd:      trimBoundsRef.current.end,
-        loopStart, loopEnd,
-        offsetXNorm:  canvasSizeRef.current.w ? proOffsetX / canvasSizeRef.current.w : undefined,
-        offsetYNorm:  canvasSizeRef.current.h ? proOffsetY / canvasSizeRef.current.h : undefined,
-        zoom:         proZoom,
-        personCenter: trimBoundsRef.current.personCenter,
-      });
+      void saveResume(key, snapshot);
     }, 800);
     return () => clearTimeout(t);
-  }, [videoIdentity, loopStart, loopEnd, proOffsetX, proOffsetY, proZoom]);
+  }, [videoIdentity, loopStart, loopEnd, proOffsetX, proOffsetY, proZoom, restoreReady]);
 
   const loopStartPct = loopStart !== null && duration > 0 ? (loopStart / duration) * 100 : null;
   const loopEndPct   = loopEnd   !== null && duration > 0 ? (loopEnd   / duration) * 100 : null;
@@ -1939,4 +1930,3 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, videoId
     </div>
   );
 }
-

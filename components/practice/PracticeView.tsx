@@ -15,6 +15,7 @@ import { parseIdentityKey } from "@/lib/videoIdentity";
 import { useWakeLock } from "@/lib/useWakeLock";
 import { unlockAudio, isMuted, setMuted } from "@/lib/feedback";
 import IconButton from "@/components/ui/IconButton";
+import { getResume, restorableResume, type RestorableResumeState } from "@/lib/videoStore";
 
 export interface PracticeViewProps {
   videoUrl:    string;
@@ -36,6 +37,34 @@ export default function PracticeView({ videoUrl, videoId, videoTitle, videoSourc
 
   const [calibrated,      setCalibrated]      = useState(false);
   const [calibrationData, setCalibrationData] = useState<CalibrationData | null>(null);
+  const [resumeData, setResumeData] = useState<RestorableResumeState | null>(null);
+  const [resumeStatus, setResumeStatus] = useState<"loading" | "ready">(
+    identityKey ? "loading" : "ready",
+  );
+
+  // Resolve on-device state before mounting a practice tab. This prevents the
+  // tab's save effect from replacing a saved setup with mount-time defaults.
+  useEffect(() => {
+    let cancelled = false;
+    if (!identityKey) {
+      setResumeData(null);
+      setCalibrationData(null);
+      setCalibrated(false);
+      setResumeStatus("ready");
+      return () => { cancelled = true; };
+    }
+
+    setResumeStatus("loading");
+    void getResume(identityKey).then(saved => {
+      if (cancelled) return;
+      const restored = restorableResume(saved);
+      setResumeData(restored);
+      setCalibrationData(restored);
+      setCalibrated(restored !== null);
+      setResumeStatus("ready");
+    });
+    return () => { cancelled = true; };
+  }, [identityKey]);
 
   // The user is dancing away from the phone for the whole session — don't let
   // the screen sleep mid-song.
@@ -82,12 +111,20 @@ export default function PracticeView({ videoUrl, videoId, videoTitle, videoSourc
   }, [videoId]);
 
   const handleCalibrated = useCallback((data: CalibrationData) => {
+    setResumeData(null);
     setCalibrationData(data);
     setCalibrated(true);
   }, []);
 
   const handleCalibrationSkip = useCallback(() => {
+    setResumeData(null);
     setCalibrated(true);
+  }, []);
+
+  const handleRecalibrate = useCallback(() => {
+    setResumeData(null);
+    setCalibrationData(null);
+    setCalibrated(false);
   }, []);
 
   const handlePracticeAgain = useCallback(() => {
@@ -106,7 +143,7 @@ export default function PracticeView({ videoUrl, videoId, videoTitle, videoSourc
       <InstallGate />
 
       {/* Calibration modal */}
-      {!calibrated && videoUrl && (
+      {resumeStatus === "ready" && !calibrated && videoUrl && (
         <CalibrationModal videoUrl={videoUrl} onCalibrated={handleCalibrated} onSkip={handleCalibrationSkip} />
       )}
 
@@ -153,6 +190,19 @@ export default function PracticeView({ videoUrl, videoId, videoTitle, videoSourc
                 </svg>
               )}
             </IconButton>
+            {calibrated && (
+              <IconButton
+                tone="stage"
+                aria-label="Recalibrate video"
+                title="Recalibrate video"
+                onClick={handleRecalibrate}
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m0 12v3m9-9h-3M6 12H3m14.36-5.36-2.12 2.12m-6.48 6.48-2.12 2.12m10.72 0-2.12-2.12M8.76 8.76 6.64 6.64" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </IconButton>
+            )}
           </div>
 
           {/* Tab bar — centre column. */}
@@ -180,16 +230,17 @@ export default function PracticeView({ videoUrl, videoId, videoTitle, videoSourc
 
       {/* ── Tab content (full viewport) ──────────────────────────── */}
       <ErrorBoundary>
-        {currentTab === "trace" && videoUrl && (
+        {resumeStatus === "ready" && calibrated && currentTab === "trace" && videoUrl && (
           <TraceTab
             videoUrl={videoUrl}
             onComplete={handleTraceComplete}
             initialFraming={calibrationData ?? undefined}
+            initialResume={resumeData ?? undefined}
             videoIdentity={identityKey ? parseIdentityKey(identityKey) : null}
           />
         )}
 
-        {currentTab === "test" && videoUrl && (
+        {resumeStatus === "ready" && calibrated && currentTab === "test" && videoUrl && (
           <TestTab
             videoUrl={videoUrl}
             videoId={videoId}
@@ -201,7 +252,7 @@ export default function PracticeView({ videoUrl, videoId, videoTitle, videoSourc
           />
         )}
 
-        {currentTab === "sync" && videoUrl && (
+        {resumeStatus === "ready" && calibrated && currentTab === "sync" && videoUrl && (
           <SyncTab videoUrl={videoUrl} sessionId={sessionId} initialFraming={calibrationData ?? undefined} onPracticeAgain={handlePracticeAgain} onGoToDashboard={() => router.push(`/dashboard?t=${Date.now()}`)} />
         )}
       </ErrorBoundary>

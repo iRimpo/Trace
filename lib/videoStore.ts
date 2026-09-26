@@ -228,6 +228,47 @@ export interface ResumeState {
   updatedAt: number;
 }
 
+export type RestorableResumeState = ResumeState & Required<Pick<ResumeState,
+  "trimStart" | "trimEnd" | "loopStart" | "loopEnd" |
+  "offsetXNorm" | "offsetYNorm" | "zoom" | "solo"
+>>;
+
+const finite = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value);
+
+/**
+ * Resume only when the record can reproduce the complete setup. Partial or
+ * malformed records fall back to calibration instead of silently changing the
+ * dancer, section, or framing.
+ */
+export function restorableResume(state: ResumeState | null): RestorableResumeState | null {
+  if (!state ||
+      !finite(state.trimStart) || state.trimStart < 0 ||
+      !finite(state.trimEnd) || state.trimEnd <= state.trimStart ||
+      !finite(state.loopStart) || state.loopStart < state.trimStart ||
+      !finite(state.loopEnd) || state.loopEnd <= state.loopStart || state.loopEnd > state.trimEnd ||
+      !finite(state.offsetXNorm) || !finite(state.offsetYNorm) ||
+      !finite(state.zoom) || state.zoom < 0.3 || state.zoom > 3 ||
+      typeof state.solo !== "boolean") {
+    return null;
+  }
+  if (state.personCenter &&
+      (!finite(state.personCenter.x) || state.personCenter.x < 0 || state.personCenter.x > 1 ||
+       !finite(state.personCenter.y) || state.personCenter.y < 0 || state.personCenter.y > 1)) {
+    return null;
+  }
+  if (!state.solo && !state.personCenter) return null;
+  return state as RestorableResumeState;
+}
+
+/** Do not let mount-time defaults overwrite a record that is still loading. */
+export function resumeSnapshotWhenReady(
+  ready: boolean,
+  state: Omit<ResumeState, "updatedAt">,
+): Omit<ResumeState, "updatedAt"> | null {
+  return ready ? state : null;
+}
+
 interface ResumeRecord extends ResumeState {
   key: string;
 }
