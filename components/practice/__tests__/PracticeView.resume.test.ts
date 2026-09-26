@@ -8,8 +8,8 @@ import type { ResumeState } from "@/lib/videoStore";
 const mocks = vi.hoisted(() => ({
   getResume: vi.fn(),
   saveResume: vi.fn(),
-  traceTab: vi.fn((_props: Record<string, unknown>) => null),
-  calibration: vi.fn((_props: Record<string, unknown>) => null),
+  traceTab: vi.fn((props: Record<string, unknown>) => { void props; return null; }),
+  calibration: vi.fn((props: Record<string, unknown>) => { void props; return null; }),
 }));
 
 vi.mock("@/lib/videoStore", async importOriginal => ({

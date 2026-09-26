@@ -44,7 +44,8 @@ describe("practice resume restoration", () => {
   });
 
   it("blocks persistence until restoration finishes (catches the empty-write mount race)", () => {
-    const { updatedAt: _updatedAt, ...snapshot } = completeResume;
+    const { updatedAt, ...snapshot } = completeResume;
+    void updatedAt;
 
     expect(api.resumeSnapshotWhenReady?.(false, snapshot)).toBeNull();
     expect(api.resumeSnapshotWhenReady?.(true, snapshot)).toEqual(snapshot);
