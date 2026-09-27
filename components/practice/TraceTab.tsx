@@ -1313,7 +1313,15 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, initial
         <div className="pointer-events-auto absolute right-3 flex items-center gap-2" style={{ top: TOP_STACK }}>
           {/* Auto-align */}
           {viewMode === "overlay" && (
-            <button onClick={autoAlign} disabled={aligning} className={`h-11 w-11 rounded-lg sm:h-8 sm:w-8 ${GLASS} ${GLASS_BTN} disabled:opacity-40`} title="Auto-align">
+            <button
+              type="button"
+              onClick={autoAlign}
+              disabled={aligning}
+              aria-label="Auto-align reference"
+              aria-busy={aligning}
+              className={`h-11 w-11 rounded-lg ${GLASS} ${GLASS_BTN} outline-none focus-visible:ring-2 focus-visible:ring-duo-blue focus-visible:ring-offset-2 disabled:opacity-40`}
+              title="Auto-align"
+            >
               {aligning
                 ? <div className="h-3.5 w-3.5 animate-spin motion-reduce:animate-pulse rounded-full border border-white/40 border-t-white" />
                 : <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" /></svg>
@@ -1321,11 +1329,24 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, initial
             </button>
           )}
           {/* Keyboard shortcuts help */}
-          <button onClick={() => setKeysOpen(k => !k)} className={`h-11 w-11 rounded-lg sm:h-8 sm:w-8 ${GLASS} ${GLASS_BTN}`} title="Keyboard shortcuts">
+          <button
+            type="button"
+            onClick={() => setKeysOpen(k => !k)}
+            aria-label={keysOpen ? "Hide keyboard shortcuts" : "Show keyboard shortcuts"}
+            aria-expanded={keysOpen}
+            className={`h-11 w-11 rounded-lg ${GLASS} ${GLASS_BTN} outline-none focus-visible:ring-2 focus-visible:ring-duo-blue focus-visible:ring-offset-2`}
+            title="Keyboard shortcuts"
+          >
             <span className="text-xs font-bold">?</span>
           </button>
           {/* Fullscreen */}
-          <button onClick={toggleFullscreen} className={`h-11 w-11 rounded-lg sm:h-8 sm:w-8 ${GLASS} ${GLASS_BTN}`} title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}>
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            className={`h-11 w-11 rounded-lg ${GLASS} ${GLASS_BTN} outline-none focus-visible:ring-2 focus-visible:ring-duo-blue focus-visible:ring-offset-2`}
+            title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          >
             {isFullscreen ? (
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 15v4.5M9 15H4.5M15 9V4.5M15 9h4.5M15 15v4.5m0-4.5h4.5" /></svg>
             ) : (
@@ -1412,8 +1433,11 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, initial
         >
           {/* Tools circle */}
           <button
+            type="button"
             onClick={() => setToolsOpen(o => !o)}
-            className={`flex h-11 w-11 items-center justify-center rounded-full ${GLASS} transition-ui ${
+            aria-label={toolsOpen ? "Close tools" : "Open tools"}
+            aria-expanded={toolsOpen}
+            className={`flex h-11 w-11 items-center justify-center rounded-full ${GLASS} transition-ui outline-none focus-visible:ring-2 focus-visible:ring-duo-blue focus-visible:ring-offset-2 ${
               toolsOpen ? "text-duo-blue" : "text-stage-text/70 hover:text-stage-text"
             }`}
           >
@@ -1509,7 +1533,8 @@ export default function TraceTab({ videoUrl, onComplete, initialFraming, initial
           <div className={`rounded-2xl ${GLASS} px-3 py-2 sm:rounded-3xl sm:px-4 sm:py-3`} style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}>
             {/* Drag handle — swipe the sheet down, or tap to collapse. */}
             <button
-              className="mb-1 flex w-full cursor-grab items-center justify-center py-1.5 active:cursor-grabbing sm:hidden"
+              type="button"
+              className="mb-1 flex min-h-11 w-full cursor-grab items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-duo-blue focus-visible:ring-inset active:cursor-grabbing sm:hidden"
               onClick={() => {
                 if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
                 setControlsVisible(false);
