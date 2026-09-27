@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-26T18:12:39-07:00",
+  "updatedAt": "2026-09-26T18:13:25-07:00",
   "priorities": ["reproduced-core-workflow", "approved-requirement", "safety-accessibility", "evidence-gap", "speculative"],
   "items": [
     {
@@ -90,6 +90,24 @@
       "kind": "decision",
       "evidence": ["lib/scanCache.ts", "lib/movementEventDetector.ts", "lib/uploadRecording.ts", "lib/posthog.ts"],
       "dependencies": ["product owner retention and consent decision"],
+      "blockedBy": []
+    },
+    {
+      "id": "TRACE-006",
+      "title": "Server-validate the signed-URL caller",
+      "priority": "P0-security",
+      "status": "implementing",
+      "kind": "implementation",
+      "evidence": ["app/api/signed-url/route.ts", "middleware.ts", "app/api/sessions/route.ts", "docs/AUDIT_REPORT.md"],
+      "userOutcome": "A returning user can request only their own legacy stored-video URL, using an identity validated by Supabase on the server.",
+      "acceptanceCriteria": [
+        "The route uses server-validated getUser rather than trusting getSession.",
+        "Auth error or missing user returns 401 before request-body or storage work.",
+        "Traversal and another user's namespace return 403 without storage work.",
+        "A valid owned path is normalized and receives the existing one-hour signed URL.",
+        "Focused route tests exercise the actual handler and full checks remain green."
+      ],
+      "dependencies": [],
       "blockedBy": []
     }
   ]
