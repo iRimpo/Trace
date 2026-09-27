@@ -25,10 +25,11 @@ export async function POST(req: Request) {
     );
 
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -43,7 +44,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const userId = session.user.id;
+    const userId = user.id;
     if (!rawPath.startsWith(`${userId}/`)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
