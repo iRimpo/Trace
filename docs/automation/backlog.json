@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-26T10:42:42-07:00",
+  "updatedAt": "2026-09-26T18:12:39-07:00",
   "priorities": ["reproduced-core-workflow", "approved-requirement", "safety-accessibility", "evidence-gap", "speculative"],
   "items": [
     {
@@ -31,7 +31,7 @@
       "id": "TRACE-002",
       "title": "Make practice-stage controls accessible and at least 44px",
       "priority": "P1",
-      "status": "implementing",
+      "status": "complete-reviewable",
       "kind": "implementation",
       "evidence": ["docs/DESIGN_SYSTEM.md", "components/practice/TraceTab.tsx", "components/ui/IconButton.tsx"],
       "userOutcome": "Stage controls are identifiable and operable by touch, keyboard, and assistive technology.",
@@ -43,7 +43,13 @@
         "Focused regression coverage is added without changing the verifier."
       ],
       "dependencies": ["TRACE-001 completes or releases TraceTab ownership"],
-      "blockedBy": []
+      "blockedBy": [],
+      "result": {
+        "branch": "codex/pilot-stage-accessibility",
+        "head": "5118ec6041f77e4593a979608ec0d0a1a5e70f1c",
+        "deployed": false,
+        "deviceValidated": false
+      }
     },
     {
       "id": "TRACE-003",
