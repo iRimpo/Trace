@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-26T18:13:25-07:00",
+  "updatedAt": "2026-09-27T01:30:44-07:00",
   "priorities": ["reproduced-core-workflow", "approved-requirement", "safety-accessibility", "evidence-gap", "speculative"],
   "items": [
     {
@@ -96,7 +96,7 @@
       "id": "TRACE-006",
       "title": "Server-validate the signed-URL caller",
       "priority": "P0-security",
-      "status": "implementing",
+      "status": "complete-reviewable",
       "kind": "implementation",
       "evidence": ["app/api/signed-url/route.ts", "middleware.ts", "app/api/sessions/route.ts", "docs/AUDIT_REPORT.md"],
       "userOutcome": "A returning user can request only their own legacy stored-video URL, using an identity validated by Supabase on the server.",
@@ -108,7 +108,13 @@
         "Focused route tests exercise the actual handler and full checks remain green."
       ],
       "dependencies": [],
-      "blockedBy": []
+      "blockedBy": [],
+      "result": {
+        "branch": "codex/pilot-signed-url-auth",
+        "head": "4bf5b297084b25520e6cd8cd9e147ad1d57da981",
+        "deployed": false,
+        "deviceValidated": false
+      }
     }
   ]
 }
