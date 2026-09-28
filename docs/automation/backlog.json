@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-28T16:41:26-07:00",
+  "updatedAt": "2026-09-28T16:45:25-07:00",
   "priorities": ["reproduced-core-workflow", "approved-requirement", "safety-accessibility", "evidence-gap", "speculative"],
   "items": [
     {
@@ -120,7 +120,7 @@
       "id": "TRACE-007",
       "title": "Let dancers reopen onboarding from the dashboard",
       "priority": "P1-experience",
-      "status": "in-progress",
+      "status": "complete-reviewable",
       "kind": "implementation",
       "evidence": ["components/dashboard/DashboardTutorial.tsx", "app/dashboard/page.tsx"],
       "userOutcome": "A dancer who dismisses onboarding can reopen it when they need a reminder instead of following a nonexistent Settings path.",
@@ -132,7 +132,13 @@
         "Typecheck, component tests, unit tests, and build verification remain green."
       ],
       "dependencies": ["TRACE-001, TRACE-002, and TRACE-006 cumulative review branch"],
-      "blockedBy": []
+      "blockedBy": [],
+      "result": {
+        "branch": "codex/cycle-reopen-tutorial",
+        "head": "23cc1f3511e4ca2d547439a297d1353648783367",
+        "deployed": false,
+        "deviceValidated": false
+      }
     }
   ]
 }
