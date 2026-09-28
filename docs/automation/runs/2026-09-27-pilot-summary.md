@@ -1,6 +1,6 @@
 # Manual pilot summary — 2026-09-27
 
-Four code pilots are complete and reviewable as a cumulative branch chain. They remain local, unmerged, unpushed, undeployed, and not phone-validated.
+The original three code pilots are complete and reviewable as a cumulative branch chain. TRACE-007 is implemented and verified but still awaits the workflow's independent-review gate. All results remain local, unmerged, unpushed, undeployed, and not phone-validated.
 
 | Pilot | Outcome | Reviewable head | Fresh evidence |
 |---|---|---|---|

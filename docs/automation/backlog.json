@@ -7,7 +7,7 @@
       "id": "TRACE-001",
       "title": "Restore the complete saved practice state",
       "priority": "P0",
-      "status": "complete-reviewable",
+      "status": "complete-awaiting-independent-review",
       "kind": "implementation",
       "evidence": ["components/dashboard/DeviceVideos.tsx", "lib/videoStore.ts", "components/practice/PracticeView.tsx", "components/practice/TraceTab.tsx"],
       "userOutcome": "A returning dancer resumes the same section, framing, and dancer without repeating setup.",
