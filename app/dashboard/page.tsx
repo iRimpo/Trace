@@ -158,35 +158,51 @@ function DashboardContent() {
             )}
           </div>
 
-          {streak > 0 && (
-            /*
-              A milestone streak pops once on arrival; an ordinary one does not.
-              3 / 7 / 30 are where a streak stops being a number and starts
-              being a thing you would be annoyed to lose, so those are the only
-              ones that get a reaction — a pill that celebrates every single day
-              is a pill nobody reads by day four.
-
-              Deliberately still just the streak. No XP, no hearts, no gems, no
-              leagues (ruled out 2026-07-30): Trace's reward is the score it
-              already computes, and a second currency would compete with it.
-            */
-            <motion.div
-              initial={STREAK_MILESTONES.includes(streak) ? { scale: 0.6, rotate: -8 } : false}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={SPRING_POP}
-              className={`flex shrink-0 items-center gap-1.5 rounded-2xl px-3 py-2 ${
-                STREAK_MILESTONES.includes(streak)
-                  ? "bg-duo-gold shadow-chunk-gold"
-                  : "bg-duo-gold shadow-chunk-gold-sm"
-              }`}
+          <div className="flex shrink-0 items-center gap-2">
+            <Pressable
+              variant="quiet"
+              size="sm"
+              ariaLabel="How Trace works"
+              onClick={() => setShowTutorial(true)}
+              className="px-3"
             >
-              <span className="text-base leading-none" aria-hidden="true">🔥</span>
-              <span className="text-lg font-extrabold leading-none tabular-nums text-ink">{streak}</span>
-              <span className="text-hud uppercase tracking-[0.18em] text-ink/70">
-                day{streak === 1 ? "" : "s"}
-              </span>
-            </motion.div>
-          )}
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9a2.5 2.5 0 0 1 4.72 1.16c0 1.84-2.47 2.07-2.47 3.59M12 17.25h.01" />
+              </svg>
+              <span className="hidden sm:inline">How it works</span>
+            </Pressable>
+
+            {streak > 0 && (
+              /*
+                A milestone streak pops once on arrival; an ordinary one does not.
+                3 / 7 / 30 are where a streak stops being a number and starts
+                being a thing you would be annoyed to lose, so those are the only
+                ones that get a reaction — a pill that celebrates every single day
+                is a pill nobody reads by day four.
+
+                Deliberately still just the streak. No XP, no hearts, no gems, no
+                leagues (ruled out 2026-07-30): Trace's reward is the score it
+                already computes, and a second currency would compete with it.
+              */
+              <motion.div
+                initial={STREAK_MILESTONES.includes(streak) ? { scale: 0.6, rotate: -8 } : false}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={SPRING_POP}
+                className={`flex shrink-0 items-center gap-1.5 rounded-2xl px-3 py-2 ${
+                  STREAK_MILESTONES.includes(streak)
+                    ? "bg-duo-gold shadow-chunk-gold"
+                    : "bg-duo-gold shadow-chunk-gold-sm"
+                }`}
+              >
+                <span className="text-base leading-none" aria-hidden="true">🔥</span>
+                <span className="text-lg font-extrabold leading-none tabular-nums text-ink">{streak}</span>
+                <span className="text-hud uppercase tracking-[0.18em] text-ink/70">
+                  day{streak === 1 ? "" : "s"}
+                </span>
+              </motion.div>
+            )}
+          </div>
         </Panel>
 
         {/* The tiles hold their own space while the fetch is out. Without this
