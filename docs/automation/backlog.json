@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-27T01:30:44-07:00",
+  "updatedAt": "2026-09-28T16:41:26-07:00",
   "priorities": ["reproduced-core-workflow", "approved-requirement", "safety-accessibility", "evidence-gap", "speculative"],
   "items": [
     {
@@ -115,6 +115,24 @@
         "deployed": false,
         "deviceValidated": false
       }
+    },
+    {
+      "id": "TRACE-007",
+      "title": "Let dancers reopen onboarding from the dashboard",
+      "priority": "P1-experience",
+      "status": "in-progress",
+      "kind": "implementation",
+      "evidence": ["components/dashboard/DashboardTutorial.tsx", "app/dashboard/page.tsx"],
+      "userOutcome": "A dancer who dismisses onboarding can reopen it when they need a reminder instead of following a nonexistent Settings path.",
+      "acceptanceCriteria": [
+        "The dashboard exposes a stable, accessible control that opens the existing How Trace works dialog.",
+        "The tutorial's final guidance points to the real dashboard control and no longer promises a nonexistent Settings route.",
+        "The existing first-run dismissal behavior remains unchanged.",
+        "A focused component test proves the control opens the real tutorial dialog.",
+        "Typecheck, component tests, unit tests, and build verification remain green."
+      ],
+      "dependencies": ["TRACE-001, TRACE-002, and TRACE-006 cumulative review branch"],
+      "blockedBy": []
     }
   ]
 }
