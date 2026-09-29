@@ -17,3 +17,11 @@
 - Existing automation inspection found only `larry-daily-secretary` and `still-finance-check-ins`; no Trace manager duplicate exists.
 - Recurrence remains inactive. The exact safety blocker is unconfirmed rotation of previously exposed Vercel and Supabase tokens. The exact release-evidence blocker is the absence of a human-observed real-phone run. An unattended manager must not inherit ambiguous deployment-capable credentials or convert desktop automation into a phone-readiness claim.
 - When those blockers change, create one task-attached weekday 09:00 America/Los_Angeles heartbeat manager. It must select one eligible item, use the smallest team, serialize verification, update durable state, remain quiet on unchanged state, and include weekly prioritization plus monthly workflow/research review in the same manager.
+
+## 2026-09-28 whole-site direction discovery
+
+- Preserve Trace's ratified two-ground model: cream paper for entry, auth, dashboard, and video choice; dark translucent stage chrome over live camera for practice. The portfolio revamp is a useful reference for finite semantic surfaces, typography roles, and failure-safe motion, not a skin to transplant.
+- The recommended direction is “one journey, two grounds, one practice object.” Prioritize truthful entry language, coherent local-library versus cloud-history actions, and a stable practice-asset identity before a visual re-theme.
+- Immediate low-risk language work can replace “upload” with “add” or “choose” and distinguish “Continue on this device” from “Progress history.” A unified library remains blocked on deciding which non-video identity may be persisted with session metadata.
+- Three product decisions remain intentionally open: whether visitors without invite codes can request access, whether practising again auto-saves an unfinished result, and whether a stable opaque practice-asset identity may be stored server-side.
+- External research supports just-in-time camera permission, visual framing readiness, rehearsal-first loop/speed/mirror controls, explicit camera state, immediate review, and honest local-storage durability language. These are hypotheses to validate in Trace, not substitutes for user research.

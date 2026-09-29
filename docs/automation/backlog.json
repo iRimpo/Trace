@@ -167,6 +167,33 @@
       ],
       "dependencies": ["Product owner chooses the primary outcome for the redesign"],
       "blockedBy": []
+    },
+    {
+      "id": "TRACE-009",
+      "title": "Restore browser zoom across Trace",
+      "priority": "P0-accessibility",
+      "status": "complete-reviewable",
+      "kind": "implementation",
+      "evidence": [
+        "app/layout.tsx",
+        "WCAG 2.2 Success Criterion 1.4.4",
+        "W3C ACT rule b4f0c3"
+      ],
+      "userOutcome": "A dancer can use browser pinch-to-zoom or text enlargement anywhere in Trace without losing the existing safe-area viewport behavior.",
+      "acceptanceCriteria": [
+        "The root viewport no longer disables user scaling or caps maximum scale below 2.",
+        "The existing device-width, initial scale, safe-area fit, and theme color behavior remain unchanged.",
+        "A focused test exercises the actual exported Next.js viewport configuration and fails if zoom is disabled again.",
+        "Component tests, unit tests, typecheck, and build verification remain green."
+      ],
+      "dependencies": ["TRACE-001, TRACE-002, TRACE-006, and TRACE-007 cumulative review branch"],
+      "blockedBy": [],
+      "result": {
+        "branch": "codex/cycle-allow-browser-zoom",
+        "head": "3537f5d0d08805296f164ba8ad477bdf08f7d5c1",
+        "deployed": false,
+        "deviceValidated": false
+      }
     }
   ]
 }
