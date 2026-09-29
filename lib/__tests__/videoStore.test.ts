@@ -58,8 +58,13 @@ describe("videoStore", () => {
 
   it("deletes videos", async () => {
     await putVideo(sample("gone"));
-    await deleteVideo("gone");
+    expect(await deleteVideo("gone")).toBe(true);
     expect(await getVideo("gone")).toBeNull();
+  });
+
+  it("reports when video deletion cannot reach storage", async () => {
+    (globalThis as Record<string, unknown>).indexedDB = undefined;
+    expect(await deleteVideo("still-here")).toBe(false);
   });
 
   it("returns LRU eviction candidates above the byte budget", async () => {

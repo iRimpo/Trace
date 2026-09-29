@@ -62,9 +62,24 @@ function tx<T>(
   return openDb().then(db => new Promise<T>((resolve, reject) => {
     const t = db.transaction(storeName, mode);
     const req = run(t.objectStore(storeName));
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-    t.oncomplete = () => db.close();
+    let result: T;
+    let settled = false;
+    const fail = (error: DOMException | null) => {
+      if (settled) return;
+      settled = true;
+      db.close();
+      reject(error ?? new Error("IndexedDB transaction failed"));
+    };
+    req.onsuccess = () => { result = req.result; };
+    req.onerror = () => fail(req.error);
+    t.onerror = () => fail(t.error);
+    t.onabort = () => fail(t.error);
+    t.oncomplete = () => {
+      if (settled) return;
+      settled = true;
+      db.close();
+      resolve(result);
+    };
   }));
 }
 
@@ -157,12 +172,13 @@ export async function listVideos(): Promise<StoredVideoMeta[]> {
   }
 }
 
-export async function deleteVideo(key: string): Promise<void> {
-  if (!idbAvailable()) return;
+export async function deleteVideo(key: string): Promise<boolean> {
+  if (!idbAvailable()) return false;
   try {
     await tx("readwrite", s => s.delete(key));
+    return true;
   } catch {
-    // ignore
+    return false;
   }
 }
 

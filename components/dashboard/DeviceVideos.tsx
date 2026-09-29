@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Panel from "@/components/ui/Panel";
@@ -50,6 +50,15 @@ export default function DeviceVideos() {
   const router = useRouter();
   const [videos, setVideos] = useState<StoredVideoMeta[]>([]);
   const [openingKey, setOpeningKey] = useState<string | null>(null);
+  const [confirmingKey, setConfirmingKey] = useState<string | null>(null);
+  const [deletingKey, setDeletingKey] = useState<string | null>(null);
+  const [deleteErrorKey, setDeleteErrorKey] = useState<string | null>(null);
+  const [focusReturnKey, setFocusReturnKey] = useState<string | null>(null);
+  const [focusAfterDeleteKey, setFocusAfterDeleteKey] = useState<string | null>(null);
+  const [deleteStatus, setDeleteStatus] = useState("");
+  const deleteInFlight = useRef(false);
+  const deleteControls = useRef(new Map<string, HTMLDivElement>());
+  const openControls = useRef(new Map<string, HTMLButtonElement>());
   /** Section state per video, so a tile can say what it will drop you back into. */
   const [resume, setResume] = useState<Record<string, ResumeState>>({});
 
@@ -67,6 +76,18 @@ export default function DeviceVideos() {
     });
   }, []);
 
+  useEffect(() => {
+    if (!focusReturnKey || confirmingKey === focusReturnKey) return;
+    deleteControls.current.get(focusReturnKey)?.querySelector("button")?.focus();
+    setFocusReturnKey(null);
+  }, [confirmingKey, focusReturnKey]);
+
+  useEffect(() => {
+    if (!focusAfterDeleteKey) return;
+    openControls.current.get(focusAfterDeleteKey)?.focus();
+    setFocusAfterDeleteKey(null);
+  }, [focusAfterDeleteKey, videos]);
+
   const openVideo = useCallback(async (meta: StoredVideoMeta) => {
     setOpeningKey(meta.key);
     const stored = await getVideo(meta.key);
@@ -83,15 +104,41 @@ export default function DeviceVideos() {
     router.push("/practice/session");
   }, [router]);
 
-  const removeVideo = useCallback(async (key: string) => {
-    await deleteVideo(key);
-    setVideos(v => v.filter(m => m.key !== key));
+  const removeVideo = useCallback(async (key: string, name: string, nextKey: string | null) => {
+    if (deleteInFlight.current) return;
+    deleteInFlight.current = true;
+    setDeletingKey(key);
+    setDeleteErrorKey(null);
+    setDeleteStatus(`Removing ${name} from this device`);
+    try {
+      const deleted = await deleteVideo(key);
+      if (deleted) {
+        setVideos(v => v.filter(m => m.key !== key));
+        setConfirmingKey(current => current === key ? null : current);
+        setFocusAfterDeleteKey(nextKey);
+        setDeleteStatus(`Removed ${name} from this device`);
+      } else {
+        setDeleteErrorKey(key);
+        setDeleteStatus("");
+      }
+    } finally {
+      deleteInFlight.current = false;
+      setDeletingKey(null);
+    }
   }, []);
 
-  if (videos.length === 0) return null;
+  const status = (
+    <p className="sr-only" role="status" aria-live="polite">
+      {deleteStatus}
+    </p>
+  );
+
+  if (videos.length === 0) return status;
 
   return (
-    <section className="mb-6">
+    <>
+      {status}
+      <section className="mb-6" aria-busy={deletingKey !== null || undefined}>
       {/* Same geometry as "Your practice" below it — `mb-3`, centred, `gap-3`.
           Two section headers three rows apart cannot have two different
           baselines and two different margins. */}
@@ -103,6 +150,9 @@ export default function DeviceVideos() {
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
         {videos.map((meta, i) => {
           const opening = openingKey === meta.key;
+          const confirming = confirmingKey === meta.key;
+          const deleting = deletingKey === meta.key;
+          const name = meta.songName || meta.fileName;
           return (
             <motion.div
               key={meta.key}
@@ -116,10 +166,14 @@ export default function DeviceVideos() {
             >
               <Panel tone="paper" radius="xl" className="overflow-hidden">
                 <button
+                  ref={element => {
+                    if (element) openControls.current.set(meta.key, element);
+                    else openControls.current.delete(meta.key);
+                  }}
                   type="button"
                   onClick={() => openVideo(meta)}
-                  disabled={openingKey !== null}
-                  aria-label={`Open ${meta.songName || meta.fileName} in practice`}
+                  disabled={openingKey !== null || confirmingKey !== null || deletingKey !== null}
+                  aria-label={`Open ${name} in practice`}
                   className="block w-full text-left outline-none transition-[transform,opacity] duration-[110ms] ease-out-strong active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-duo-blue motion-reduce:transition-none motion-reduce:active:scale-100 disabled:opacity-60"
                 >
                   <div className="relative flex h-24 w-full items-center justify-center bg-ink">
@@ -164,22 +218,74 @@ export default function DeviceVideos() {
               {/* Always visible, never hover-gated — this is a touch device.
                   `stage-solid` because it sits on the dark thumbnail, not on
                   paper: a paper-toned control here would be invisible. */}
-              <IconButton
-                aria-label={`Remove ${meta.songName || meta.fileName} from this device`}
-                title="Remove from this device"
-                tone="stage-solid"
-                visual="sm"
-                onClick={() => removeVideo(meta.key)}
-                className="absolute right-1.5 top-1.5"
+              <div
+                ref={element => {
+                  if (element) deleteControls.current.set(meta.key, element);
+                  else deleteControls.current.delete(meta.key);
+                }}
+                className="absolute right-1.5 top-1.5 z-10 flex items-center gap-2"
               >
-                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M3 6h18M8 6V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6m3 0v13.5A1.5 1.5 0 0 1 17.5 21h-11A1.5 1.5 0 0 1 5 19.5V6" />
-                </svg>
-              </IconButton>
+                <IconButton
+                  aria-label={confirming
+                    ? `Confirm remove ${name} from this device`
+                    : `Remove ${name} from this device`}
+                  title={confirming ? `Remove ${name}` : "Remove from this device"}
+                  tone="stage-solid"
+                  visual="sm"
+                  disabled={deletingKey !== null}
+                  onClick={() => {
+                    if (confirming) {
+                      const index = videos.findIndex(video => video.key === meta.key);
+                      const nextKey = videos[index + 1]?.key ?? videos[index - 1]?.key ?? null;
+                      void removeVideo(meta.key, name, nextKey);
+                      return;
+                    }
+                    setDeleteErrorKey(null);
+                    setDeleteStatus("");
+                    setConfirmingKey(meta.key);
+                  }}
+                  className={confirming
+                    ? "!w-auto !rounded-xl !border-duo-red !bg-duo-red px-3 font-extrabold text-white"
+                    : ""}
+                >
+                  {confirming ? (deleting ? "Removing…" : "Remove") : (
+                    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M3 6h18M8 6V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6m3 0v13.5A1.5 1.5 0 0 1 17.5 21h-11A1.5 1.5 0 0 1 5 19.5V6" />
+                    </svg>
+                  )}
+                </IconButton>
+
+                {confirming && !deleting && (
+                  <IconButton
+                    aria-label={`Keep ${name}`}
+                    title={`Keep ${name}`}
+                    tone="stage-solid"
+                    visual="sm"
+                    onClick={() => {
+                      setDeleteErrorKey(null);
+                      setFocusReturnKey(meta.key);
+                      setConfirmingKey(null);
+                    }}
+                    className="!w-auto !rounded-xl px-3 font-extrabold"
+                  >
+                    Keep
+                  </IconButton>
+                )}
+              </div>
+
+              {deleteErrorKey === meta.key && (
+                <p
+                  role="alert"
+                  className="absolute inset-x-1.5 top-14 z-10 rounded-lg bg-duo-red px-2 py-1 text-center text-hud font-bold text-white"
+                >
+                  Couldn’t remove {name}. Try again.
+                </p>
+              )}
             </motion.div>
           );
         })}
       </div>
-    </section>
+      </section>
+    </>
   );
 }
