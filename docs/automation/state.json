@@ -1,8 +1,14 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-28T16:45:25-07:00",
+  "updatedAt": "2026-09-28T21:39:36-07:00",
   "manager": "accountable-development-manager",
-  "activeRun": null,
+  "activeRun": {
+    "item": "TRACE-008",
+    "phase": "architectural brainstorming",
+    "startedAt": "2026-09-28T21:39:36-07:00",
+    "status": "awaiting primary outcome choice",
+    "implementationStarted": false
+  },
   "baseline": {
     "localHead": "65cfa4659279d9dfb763e57fb028b1764b596eed",
     "localBranch": "main",
@@ -26,7 +32,22 @@
     "TRACE-002": "complete-reviewable",
     "TRACE-003": "blocked-human-device",
     "TRACE-006": "complete-reviewable",
-    "TRACE-007": "complete-awaiting-independent-review"
+    "TRACE-007": "complete-awaiting-independent-review",
+    "TRACE-008": "discovery-awaiting-product-direction"
+  },
+  "publishedBranches": {
+    "verifiedAt": "2026-09-28T21:39:36-07:00",
+    "remote": "origin",
+    "refs": {
+      "codex/pilot-resume-state": "c9742ba735129f74a45eb0a43f505607eba95c13",
+      "codex/pilot-stage-accessibility": "5118ec6041f77e4593a979608ec0d0a1a5e70f1c",
+      "codex/pilot-signed-url-auth": "4bf5b297084b25520e6cd8cd9e147ad1d57da981",
+      "codex/cycle-reopen-tutorial": "23cc1f3511e4ca2d547439a297d1353648783367",
+      "codex/trace-improvement-manager": "3f73ced5abc3ef5c0bc990804894b84d93771565"
+    },
+    "mainPushed": false,
+    "merged": false,
+    "deployed": false
   },
   "latestCycle": {
     "item": "TRACE-007",

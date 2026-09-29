@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-28T16:45:25-07:00",
+  "updatedAt": "2026-09-28T21:39:36-07:00",
   "priorities": ["reproduced-core-workflow", "approved-requirement", "safety-accessibility", "evidence-gap", "speculative"],
   "items": [
     {
       "id": "TRACE-001",
       "title": "Restore the complete saved practice state",
       "priority": "P0",
-      "status": "complete-awaiting-independent-review",
+      "status": "complete-reviewable",
       "kind": "implementation",
       "evidence": ["components/dashboard/DeviceVideos.tsx", "lib/videoStore.ts", "components/practice/PracticeView.tsx", "components/practice/TraceTab.tsx"],
       "userOutcome": "A returning dancer resumes the same section, framing, and dancer without repeating setup.",
@@ -120,7 +120,7 @@
       "id": "TRACE-007",
       "title": "Let dancers reopen onboarding from the dashboard",
       "priority": "P1-experience",
-      "status": "complete-reviewable",
+      "status": "complete-awaiting-independent-review",
       "kind": "implementation",
       "evidence": ["components/dashboard/DashboardTutorial.tsx", "app/dashboard/page.tsx"],
       "userOutcome": "A dancer who dismisses onboarding can reopen it when they need a reminder instead of following a nonexistent Settings path.",
@@ -139,6 +139,34 @@
         "deployed": false,
         "deviceValidated": false
       }
+    },
+    {
+      "id": "TRACE-008",
+      "title": "Decide the next whole-site design and flow direction",
+      "priority": "P0-product-direction",
+      "status": "discovery-awaiting-product-direction",
+      "kind": "design-decision",
+      "evidence": [
+        "docs/DESIGN_SYSTEM.md",
+        "docs/HANDOFF-DESIGN.md",
+        "docs/superpowers/plans/2026-07-30-trace-ux-program.md",
+        "app/page.tsx",
+        "app/dashboard/page.tsx",
+        "app/practice/page.tsx",
+        "components/practice/CalibrationModal.tsx",
+        "components/practice/TabNavigation.tsx",
+        "public portfolio branch revamp/glass-public (read-only comparison)"
+      ],
+      "userOutcome": "Trace presents one understandable path from discovery to a useful dance-practice result without discarding the stage design that already serves rehearsal conditions.",
+      "acceptanceCriteria": [
+        "Map the current landing, access, library, import, calibration, practice, recording, and results journey.",
+        "Separate visual-system problems from information-architecture and product-flow problems.",
+        "Compare 2-3 directions and recommend one with explicit user, accessibility, privacy, and engineering tradeoffs.",
+        "Borrow transferable portfolio patterns without copying its personal-brand aesthetic or private material.",
+        "Obtain product-direction approval before writing a redesign specification or product code."
+      ],
+      "dependencies": ["Product owner chooses the primary outcome for the redesign"],
+      "blockedBy": []
     }
   ]
 }
