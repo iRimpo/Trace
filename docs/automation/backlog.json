@@ -223,6 +223,34 @@
         "deployed": false,
         "deviceValidated": false
       }
+    },
+    {
+      "id": "TRACE-011",
+      "title": "Describe local video choice truthfully",
+      "priority": "P1-trust",
+      "status": "complete-reviewable",
+      "kind": "content-implementation",
+      "evidence": [
+        "app/practice/page.tsx",
+        "components/dashboard/DashboardTutorial.tsx",
+        "components/landing/HowItWorks.tsx",
+        "components/landing/Hero.tsx"
+      ],
+      "userOutcome": "A dancer understands that choosing a reference video reads and saves it on their device rather than uploading it to Trace's servers.",
+      "acceptanceCriteria": [
+        "The new-session heading and dashboard onboarding say choose rather than upload.",
+        "The new-session explanation states that Trace reads the video on this device.",
+        "Internal storage types and analytics identifiers remain unchanged.",
+        "Existing component tests, unit tests, typecheck, and build verification remain green."
+      ],
+      "dependencies": ["TRACE-010 cumulative review branch"],
+      "blockedBy": [],
+      "result": {
+        "branch": "codex/cycle-truthful-local-video-copy",
+        "head": "25b8929724c793c51d78253f19ff615ed5c5e911",
+        "deployed": false,
+        "deviceValidated": false
+      }
     }
   ]
 }
