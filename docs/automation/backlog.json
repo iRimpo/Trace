@@ -194,6 +194,35 @@
         "deployed": false,
         "deviceValidated": false
       }
+    },
+    {
+      "id": "TRACE-010",
+      "title": "Confirm before deleting an on-device video",
+      "priority": "P0-data-safety",
+      "status": "complete-reviewable",
+      "kind": "implementation",
+      "evidence": [
+        "components/dashboard/DeviceVideos.tsx",
+        "components/dashboard/SongCard.tsx",
+        "lib/videoStore.ts"
+      ],
+      "userOutcome": "A dancer cannot permanently lose a locally saved practice video through one accidental tap.",
+      "acceptanceCriteria": [
+        "The first remove action does not mutate IndexedDB or remove the video tile.",
+        "The armed confirmation clearly names the affected video and offers a Keep action.",
+        "Keep restores the normal tile without deletion.",
+        "Confirm deletes exactly the selected video and removes its tile only after deletion completes.",
+        "Opening a saved video remains unchanged and focused component coverage guards the flow.",
+        "Component tests, unit tests, typecheck, and build verification remain green."
+      ],
+      "dependencies": ["TRACE-009 cumulative review branch"],
+      "blockedBy": [],
+      "result": {
+        "branch": "codex/cycle-confirm-device-video-delete",
+        "head": "926c56c67f04a9d87737d140db995ce716155495",
+        "deployed": false,
+        "deviceValidated": false
+      }
     }
   ]
 }
