@@ -280,7 +280,7 @@ const STEPS = [
   },
   {
     title: "You're ready",
-    body: "Upload a dance video, run a quick camera setup, and start tracing. Use How it works on the dashboard whenever you want this walkthrough again.",
+    body: "Choose a dance video from this device, run a quick camera setup, and start tracing. Use How it works on the dashboard whenever you want this walkthrough again.",
     visual: <VisualReady />,
     accent: CUE_PALETTE.foot,
   },

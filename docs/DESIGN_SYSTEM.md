@@ -13,7 +13,7 @@ applying one's rules to the other.
 
 ### Paper — `bg-brand-cream`
 
-Auth, dashboard, upload. Read at arm's length, on a static ground.
+Auth, dashboard, video choice. Read at arm's length, on a static ground.
 
 - Ground: `bg-brand-cream` (#F8F4E0). Cards: `bg-white`.
 - Text: `text-ink` primary, `text-clay` secondary, `text-clay/60` tertiary.

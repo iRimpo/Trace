@@ -113,11 +113,11 @@ function ArrowRight() {
   );
 }
 
-function UploadGlyph({ className = "h-7 w-7" }: { className?: string }) {
+function ChooseVideoGlyph({ className = "h-7 w-7" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V4.5m0 0L7.5 9M12 4.5 16.5 9" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.5 15.5v3A2.5 2.5 0 0 0 6 21h12a2.5 2.5 0 0 0 2.5-2.5v-3" />
+      <rect x="2.5" y="4.5" width="19" height="15" rx="2.5" />
+      <path strokeLinecap="round" d="M7 4.5v15M17 4.5v15M9.5 12h5M12 9.5v5" />
     </svg>
   );
 }
@@ -286,10 +286,10 @@ export default function PracticePage() {
               viewport. */}
           <p className="text-hud uppercase tracking-[0.18em] text-clay/60">New session</p>
           <h1 className="mt-1.5 text-3xl font-extrabold tracking-tight text-ink">
-            Upload your dance video
+            Choose a dance video
           </h1>
           <p className="mt-1.5 text-sm font-medium leading-relaxed text-clay/80">
-            Trace overlays it on your camera so you can match every move.
+            Trace reads it on this device and overlays it on your camera so you can match every move.
           </p>
 
           {/* Same padding as the auth card — this and the login panel are the
@@ -348,7 +348,7 @@ export default function PracticePage() {
                     ].join(" ")}
                   >
                     <span className={`flex h-16 w-16 items-center justify-center rounded-2xl ${dragActive ? "bg-duo-blue text-white" : "bg-ink/[0.06] text-ink/60"}`}>
-                      <UploadGlyph />
+                      <ChooseVideoGlyph />
                     </span>
                     <span className="mt-4 text-lg font-extrabold tracking-tight text-ink">
                       <span className="hidden sm:inline">Drop your video here</span>
@@ -494,8 +494,8 @@ export default function PracticePage() {
           </Panel>
 
           <p className="mt-5 text-center text-xs font-medium leading-relaxed text-clay/60">
-            MP4, MOV or WebM · up to 200MB. Your video is read on this device and
-            saved here so the next session opens instantly.
+            MP4, MOV or WebM · up to 200MB. Trace reads your video on this device
+            and, when browser storage is available, keeps it here for faster repeat sessions.
           </p>
         </motion.div>
       </main>
